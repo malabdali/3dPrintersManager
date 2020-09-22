@@ -17,23 +17,42 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     core/device.cpp \
+    core/devicefilessystem.cpp \
     core/devicefunctions.cpp \
     core/deviceinfo.cpp \
     core/devices.cpp \
+    core/gcode/deletefile.cpp \
+    core/gcode/fileslist.cpp \
+    core/gcode/uploadfile.cpp \
+    core/gcodecommand.cpp \
     core/remoteserver.cpp \
     main.cpp \
+    ui/deviceswidget.cpp \
+    ui/devicewidget.cpp \
+    ui/filessystemwidget.cpp \
     ui/mainwindow.cpp\
     config.cpp
 
 HEADERS += \
     core/device.h \
+    core/devicefilessystem.h \
     core/devicefunctions.h \
     core/deviceinfo.h \
     core/devices.h \
+    core/gcode/deletefile.h \
+    core/gcode/fileslist.h \
+    core/gcode/uploadfile.h \
+    core/gcodecommand.h \
     core/remoteserver.h \
+    ui/deviceswidget.h \
+    ui/devicewidget.h \
+    ui/filessystemwidget.h \
     ui/mainwindow.h
 
 FORMS += \
+    ui/deviceswidget.ui \
+    ui/devicewidget.ui \
+    ui/filessystemwidget.ui \
     ui/mainwindow.ui
 
 TRANSLATIONS += \
@@ -43,3 +62,6 @@ TRANSLATIONS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resources/images.qrc

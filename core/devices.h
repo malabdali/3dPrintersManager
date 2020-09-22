@@ -7,6 +7,8 @@
 #include <QSignalMapper>
 #include <QApplication>
 #include <QThread>
+#include "remoteserver.h"
+#include <QJsonArray>
 
 class Devices : public QObject
 {
@@ -18,11 +20,13 @@ private://fields
 
 
 public:
-    Device* AddDevice(DeviceInfo& dev);
-    void RemoveDevice(const DeviceInfo &name);
-    Device *GetDevice(const DeviceInfo &name)const;
-    Device* GetDeviceByPort(const QByteArray& port)const;
+    Device* AddDevice(DeviceInfo* dev);
+    void RemoveDevice(const DeviceInfo *name);
+    Device *GetDevice(const DeviceInfo *name)const;
+    Device *GetDeviceByPort(const QByteArray& port)const;
     void DetectPortAndConnectForAllDevices(bool=false);
+    void LoadDevicesFromRemoteServer();
+    QList<Device *> GetAllDevices();
 private:
     explicit Devices(QObject *parent = nullptr);
     void WhenEndDevicesPortDetection();
@@ -36,6 +40,9 @@ private slots:
     void OnDevicePortDetected();
 signals:
     void DetectPortsEnded();
+    void DevicesLoaded(bool);
+    void DeviceAdded(Device*);
+    void DeviceRemoved(Device*);
 
 };
 

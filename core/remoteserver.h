@@ -24,10 +24,12 @@ private://non static fiels
     QMap<QNetworkReply*,std::function<void(QNetworkReply*)>> _callbacks;
 public:
     explicit RemoteServer(QObject *parent = nullptr);
-    QNetworkReply* LoadAllDevicesInfo(std::function<void(QNetworkReply*)>);
-    QNetworkReply* SelectQuery(std::function<void(QNetworkReply*)>);
+    QNetworkReply* SendSelectQuery(std::function<void(QNetworkReply*)> callback,QString table,QString fileds="*",QString where="1=1",QString orderColumn="id",QString orderBy="ASC");
+    QNetworkReply *SendUpdateQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data,int id);
+    QNetworkReply* SendInsertQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data);
+    QNetworkReply *SendDeleteQuery(std::function<void(QNetworkReply*)> callback,QString table,int id);
     bool IsSuccess(QNetworkReply* reply);
-    QJsonObject GetJSONObject(QNetworkReply* reply);
+    QJsonValue GetJSONValue(QNetworkReply* reply);
 
 private://methods
     QNetworkReply* SendRequest(QUrlQuery,QUrl,std::function<void(QNetworkReply*)>);
@@ -35,6 +37,7 @@ private slots:
     void OnFinish(QNetworkReply *rep);
 
 signals:
+    void Finished(QNetworkReply *);
 
 };
 

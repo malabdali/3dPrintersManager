@@ -11,7 +11,8 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QReadWriteLock>
-#include "devicefunctions.h"
+#include "devicefilessystem.h"
+#include "gcodecommand.h"
 
 class Device : public QObject
 {
@@ -46,7 +47,7 @@ private://nested types
 
 private://fields
     QByteArray _port; 
-    DeviceInfo _device_info;
+    DeviceInfo* _device_info;
     QSerialPort* _serial_port;
     DeviceStatus _current_status;
     QMutex mutex;
@@ -61,14 +62,16 @@ private://fields
     QSignalMapper _lookfor_ports_signals_mapper;
     int _lookfor_timer_id=0;
     //end end detect ports by device name
-    QList<DeviceFunctions*> _functions;
+    QList<GCodeCommand*> _commands;
+    DeviceFilesSystem* _fileSystem;
+
 
 public:
     Q_INVOKABLE void DetectDevicePort();
     void SetPort(const QByteArray& port);
     QByteArray GetPort();
-    void SetDeviceInfo(const DeviceInfo& device);
-    DeviceInfo& GetDeviceInfo();
+    void SetDeviceInfo(DeviceInfo* device);
+    DeviceInfo* GetDeviceInfo();
     DeviceStatus GetStatus()const;
     bool IsOpen()const;
     bool OpenPort();
@@ -81,15 +84,16 @@ public:
     QByteArray ReadLine();
     bool WriteIsBusy();
     void ClearLines();
-    DeviceFunctions* AddFunction(DeviceFunctions::Function,QByteArray="",QByteArray="");
-    void ClearFunctions();
-    DeviceFunctions *GetCurrentFunction();
+    void AddGCodeCommand(GCodeCommand* command);
+    void ClearCommands();
+    GCodeCommand *GetCurrentCommand();
+    DeviceFilesSystem *GetFileSystem()const;
 
     ~Device();
 
 
 private://methods
-    explicit Device(const DeviceInfo& device_info,QObject *parent = nullptr);
+    explicit Device(DeviceInfo* device_info,QObject *parent = nullptr);
     void timerEvent(QTimerEvent *event) override;
     void DetectPortProcessing();
     void SetStatus(DeviceStatus status);
@@ -104,9 +108,9 @@ private slots:
     void OnChecPortsDataAvailableMapped(int);
     void OnErrorOccurred(QSerialPort::SerialPortError);
     void OnClosed();
-    void WhenFunctionFinished(bool);
+    void WhenCommandFinished(bool);
     void CallFunction(const char* function);
-    void StartNextFunction();
+    void StartNextCommand();
 
 
 
@@ -120,8 +124,8 @@ signals:
     void NewLinesAvailable(QByteArrayList);
     void BytesWritten();
     void EndWrite(bool);
-    void FunctionFinished(DeviceFunctions* , bool);
-    void FunctionStarted(DeviceFunctions*);
+    void CommandFinished(GCodeCommand* , bool);
+    void CommandStarted(GCodeCommand*);
 
 };
 

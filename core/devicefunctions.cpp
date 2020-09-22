@@ -2,8 +2,9 @@
 #include <QDebug>
 #include <algorithm>
 #include "device.h"
-DeviceFunctions::DeviceFunctions(Device *device, DeviceFunctions::Function fun,QByteArray data1,QByteArray data2):QObject(nullptr),
-    _device(device),_function(fun),_data1(data1),_data2(data2),_result(""),_started(false)
+#include <QVariant>
+DeviceFunctions::DeviceFunctions(Device *device, DeviceFunctions::Function fun,std::function<void (bool, QVariant)> callback,QByteArray data1,QByteArray data2):QObject(nullptr),
+    _device(device),_function(fun),_data1(data1),_data2(data2),_result(""),_started(false),_callback(callback)
 {
     qDebug()<<"create function";
 }
@@ -26,6 +27,10 @@ void DeviceFunctions::Start()
     {
         _device->Write(QByteArray("M28 ")+_data1+"\n");
     }
+    else if(_function==Function::DeleteFile)
+    {
+        _device->Write(QByteArray("M30 ")+_data1+"\n");
+    }
 }
 
 //start files list
@@ -37,10 +42,10 @@ void DeviceFunctions::FileListFunctionDataAvailable(QByteArray ba)
     {
         _result=_result.mid(1,_result.length()-2);
     }
-    else if(_result.contains('/') && ba.contains(".GCO"))
+    else if(_result.contains('/') && (ba.contains(".GCO")||ba.contains(".gcode")))
     {
-        int index=ba.indexOf(".GCO");
-        QByteArray file=ba.left(index+4);
+        int index=ba.indexOf(" ");
+        QByteArray file=ba.left(index);
         _result+=file+',';
     }
     else if(ba=="ok"){
@@ -67,19 +72,37 @@ void DeviceFunctions::FileListFunctionStop()
     Finish(false);
 }
 
+void DeviceFunctions::FileListFunctionFinished(bool success)
+{
+    if(success)
+    {
+        QVariantList list;
+        for(QByteArray& ba:_result.split(','))
+            list.append(ba);
+        _callback(success,list);
+    }
+    else{
+        _callback(success,QVariant());
+    }
+
+}
+
 //end file lists
 
 //upload file
 void DeviceFunctions::UploadFileFunctionDataAvailable(QByteArray ba)
 {
+    qDebug()<<ba;
     if(ba.contains("Writing to file:") && _outputs.isEmpty())
     {
         _outputs.append("start");
     }
+    else if(ba.contains("open failed")){
+        _outputs.append("failed");
+    }
     else if(ba.contains("ok") && _outputs.length()==1&& _outputs[0]=="start"){
-        qDebug()<<"start now ";
+        qDebug()<<_counter;
         QByteArrayList lines=_data2.split('\n');
-        qDebug()<<lines.length();
         lines.erase(std::remove_if(lines.begin(),lines.end(),[](QByteArray& line)->bool{
             return !line.startsWith("M")&& !line.startsWith("G");
         }),lines.end());
@@ -96,7 +119,6 @@ void DeviceFunctions::UploadFileFunctionDataAvailable(QByteArray ba)
             _outputs=lines;
             i++;
         }
-        qDebug()<<_outputs.length();
         _upload_stage=true;
         this->_device->Write(_outputs[0]);
     }
@@ -116,18 +138,19 @@ void DeviceFunctions::UploadFileFunctionDataAvailable(QByteArray ba)
     }
     else if(ba.contains("Done saving file")){
         //qDebug()<<(std::chrono::system_clock::now()-from).count();
-        qDebug()<<"file uploaded"<<_counter;
         Finish(true);
     }
     else if(ba.contains("Resend: ")){
+
         //_device->StopWrite();
         //_device->ClearLines();
-        qDebug()<<"resend";
         _resend=true;
         //uint32_t ln=ba.mid(8,ba.length()).simplified().trimmed().toUInt();
         //_counter=ln-1;
         //this->_device->Write(_outputs[ln-1]);
-        qDebug()<<ba;
+    }
+    else if(ba.contains("ok")&& _outputs[0]=="failed"){
+        Finish(false);
     }
     else if(_outputs.length()==0){
     }
@@ -153,7 +176,46 @@ void DeviceFunctions::UploadFileFunctionStop()
     Finish(false);
 }
 
+void DeviceFunctions::UploadFileFunctionFinished(bool success)
+{
+    _callback(success,QVariant());
+}
+
 //end upload file
+
+//delete file
+void DeviceFunctions::DeleleFileFunctionDataAvailable(QByteArray ba)
+{
+    qDebug()<<ba;
+    if(ba.contains("File deleted:")){
+        _result="succed";
+        qDebug()<<"delete file success";
+    }
+    else if(ba.contains("Deletion failed")){
+        _result="failed";
+        qDebug()<<"delete file failed";
+    }
+    else if("ok"){
+        if(_result=="succed")
+            Finish(true);
+        else if(_result=="failed")
+            Finish(false);
+    }
+}
+
+void DeviceFunctions::DeleteFileFunctionFinished(bool success)
+{
+    if(success)
+        _callback(true,_data1);
+    else
+        _callback(false,_data1);
+}
+
+void DeviceFunctions::DeleteFileFunctionStop()
+{
+    Finish(false);
+}
+//end delete file
 
 bool DeviceFunctions::IsFinished(){
     return _finished;
@@ -166,12 +228,15 @@ void DeviceFunctions::Stop()
         FileListFunctionStop();
     if(_function==Function::UploadFile)
         UploadFileFunctionStop();
+    if(_function==Function::DeleteFile)
+        DeleteFileFunctionStop();
 }
 
 bool DeviceFunctions::IsStarted() const
 {
     return _started;
 }
+
 
 DeviceFunctions::~DeviceFunctions()
 {
@@ -180,12 +245,17 @@ DeviceFunctions::~DeviceFunctions()
 
 void DeviceFunctions::Finish(bool b)
 {
-    qDebug()<<"function is finished";
     _finished=true;
     QObject::disconnect(_device,&Device::NewLinesAvailable,this,&DeviceFunctions::WhenLineAvailable);
     QObject::disconnect(_device,&Device::EndWrite,this,&DeviceFunctions::WhenWriteFinished);
     QObject::disconnect(_device,&Device::BytesWritten,this,&DeviceFunctions::WhenWriteLine);
 
+    if(_function==Function::FileList)
+        FileListFunctionFinished(b);
+    if(_function==Function::UploadFile)
+        UploadFileFunctionFinished(b);
+    if(_function==Function::DeleteFile)
+        DeleteFileFunctionFinished(b);
     //_device->StopWrite();
     emit Finished(b);
 }
@@ -197,6 +267,8 @@ void DeviceFunctions::WhenLineAvailable(QByteArrayList list)
             FileListFunctionDataAvailable(_device->ReadLine());
         if(_function==Function::UploadFile)
             UploadFileFunctionDataAvailable(_device->ReadLine());
+        if(_function==Function::DeleteFile)
+            DeleleFileFunctionDataAvailable(_device->ReadLine());
     }
 
 }

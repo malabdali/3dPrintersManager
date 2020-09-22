@@ -17,12 +17,6 @@ QNetworkReply *RemoteServer::SendRequest(QUrlQuery query, QUrl url,std::function
     return reply;
 }
 
-void RemoteServer::OnFinish(QNetworkReply *rep)
-{
-    _callbacks[rep](rep);
-    _callbacks.remove(rep);
-}
-
 RemoteServer *RemoteServer::GetInstance()
 {
     if(_singleton==nullptr)
@@ -30,27 +24,55 @@ RemoteServer *RemoteServer::GetInstance()
     return _singleton;
 }
 
-
-
-QNetworkReply* RemoteServer::LoadAllDevicesInfo(std::function<void(QNetworkReply*)> callback)
+QNetworkReply *RemoteServer::SendSelectQuery(std::function<void (QNetworkReply *)> callback, QString table, QString fields, QString where, QString orderColumn, QString orderBy)
 {
     QUrlQuery query;
-    query.addQueryItem("table","Printers");
-    query.addQueryItem("where","1=1");
-    query.addQueryItem("fields","*");
-    query.addQueryItem("orderColumn","id");
-    query.addQueryItem("orderBy","ASC");
-    query.addQueryItem("admin_pass","mM41634163Mm");
-    query.addQueryItem("admin_name","malabdali");
+    query.addQueryItem("table",table);
+    query.addQueryItem("where",where);
+    query.addQueryItem("fields",fields);
+    query.addQueryItem("orderColumn",orderColumn);
+    query.addQueryItem("orderBy",orderBy);
+    query.addQueryItem("admin_pass",REMOTE_SERVER_ADMIN_PASS);
+    query.addQueryItem("admin_name",REMOTE_SERVER_ADMIN_NAME);
     return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"Query/Select",callback);
+}
 
+QNetworkReply *RemoteServer::SendUpdateQuery(std::function<void (QNetworkReply *)> callback, QString table, QVariantMap data, int id)
+{
+    QUrlQuery query;
+    query.addQueryItem("table",table);
+    query.addQueryItem("id",QString::number(id));
+    query.addQueryItem("data",QJsonDocument(QJsonObject::fromVariantMap(data)).toJson());
+    query.addQueryItem("admin_pass",REMOTE_SERVER_ADMIN_PASS);
+    query.addQueryItem("admin_name",REMOTE_SERVER_ADMIN_NAME);
+    return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"Query/Update",callback);
+}
+
+QNetworkReply *RemoteServer::SendInsertQuery(std::function<void (QNetworkReply *)> callback, QString table, QVariantMap data)
+{
+    QUrlQuery query;
+    query.addQueryItem("table",table);
+    query.addQueryItem("data",QJsonDocument(QJsonObject::fromVariantMap(data)).toJson());
+    query.addQueryItem("admin_pass",REMOTE_SERVER_ADMIN_PASS);
+    query.addQueryItem("admin_name",REMOTE_SERVER_ADMIN_NAME);
+    return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"Query/Insert",callback);
+}
+
+QNetworkReply *RemoteServer::SendDeleteQuery(std::function<void (QNetworkReply *)> callback, QString table, int id)
+{
+    QUrlQuery query;
+    query.addQueryItem("table",table);
+    query.addQueryItem("id",QString::number(id));
+    query.addQueryItem("admin_pass",REMOTE_SERVER_ADMIN_PASS);
+    query.addQueryItem("admin_name",REMOTE_SERVER_ADMIN_NAME);
+    return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"Query/Delete",callback);
 }
 
 bool RemoteServer::IsSuccess(QNetworkReply *reply)
 {
     if(reply->error()!=QNetworkReply::NoError)
         return false;
-    QString data=reply->readAll();
+    QString data=reply->peek(reply->size());
     data=data.simplified();
     data.replace("\\\"","\"");
     QString res=QJsonDocument::fromJson(data.toUtf8()).object()["result"].toString();
@@ -60,17 +82,24 @@ bool RemoteServer::IsSuccess(QNetworkReply *reply)
     return false;
 }
 
-QJsonObject RemoteServer::GetJSONObject(QNetworkReply *reply)
+QJsonValue RemoteServer::GetJSONValue(QNetworkReply *reply)
 {
     QJsonDocument document;
     if(IsSuccess(reply)){
 
-        QString data=reply->readAll();
+        QString data=reply->peek(reply->size());
         data=data.simplified();
         data.replace("\\\"","\"");
-        return QJsonDocument::fromJson(data.toUtf8()).object()["result"].toObject();
+        return QJsonDocument::fromJson(data.toUtf8()).object()["data"];
     }
     return QJsonObject();
+}
+
+void RemoteServer::OnFinish(QNetworkReply *rep)
+{
+    _callbacks[rep](rep);
+    _callbacks.remove(rep);
+    emit Finished(rep);
 }
 
 
