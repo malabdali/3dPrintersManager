@@ -26,6 +26,8 @@ private slots:
 
     void on__upload_file_button_clicked();
 
+    void on__stop_upload_button_clicked();
+
 private:
     Ui::FilesSystemWidget *ui;
 

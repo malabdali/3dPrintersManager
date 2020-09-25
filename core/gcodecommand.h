@@ -3,13 +3,14 @@
 
 #include <QObject>
 #include <QVariant>
+#include "device.h"
 
 class GCodeCommand : public QObject
 {
     Q_OBJECT
 protected://fields
     QByteArray _gcode;
-    class Device* _device;
+    class Device *_device;
     bool _finished,_started;
 public:
     explicit GCodeCommand(Device *device, QByteArray command);
@@ -25,6 +26,7 @@ private slots:
     void WhenLineAvailable(QByteArrayList);
     void WhenWriteFinished(bool b);
     void WhenWriteLine();
+    void WhenErrorOcurre(int);
 
 protected:
     virtual void OnAvailableData(const QByteArray& ba)=0;

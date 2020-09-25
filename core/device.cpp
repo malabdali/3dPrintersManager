@@ -5,6 +5,8 @@
 #include <QTimerEvent>
 #include "../config.cpp"
 #include <QMetaMethod>
+#include "devicefilessystem.h"
+#include "gcodecommand.h"
 Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),_device_info(device_info),_serial_port(new QSerialPort()),
 _fileSystem(new DeviceFilesSystem(this,this)){
     qRegisterMetaType<Errors>();
@@ -12,12 +14,15 @@ _fileSystem(new DeviceFilesSystem(this,this)){
     _write_task->dev=this;
     _write_task->setAutoDelete(false);
     device_info->setParent(this);
+    _reopen=false;
+    _is_ready=false;
 
     QObject::connect(_serial_port,&QSerialPort::readyRead,this,&Device::OnAvailableData);
     QObject::connect(&_lookfor_ports_signals_mapper,SIGNAL(mapped(int)),this,SLOT(OnChecPortsDataAvailableMapped(int)));
     QObject::connect(_serial_port,&QSerialPort::errorOccurred,this,&Device::OnErrorOccurred);
     //QObject::connect(this->_serial_port,&QSerialPort::bytesWritten,this,&Device::OnWrittenData);
     QObject::connect(_serial_port,&QSerialPort::aboutToClose,this,&Device::OnClosed);
+    QObject::connect(_serial_port,&QSerialPort::dataTerminalReadyChanged,this,&Device::OnDataTerminalReadyChanged);
     //QObject::connect();
 }
 
@@ -116,21 +121,41 @@ void Device::CalculateAndSetStatus()
     DeviceStatus ds=DeviceStatus::Non;
     if(_lookfor_available_ports.length()>0)
         ds=DeviceStatus::DetectDevicePort;
-    if(_serial_port->isOpen())
+    if(_serial_port->isOpen() && !_is_ready)
         ds=DeviceStatus::Connected;
     if(!_port.isEmpty() && !_serial_port->isOpen())
         ds=DeviceStatus::PortDetected;
+    if(_serial_port->isOpen() && _is_ready)
+        ds=DeviceStatus::Ready;
+
     SetStatus(ds);
 }
 
 void Device::SerialInputFilter(QByteArrayList &list)
 {
     if(list.contains("echo:SD card ok"))
+    {
         _fileSystem->SetSdSupported(true);
+        SetReady(true);
+    }
     list.erase(std::remove_if(list.begin(),list.end(),[](QByteArray& ba){
                    bool b= ba.contains("echo:") || ba.isEmpty() || ba.startsWith("Marlin");
                    return b;
                }),list.end());
+}
+
+void Device::SetReady(bool ready)
+{
+    bool old=_is_ready;
+    mutex.lock();
+    _is_ready=ready;
+    mutex.unlock();
+
+    if(old!=_is_ready)
+        emit ReadyFlagChanged(_is_ready);
+
+    if(ready)
+        CallFunction("StartNextCommand");
 }
 
 Device::DeviceStatus Device::GetStatus() const{
@@ -159,6 +184,32 @@ bool Device::OpenPort(){
         }
     }
     return false;
+}
+
+bool Device::ReopenPort()
+{
+    _reopen=true;
+    if(_serial_port->isOpen())
+        _serial_port->close();
+    if(!this->_port.isEmpty())
+    {
+        //_serial_port->setBaudRate(_device_info->GetBaudRate());
+        //_serial_port->setPortName(_port);
+        if(_serial_port->open(QIODevice::ReadWrite)){
+            CalculateAndSetStatus();
+            _reopen=false;
+            return true;
+        }
+        else{
+            CalculateAndSetStatus();
+            _reopen=false;
+            return false;
+        }
+    }
+    CalculateAndSetStatus();
+    _reopen=false;
+    return false;
+
 }
 
 void Device::ClosePort(){
@@ -223,12 +274,17 @@ void Device::ClearLines()
 
 void Device::AddGCodeCommand(GCodeCommand *command)
 {
-    QMutexLocker locker(&mutex);
-    if(!IsOpen())
+    if(this->thread()!=QThread::currentThread())
+    {
+        CallFunction("AddGCodeCommand",{Q_ARG(GCodeCommand *,command)});
         return;
+    }
+    QMutexLocker locker(&mutex);
     command->moveToThread(this->thread());
     command->setParent(this);
     _commands.append(command);
+    locker.unlock();
+    emit CommandAdded(command);
     QObject::connect(command,&GCodeCommand::Finished,this,&Device::WhenCommandFinished);
     if(_commands.length()<2){
         CallFunction("StartNextCommand");
@@ -238,7 +294,11 @@ void Device::AddGCodeCommand(GCodeCommand *command)
 
 void Device::ClearCommands()
 {
-    QMutexLocker locker(&mutex);
+    if(this->thread()!=QThread::currentThread())
+    {
+        CallFunction("ClearCommands");
+        return;
+    }
     if(_commands.length()>0){
         if(_commands[0]->IsStarted())
             _commands[0]->Stop();
@@ -246,6 +306,21 @@ void Device::ClearCommands()
             command->deleteLater();
         }
         _commands.clear();
+    }
+}
+
+void Device::ClearCommand(GCodeCommand *command)
+{
+    if(this->thread()!=QThread::currentThread())
+    {
+        CallFunction("ClearCommand",{Q_ARG(GCodeCommand *,command)});
+        return;
+    }
+    if(_commands.contains(command)){
+        if(command->IsStarted())
+            command->Stop();
+        command->deleteLater();
+        _commands.removeAll(command);
     }
 }
 
@@ -321,7 +396,14 @@ void Device::OnChecPortsDataAvailableMapped(int sid)
 
 void Device::OnClosed()
 {
-    emit PortClosed();
+    SetReady(false);
+    if(!_reopen)
+        emit PortClosed();
+}
+
+void Device::OnDataTerminalReadyChanged(bool b)
+{
+    qDebug()<<"OnDataTerminalReadyChanged : "<<b;
 }
 
 
@@ -331,32 +413,48 @@ void Device::WhenCommandFinished(bool b)
     _commands.removeAll((GCodeCommand*)this->sender());
     locker.unlock();
     this->sender()->deleteLater();
+
+    //qDebug()<<(_commands.length());
     emit CommandFinished((GCodeCommand*)this->sender(),b);
-    if(_commands.length()>0){
+    if(_commands.length()>0 && _is_ready){
         StartNextCommand();
     }
 }
 
-void Device::CallFunction(const char* function)
+void Device::CallFunction(const char *function)
 {
-    //this->metaObject()->method(QMetaMethod::))
     QMetaObject::invokeMethod(this,function,Qt::ConnectionType::AutoConnection);
 }
+
+void Device::CallFunction(const char *function, QGenericArgument argument)
+{
+    QMetaObject::invokeMethod(this,function,Qt::ConnectionType::AutoConnection,argument);
+}
+
 
 
 
 void Device::StartNextCommand()
 {
+    //qDebug()<<!_commands.length() << !_is_ready << !_serial_port->isOpen() << _commands[0]->IsStarted();
+    if(!_commands.length() || !_is_ready || !_serial_port->isOpen() || _commands[0]->IsStarted())
+        return;
     ClearLines();
     _commands[0]->Start();
     emit CommandStarted(_commands[0]);
+}
+
+bool Device::IsReady()
+{
+    QMutexLocker locker(&mutex);
+    return _is_ready;
 }
 
 void Device::OnErrorOccurred(Errors error)
 {
     if(error!=QSerialPort::SerialPortError::NoError && error!=QSerialPort::SerialPortError::NotOpenError)
     {
-        Clear();
+        SetReady(false);
         emit ErrorOccurred(error);
     }
 }

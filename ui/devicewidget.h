@@ -29,6 +29,7 @@ private slots:
     void OnDeviceInfoChanged();
     void OnCommandFinished(const GCodeCommand* function,bool b);
     void OnCommandStarted(const GCodeCommand* function);
+    void OnErrorOccured(int);
     void OnPortConnected();
     void OnPortDisconnected();
     void OnDetectPort();
@@ -42,6 +43,7 @@ private slots:
     void ShowContextMenu(const QPoint &pos);
     void FilesWidgetClosed();
     void on__files_action_triggered(bool checked);
+    void on__test_action_triggered();
 };
 
 #endif // DEVICEWIDGET_H

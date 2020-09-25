@@ -23,6 +23,9 @@ SOURCES += \
     core/devices.cpp \
     core/gcode/deletefile.cpp \
     core/gcode/fileslist.cpp \
+    core/gcode/powersupply.cpp \
+    core/gcode/printingstatus.cpp \
+    core/gcode/startprinting.cpp \
     core/gcode/uploadfile.cpp \
     core/gcodecommand.cpp \
     core/remoteserver.cpp \
@@ -41,6 +44,9 @@ HEADERS += \
     core/devices.h \
     core/gcode/deletefile.h \
     core/gcode/fileslist.h \
+    core/gcode/powersupply.h \
+    core/gcode/printingstatus.h \
+    core/gcode/startprinting.h \
     core/gcode/uploadfile.h \
     core/gcodecommand.h \
     core/remoteserver.h \

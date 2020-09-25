@@ -19,6 +19,7 @@ void GCodeCommand::Start()
     QObject::connect(_device,&Device::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);
     QObject::connect(_device,&Device::EndWrite,this,&GCodeCommand::WhenWriteFinished);
     QObject::connect(_device,&Device::BytesWritten,this,&GCodeCommand::WhenWriteLine);
+    QObject::connect(_device,&Device::ErrorOccurred,this,&GCodeCommand::WhenErrorOcurre);
 }
 
 bool GCodeCommand::IsFinished()
@@ -51,6 +52,11 @@ void GCodeCommand::WhenWriteLine()
     this->OnDataWritten();
 }
 
+void GCodeCommand::WhenErrorOcurre(int error)
+{
+    Finish(false);
+}
+
 void GCodeCommand::Finish(bool b)
 {
     qDebug()<<"finish command";
@@ -58,5 +64,6 @@ void GCodeCommand::Finish(bool b)
     QObject::disconnect(_device,&Device::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);
     QObject::disconnect(_device,&Device::EndWrite,this,&GCodeCommand::WhenWriteFinished);
     QObject::disconnect(_device,&Device::BytesWritten,this,&GCodeCommand::WhenWriteLine);
+    QObject::disconnect(_device,&Device::ErrorOccurred,this,&GCodeCommand::WhenErrorOcurre);
     emit Finished(b);
 }

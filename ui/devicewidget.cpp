@@ -2,6 +2,8 @@
 #include "ui_devicewidget.h"
 #include "../core/remoteserver.h"
 #include "../core/devices.h"
+#include "../core/gcode/printingstatus.h"
+#include "../core/devicefilessystem.h"
 #include <QApplication>
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
@@ -12,6 +14,17 @@ DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
 
 void DeviceWidget::Update()
 {
+    if(_device->GetFileSystem()->IsStillUploading() && _device->IsReady())
+    {
+        ui->_status->setText("Uploading Files");
+        qDebug()<<_device->GetFileSystem()->GetUploadProgress();
+    }
+    else if(_device->IsReady())
+        ui->_status->setText("Ready");
+    else if(!_device->IsReady() && _device->IsOpen())
+        ui->_status->setText("port is open not ready");
+    else
+        ui->_status->setText("port is closed");
 }
 
 DeviceWidget::~DeviceWidget()
@@ -31,14 +44,16 @@ void DeviceWidget::Setup()
         ui->_z->setText(QString::number(_device->GetDeviceInfo()->GetZ()));
         ui->_nozzle->setText(QString::number(_device->GetDeviceInfo()->GetNozzleDiameter()));
         ui->_material->setCurrentText(_device->GetDeviceInfo()->GetFilamentMaterial());
-        ui->_status->setVisible(false);
-        ui->_status_label->setVisible(false);
+        ui->_status->setVisible(true);
+        ui->_status_label->setVisible(true);
         ui->_save_changes_button->setVisible(false);
         ui->_create_button->setVisible(false);
         ui->_delete_button->setVisible(true);
         ui->_detect_port_button->setVisible(true);
         ui->_open_port_button->setVisible(false);
         ui->_close_port_button->setVisible(false);
+        ui->_error_label->setVisible(false);
+        ui->_error->setVisible(false);
 
         // device events
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged,Qt::ConnectionType::QueuedConnection);
@@ -48,6 +63,7 @@ void DeviceWidget::Setup()
         QObject::connect(this->_device,&Device::DetectPortFailed,this,&DeviceWidget::OnDetectPort,Qt::ConnectionType::QueuedConnection);
         QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnPortConnected,Qt::ConnectionType::QueuedConnection);
         QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnPortDisconnected,Qt::ConnectionType::QueuedConnection);
+        QObject::connect(this->_device,&Device::ErrorOccurred,this,&DeviceWidget::OnErrorOccured,Qt::ConnectionType::QueuedConnection);
 
     }
     else {
@@ -62,6 +78,8 @@ void DeviceWidget::Setup()
         ui->_detect_port_button->setVisible(false);
         ui->_open_port_button->setVisible(false);
         ui->_close_port_button->setVisible(false);
+        ui->_error_label->setVisible(false);
+        ui->_error->setVisible(false);
 
     }
 
@@ -114,11 +132,22 @@ void DeviceWidget::OnCommandStarted(const GCodeCommand *function)
 
 }
 
+void DeviceWidget::OnErrorOccured(int error)
+{
+    _device->ClosePort();
+    ui->_error_label->setVisible(true);
+    ui->_error->setVisible(true);
+    ui->_error->setText(QString::number(error));
+}
+
 void DeviceWidget::OnPortConnected()
 {
     ui->_icon->setStyleSheet("background-color: rgb(20, 255, 20);");
     ui->_open_port_button->setVisible(false);
     ui->_close_port_button->setVisible(true);
+    ui->_error_label->setVisible(false);
+    ui->_error->setVisible(false);
+    ui->_detect_port_button->setVisible(false);
 }
 
 void DeviceWidget::OnPortDisconnected()
@@ -126,19 +155,21 @@ void DeviceWidget::OnPortDisconnected()
     ui->_icon->setStyleSheet("background-color: rgb(255, 20, 20);");
     ui->_open_port_button->setVisible(true);
     ui->_close_port_button->setVisible(false);
+    ui->_detect_port_button->setVisible(true);
 }
 
 void DeviceWidget::OnDetectPort()
 {
     ui->_port->setText(this->_device->GetPort());
+    ui->_detect_port_button->setVisible(true);
     if(!this->_device->GetPort().isEmpty())
     {
-        ui->_detect_port_button->setVisible(false);
+        //ui->_detect_port_button->setVisible(false);
         ui->_open_port_button->setVisible(true);
     }
     else
     {
-        ui->_detect_port_button->setVisible(true);
+        //
         ui->_open_port_button->setVisible(false);
     }
 
@@ -255,7 +286,10 @@ void DeviceWidget::ShowContextMenu(const QPoint &pos)
     QMenu contextMenu(tr("Context menu"), this);
 
     if(_device->IsOpen())
+    {
         contextMenu.addAction(ui->_files_action);
+        contextMenu.addAction(ui->_test_action);
+    }
 
     contextMenu.exec(mapToGlobal(pos));
 }
@@ -276,4 +310,9 @@ void DeviceWidget::on__files_action_triggered(bool checked)
     _files_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _files_widget->show();
     QObject::connect(_files_widget,&QWidget::destroyed,this,&DeviceWidget::FilesWidgetClosed);
+}
+
+void DeviceWidget::on__test_action_triggered()
+{
+    _device->AddGCodeCommand(new GCode::PrintingStatus(_device,[](bool b)->void{}));
 }

@@ -3,12 +3,12 @@
 GCode::UploadFile::UploadFile(Device *device, std::function<void (bool)> callback,QByteArray fileName,const QByteArrayList& data):
     GCodeCommand(device,"M28"),_callback(callback),_file_name(fileName),_data(data)
 {
-    qDebug()<<data;
     _resend=false;
     _upload_stage=false;
     _start_upload=false;
     _counter=0;
     _open_failed=false;
+    _is_success=false;
 }
 
 void GCode::UploadFile::Start()
@@ -27,6 +27,17 @@ double GCode::UploadFile::GetProgress()
 {
     QMutexLocker locker (&_mutex);
     return _progress;
+}
+
+QByteArray GCode::UploadFile::GetFileName()
+{
+    return _file_name;
+}
+
+bool GCode::UploadFile::IsSuccess()
+{
+    QMutexLocker locker (&_mutex);
+    return _is_success;
 }
 
 void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
@@ -65,7 +76,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
         Finish(true);
     }
     else if(ba.contains("Resend: ")){
-
+        qDebug()<<"resend";
         //_device->StopWrite();
         //_device->ClearLines();
         _resend=true;
@@ -90,6 +101,7 @@ void GCode::UploadFile::OnAllDataWritten(bool)
 
 void GCode::UploadFile::Finish(bool b)
 {
+    _is_success=b;
     _callback(b);
     GCodeCommand::Finish(b);
 }

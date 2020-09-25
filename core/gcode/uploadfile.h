@@ -20,7 +20,7 @@ signals:
 
 private://fields
     uint32_t _counter;
-    bool _resend,_upload_stage,_start_upload,_open_failed;
+    bool _resend,_upload_stage,_start_upload,_open_failed,_is_success;
     std::function<void(bool)> _callback;
     QByteArray _file_name;
     QByteArrayList _data;
@@ -31,6 +31,8 @@ public:
     void Start();
     void Stop();
     double GetProgress();
+    QByteArray GetFileName();
+    bool IsSuccess();
 
 protected:
     void OnAvailableData(const QByteArray &ba);
