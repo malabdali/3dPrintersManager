@@ -5,7 +5,6 @@
 
 #include "../core/devices.h"
 #include "../core/device.h"
-#include "../core/devicefunctions.h"
 #include "deviceswidget.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }

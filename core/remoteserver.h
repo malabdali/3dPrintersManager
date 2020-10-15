@@ -6,11 +6,12 @@
 #include <QNetworkAccessManager>
 #include "device.h"
 #include <functional>
-#include "../config.cpp"
+#include "../config.h"
 #include <QNetworkReply>
 #include <QUrl>
 #include <QUrlQuery>
 #include<QJsonObject>
+#include<QJsonDocument>
 
 class RemoteServer : public QObject
 {

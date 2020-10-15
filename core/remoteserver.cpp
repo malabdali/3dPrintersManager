@@ -1,4 +1,5 @@
 #include "remoteserver.h"
+#include "device.h"
 RemoteServer* RemoteServer::_singleton=nullptr;
 RemoteServer::RemoteServer(QObject *parent) : QObject(parent)
 {

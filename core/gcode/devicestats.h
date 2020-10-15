@@ -1,22 +1,23 @@
-#ifndef POWERSUPPLY_H
-#define POWERSUPPLY_H
+#ifndef PRINTINGSTATUS_H
+#define PRINTINGSTATUS_H
+
 #include <QObject>
 #include "../gcodecommand.h"
 #include <functional>
+#include "../device.h"
 
 namespace GCode {
-    class PowerSupply;
+    class DeviceStats;
 }
-
-class GCode::PowerSupply : public GCodeCommand
+class GCode::DeviceStats : public GCodeCommand
 {
     Q_OBJECT
-public:
-    explicit PowerSupply(Device* device,bool on,std::function<void(bool)> callback);
+private://fields
 
-
-    // GCodeCommand interface
+    QMap<QByteArray,QByteArray> _stats;
 public:
+    explicit DeviceStats(Device* _device);
+    QMap<QByteArray,QByteArray> GetStats();
 
 protected:
     void OnAvailableData(const QByteArray &ba) override;
@@ -26,4 +27,4 @@ protected:
     void InsideStop() override;
 };
 
-#endif // POWERSUPPLY_H
+#endif // PRINTINGSTATUS_H

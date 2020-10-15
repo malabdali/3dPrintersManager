@@ -1,22 +1,27 @@
-#ifndef POWERSUPPLY_H
-#define POWERSUPPLY_H
+#ifndef LINENUMBER_H
+#define LINENUMBER_H
+
 #include <QObject>
 #include "../gcodecommand.h"
 #include <functional>
 
 namespace GCode {
-    class PowerSupply;
+    class LineNumber;
 }
-
-class GCode::PowerSupply : public GCodeCommand
+class GCode::LineNumber : public GCodeCommand
 {
     Q_OBJECT
 public:
-    explicit PowerSupply(Device* device,bool on,std::function<void(bool)> callback);
+    explicit LineNumber(Device* _device);
 
+private://fields
+    quint64 _line_number;
+    bool _29_sent,_is_open,_is_fail;
 
     // GCodeCommand interface
 public:
+    quint64 GetLineNumber();
+
 
 protected:
     void OnAvailableData(const QByteArray &ba) override;
@@ -26,4 +31,5 @@ protected:
     void InsideStop() override;
 };
 
-#endif // POWERSUPPLY_H
+
+#endif // LINENUMBER_H

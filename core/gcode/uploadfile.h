@@ -6,6 +6,7 @@
 #include <functional>
 #include <QMutex>
 #include <QMutexLocker>
+#include "../../config.h"
 
 namespace GCode {
     class UploadFile;
@@ -14,32 +15,38 @@ class GCode::UploadFile : public GCodeCommand
 {
     Q_OBJECT
 public:
-    explicit UploadFile(Device *device, std::function<void (bool)> callback,QByteArray fileName,const QByteArrayList& data);
+    explicit UploadFile(Device *device, std::function<void (bool)> callback,QByteArray fileName,const QByteArrayList& data,quint64 firstLine);
 
 signals:
 
 private://fields
-    uint32_t _counter;
-    bool _resend,_upload_stage,_start_upload,_open_failed,_is_success;
+    //todo
+    uint32_t _counter,_first_line;
+    bool _resend,_upload_stage,_open_failed,_open_success,_wait_resend;
     std::function<void(bool)> _callback;
     QByteArray _file_name;
+    size_t _file_size;
     QByteArrayList _data;
     double _progress;
-    QMutex _mutex;
+    QTimer* _end_timer;
+    int _resend_tries;
     // GCodeCommand interface
 public:
-    void Start();
-    void Stop();
     double GetProgress();
     QByteArray GetFileName();
+    quint32 GetSize();
     bool IsSuccess();
+private slots:
+    void Resend();
+    void Send();
+    void Send29();
 
 protected:
-    void OnAvailableData(const QByteArray &ba);
-    void OnDataWritten();
-    void OnAllDataWritten(bool);
-    void Finish(bool);
-
+    void InsideStart() override;
+    void OnAvailableData(const QByteArray &ba) override;
+    void OnAllDataWritten() override;
+    void Finish(bool) override;
+    void InsideStop() override;
 };
 
 #endif // UPLOADFILE_H

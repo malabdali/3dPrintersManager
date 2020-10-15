@@ -1,7 +1,7 @@
 #include "deviceinfo.h"
 #include <QString>
 
-DeviceInfo::DeviceInfo(QByteArray name,QObject* parent):_name(name),QObject(parent),_mutex(new QMutex())
+DeviceInfo::DeviceInfo(QByteArray name,QObject* parent):_name(name),QObject(parent)
 {
 
 }
@@ -108,7 +108,6 @@ void DeviceInfo::FromJSON(const QJsonObject &json)
 
 DeviceInfo::~DeviceInfo()
 {
-    delete _mutex;
 }
 
 DeviceInfo::operator QByteArray()const

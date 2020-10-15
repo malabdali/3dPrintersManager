@@ -4,7 +4,7 @@
 #include <QWidget>
 #include "devicewidget.h"
 #include "QMap"
-#include "../config.cpp"
+#include "../config.h"
 #include "../core/devices.h"
 namespace Ui {
 class DevicesWidget;

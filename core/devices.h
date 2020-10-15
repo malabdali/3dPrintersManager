@@ -27,6 +27,7 @@ public:
     void DetectPortAndConnectForAllDevices(bool=false);
     void LoadDevicesFromRemoteServer();
     QList<Device *> GetAllDevices();
+    QList<QByteArray> GetAllDevicesPort();
 private:
     explicit Devices(QObject *parent = nullptr);
     void WhenEndDevicesPortDetection();

@@ -1,28 +1,39 @@
 #include "fileslist.h"
 #include "../device.h"
+#include "../deviceport.h"
 
 
 
-GCode::FilesList::FilesList(Device *device, std::function<void (bool, QByteArrayList,QList<quint32>)> callback):GCodeCommand(device,"M20"),_callback(callback)
+GCode::FilesList::FilesList(Device *device):GCodeCommand(device,"M20")
 {
     _is_begin=false;
     _files_list_end=false;
 }
 
-void GCode::FilesList::Start()
+void GCode::FilesList::InsideStart()
 {
-    GCodeCommand::Start();
-    _device->Write("M20\n");
+    _device->GetDevicePort()->Write("M20\n");
 }
 
-void GCode::FilesList::Stop()
+void GCode::FilesList::InsideStop()
 {
-    Finish(false);
+}
+
+QMap<QByteArray, size_t> GCode::FilesList::GetFilesList()
+{
+    QMap<QByteArray, size_t> map;
+    if(_finished)
+    {
+        for(int i=0;i<_result_files.length();i++)
+        {
+            map.insert(_result_files[i],_sizes[i]);
+        }
+    }
+    return map;
 }
 
 void GCode::FilesList::OnAvailableData(const QByteArray &ba)
 {
-    qDebug()<<ba;
     if(ba.contains("Begin file list"))
         _is_begin=true;
     else if(ba.contains("End file list"))
@@ -44,19 +55,12 @@ void GCode::FilesList::OnAvailableData(const QByteArray &ba)
     }
 }
 
-void GCode::FilesList::OnDataWritten()
-{
-
-}
-
-void GCode::FilesList::OnAllDataWritten(bool)
+void GCode::FilesList::OnAllDataWritten()
 {
 
 }
 
 void GCode::FilesList::Finish(bool b)
 {
-    qDebug()<<" finish file list";
-    _callback(b,_result_files,_sizes);
     GCodeCommand::Finish(b);
 }

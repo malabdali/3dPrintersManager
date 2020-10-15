@@ -24,14 +24,14 @@ signals:
 
 // GCodeCommand interface
 public:
-void Start();
-void Stop();
+QByteArray GetFileName();
 
 protected:
-void OnAvailableData(const QByteArray &ba);
-void OnDataWritten();
-void OnAllDataWritten(bool);
-void Finish(bool);
+void OnAvailableData(const QByteArray &ba) override;
+void OnAllDataWritten() override;
+void Finish(bool) override;
+void InsideStart() override;
+void InsideStop() override;
 };
 
 #endif // DELETEFILE_H

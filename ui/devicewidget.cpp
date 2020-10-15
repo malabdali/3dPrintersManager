@@ -2,29 +2,40 @@
 #include "ui_devicewidget.h"
 #include "../core/remoteserver.h"
 #include "../core/devices.h"
-#include "../core/gcode/printingstatus.h"
+#include "../core/gcode/devicestats.h"
 #include "../core/devicefilessystem.h"
 #include <QApplication>
+#include "../core/deviceinfo.h"
+#include "serialwidget.h"
+#include "../core/deviceproblemsolver.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
     ui->setupUi(this);
     Setup();
+    _serial_widget=nullptr;
+    _files_widget=nullptr;
 }
 
 void DeviceWidget::Update()
 {
-    if(_device->GetFileSystem()->IsStillUploading() && _device->IsReady())
+    if(_device)
     {
-        ui->_status->setText("Uploading Files");
-        qDebug()<<_device->GetFileSystem()->GetUploadProgress();
+        if(_device->GetFileSystem()->IsStillUploading() && _device->IsReady())
+        {
+            ui->_status->setText("Uploading Files");
+            qDebug()<<_device->GetFileSystem()->GetUploadProgress();
+        }
+        else if(_device->IsReady())
+            ui->_status->setText("Ready");
+        else if(!_device->IsReady() && _device->IsOpen() && !_device->GetProblemSolver()->IsThereProblem())
+        {
+            ui->_status->setText("port is open not ready");
+            _device->UpdateDeviceStats();
+        }
+        else
+            ui->_status->setText("port is closed");
     }
-    else if(_device->IsReady())
-        ui->_status->setText("Ready");
-    else if(!_device->IsReady() && _device->IsOpen())
-        ui->_status->setText("port is open not ready");
-    else
-        ui->_status->setText("port is closed");
 }
 
 DeviceWidget::~DeviceWidget()
@@ -56,14 +67,16 @@ void DeviceWidget::Setup()
         ui->_error->setVisible(false);
 
         // device events
-        QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged,Qt::ConnectionType::QueuedConnection);
-        QObject::connect(this->_device,&Device::CommandFinished,this,&DeviceWidget::OnCommandFinished,Qt::ConnectionType::QueuedConnection);
-        QObject::connect(this->_device,&Device::CommandStarted,this,&DeviceWidget::OnCommandStarted,Qt::ConnectionType::QueuedConnection);
-        QObject::connect(this->_device,&Device::DetectPortSucceed,this,&DeviceWidget::OnDetectPort,Qt::ConnectionType::QueuedConnection);
-        QObject::connect(this->_device,&Device::DetectPortFailed,this,&DeviceWidget::OnDetectPort,Qt::ConnectionType::QueuedConnection);
-        QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnPortConnected,Qt::ConnectionType::QueuedConnection);
-        QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnPortDisconnected,Qt::ConnectionType::QueuedConnection);
-        QObject::connect(this->_device,&Device::ErrorOccurred,this,&DeviceWidget::OnErrorOccured,Qt::ConnectionType::QueuedConnection);
+        QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged);
+        QObject::connect(this->_device,&Device::CommandFinished,this,&DeviceWidget::OnCommandFinished);
+        QObject::connect(this->_device,&Device::CommandStarted,this,&DeviceWidget::OnCommandStarted);
+        QObject::connect(this->_device,&Device::DetectPortSucceed,this,&DeviceWidget::OnDetectPort);
+        QObject::connect(this->_device,&Device::DetectPortFailed,this,&DeviceWidget::OnDetectPort);
+        QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnPortConnected);
+        QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnPortDisconnected);
+        QObject::connect(this->_device,&Device::ErrorOccurred,this,&DeviceWidget::OnErrorOccured);
+        QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::ProblemDetected,this,&DeviceWidget::WhenProblemDetected);
+        QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceWidget::WhenSolveProblemFinished);
 
     }
     else {
@@ -218,6 +231,17 @@ void DeviceWidget::SaveChanges()
     },"Printers",*_device->GetDeviceInfo(),_device->GetDeviceInfo()->GetID());
 }
 
+void DeviceWidget::WhenProblemDetected()
+{
+    qDebug()<<"DeviceWidget::WhenProblemDetected";
+    _device->GetProblemSolver()->SolveProblem();
+}
+
+void DeviceWidget::WhenSolveProblemFinished()
+{
+    qDebug()<<"DeviceWidget::WhenSolveProblemFinished";
+}
+
 void DeviceWidget::CreateDevice()
 {
     DeviceInfo di(ui->_name->text().toUtf8());
@@ -268,10 +292,8 @@ void DeviceWidget::DetectPort()
 
 void DeviceWidget::OpenPort()
 {
-    if(this->_device->OpenPort())
+    this->_device->OpenPort();
         ui->_open_port_button->setVisible(false);
-    else
-        ui->_open_port_button->setVisible(true);
 
 }
 
@@ -282,27 +304,36 @@ void DeviceWidget::ClosePort()
 
 void DeviceWidget::ShowContextMenu(const QPoint &pos)
 {
-    qDebug()<<"ShowContextMenu";
     QMenu contextMenu(tr("Context menu"), this);
 
     if(_device->IsOpen())
     {
         contextMenu.addAction(ui->_files_action);
-        contextMenu.addAction(ui->_test_action);
     }
+    contextMenu.addAction(ui->_test_action);
 
     contextMenu.exec(mapToGlobal(pos));
 }
 
 void DeviceWidget::FilesWidgetClosed()
 {
-    qDebug()<<"files widget destroyed";
     _files_widget=nullptr;
+}
+
+void DeviceWidget::SerialWidgetClosed()
+{
+    _serial_widget=nullptr;
 }
 
 void DeviceWidget::on__files_action_triggered(bool checked)
 {
     //_device->AddFunction(DeviceFunctions::Function::FileList);
+
+    if(_files_widget){
+        _serial_widget->show();
+        _serial_widget->raise();
+        return;
+    }
     _files_widget=new FilesSystemWidget(this->_device);
     _files_widget->setParent(this->window(),Qt::WindowType::Window);
     _files_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " : files");
@@ -314,5 +345,18 @@ void DeviceWidget::on__files_action_triggered(bool checked)
 
 void DeviceWidget::on__test_action_triggered()
 {
-    _device->AddGCodeCommand(new GCode::PrintingStatus(_device,[](bool b)->void{}));
+    //_device->AddGCodeCommand(new GCode::PrintingStatus(_device,[](bool b)->void{}));
+
+    if(_serial_widget){
+        _serial_widget->show();
+        _serial_widget->raise();
+        return;
+    }
+    _serial_widget=new SerialWidget(this);
+    _serial_widget->setParent(this->window(),Qt::WindowType::Window);
+    _serial_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " : serial");
+    _serial_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
+    _serial_widget->setWindowModality(Qt::WindowModality::WindowModal);
+    _serial_widget->show();
+    QObject::connect(_serial_widget,&QWidget::destroyed,this,&DeviceWidget::FilesWidgetClosed);
 }

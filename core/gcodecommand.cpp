@@ -1,10 +1,15 @@
 #include "gcodecommand.h"
 #include "device.h"
+#include "deviceport.h"
 
 GCodeCommand::GCodeCommand(Device *device, QByteArray gcode):_device(device),_gcode(gcode)
 {
+    this->moveToThread(device->thread());
+    this->setParent(device);
     _finished=false;
     _started=false;
+    _is_success=false;
+    _command_error=NoError;
 }
 
 GCodeCommand::~GCodeCommand()
@@ -14,17 +19,36 @@ GCodeCommand::~GCodeCommand()
 
 void GCodeCommand::Start()
 {
-    qDebug()<<this->thread()<<_device->thread();
+    _mutex.lock();
     _started=true;
-    QObject::connect(_device,&Device::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);
-    QObject::connect(_device,&Device::EndWrite,this,&GCodeCommand::WhenWriteFinished);
-    QObject::connect(_device,&Device::BytesWritten,this,&GCodeCommand::WhenWriteLine);
-    QObject::connect(_device,&Device::ErrorOccurred,this,&GCodeCommand::WhenErrorOcurre);
+    _mutex.unlock();
+    if(QThread::currentThread()!=this->thread())
+    {
+        QMetaObject::invokeMethod(this,"Start");
+        return;
+    }
+    QObject::connect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);
+    QObject::connect(_device->GetDevicePort(),&DevicePort::DataWritten,this,&GCodeCommand::WhenWriteFinished);
+    QObject::connect(_device->GetDevicePort(),&DevicePort::ErrorOccurred,this,&GCodeCommand::WhenErrorOccured);
+    QObject::connect(_device->GetDevicePort(),&DevicePort::PortClosed,this,&GCodeCommand::WhenPortClosed);
+    InsideStart();
 }
 
 bool GCodeCommand::IsFinished()
 {
     return _finished;
+}
+
+void GCodeCommand::Stop()
+{
+    if(QThread::currentThread()!=this->thread())
+    {
+        QMetaObject::invokeMethod(this,"Stop");
+        return;
+    }
+    InsideStop();
+    Finish(false);
+
 }
 
 bool GCodeCommand::IsStarted() const
@@ -36,34 +60,54 @@ QByteArray GCodeCommand::GetGCode() const{
     return _gcode;
 }
 
+bool GCodeCommand::IsSuccess() const
+{
+    return _is_success;
+}
+
+GCodeCommand::CommandError GCodeCommand::GetError() const{
+    return _command_error;
+}
+
 void GCodeCommand::WhenLineAvailable(QByteArrayList list)
 {
-    while(_device->IsThereAvailableLines())
-        this->OnAvailableData(_device->ReadLine());
+    while(_device->GetDevicePort()->IsThereAvailableLines())
+        this->OnAvailableData(_device->GetDevicePort()->ReadLine());
 }
 
-void GCodeCommand::WhenWriteFinished(bool b)
+void GCodeCommand::WhenWriteFinished()
 {
-    this->OnAllDataWritten(b);
+    this->OnAllDataWritten();
 }
 
-void GCodeCommand::WhenWriteLine()
+void GCodeCommand::WhenErrorOccured(int error)
 {
-    this->OnDataWritten();
+    SetError(PortError);
+    Finish(false);
 }
 
-void GCodeCommand::WhenErrorOcurre(int error)
+void GCodeCommand::WhenPortClosed()
 {
+    SetError(PortClosed);
     Finish(false);
 }
 
 void GCodeCommand::Finish(bool b)
 {
-    qDebug()<<"finish command";
+    if(_finished)
+       return;
+    _mutex.lock();
+    _is_success=b;
     _finished=true;
-    QObject::disconnect(_device,&Device::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);
-    QObject::disconnect(_device,&Device::EndWrite,this,&GCodeCommand::WhenWriteFinished);
-    QObject::disconnect(_device,&Device::BytesWritten,this,&GCodeCommand::WhenWriteLine);
-    QObject::disconnect(_device,&Device::ErrorOccurred,this,&GCodeCommand::WhenErrorOcurre);
+    _mutex.unlock();
+    QObject::disconnect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);
+    QObject::disconnect(_device->GetDevicePort(),&DevicePort::DataWritten,this,&GCodeCommand::WhenWriteFinished);
+    QObject::disconnect(_device->GetDevicePort(),&DevicePort::ErrorOccurred,this,&GCodeCommand::WhenErrorOccured);
+    QObject::disconnect(_device->GetDevicePort(),&DevicePort::PortClosed,this,&GCodeCommand::WhenPortClosed);
     emit Finished(b);
+}
+
+void GCodeCommand::SetError(GCodeCommand::CommandError error)
+{
+    _command_error=error;
 }

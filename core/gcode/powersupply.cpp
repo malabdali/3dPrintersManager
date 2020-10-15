@@ -1,4 +1,6 @@
 #include "powersupply.h"
+#include "../deviceport.h"
+#include "../device.h"
 
 GCode::PowerSupply::PowerSupply(Device *device,bool on, std::function<void (bool)> callback):GCodeCommand(device,"80")
 {
@@ -6,11 +8,11 @@ GCode::PowerSupply::PowerSupply(Device *device,bool on, std::function<void (bool
 }
 
 
-void GCode::PowerSupply::Start()
+void GCode::PowerSupply::InsideStart()
 {
 }
 
-void GCode::PowerSupply::Stop()
+void GCode::PowerSupply::InsideStop()
 {
 }
 
@@ -18,14 +20,11 @@ void GCode::PowerSupply::OnAvailableData(const QByteArray &ba)
 {
 }
 
-void GCode::PowerSupply::OnDataWritten()
+void GCode::PowerSupply::OnAllDataWritten()
 {
 }
 
-void GCode::PowerSupply::OnAllDataWritten(bool)
+void GCode::PowerSupply::Finish(bool b)
 {
-}
-
-void GCode::PowerSupply::Finish(bool)
-{
+    GCodeCommand::Finish(b);
 }

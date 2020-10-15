@@ -1,5 +1,7 @@
 #include "startprinting.h"
 #include "../device.h"
+#include "../deviceport.h"
+#include "../device.h"
 
 GCode::StartPrinting::StartPrinting(Device *_device, std::function<void (bool)> callback, QByteArray fileName):GCodeCommand(_device,"M23"),_callback(callback),
     _file_name(fileName)
@@ -8,12 +10,12 @@ GCode::StartPrinting::StartPrinting(Device *_device, std::function<void (bool)> 
 }
 
 
-void GCode::StartPrinting::Start()
+void GCode::StartPrinting::InsideStart()
 {
-    _device->Write(QByteArray("M23 ")+_file_name+"\n");
+    _device->GetDevicePort()->Write(QByteArray("M23 ")+_file_name+"\n");
 }
 
-void GCode::StartPrinting::Stop()
+void GCode::StartPrinting::InsideStop()
 {
 }
 
@@ -21,14 +23,11 @@ void GCode::StartPrinting::OnAvailableData(const QByteArray &ba)
 {
 }
 
-void GCode::StartPrinting::OnDataWritten()
+void GCode::StartPrinting::OnAllDataWritten()
 {
 }
 
-void GCode::StartPrinting::OnAllDataWritten(bool)
+void GCode::StartPrinting::Finish(bool b)
 {
-}
-
-void GCode::StartPrinting::Finish(bool)
-{
+    GCodeCommand::Finish(b);
 }

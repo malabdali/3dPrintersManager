@@ -3,12 +3,21 @@
 #include "gcode/fileslist.h"
 #include "gcode/uploadfile.h"
 #include "gcode/deletefile.h"
+#include "gcode/linenumber.h"
+#include "utilities/loadfilefuture.h"
+#include<algorithm>
+#include <QUrl>
 
 
 DeviceFilesSystem::DeviceFilesSystem(Device *device, QObject *parent): QObject(parent),_device(device)
 {
     _sd_supported=false;
+    _line_number=0;
+    _uploading_file=nullptr;
     QObject::connect(device,&Device::ReadyFlagChanged,this,&DeviceFilesSystem::WhenDeviceReady);
+    QObject::connect(device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
+    QObject::connect(device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
+    QObject::connect(device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
 }
 
 bool DeviceFilesSystem::SdSupported() const
@@ -19,85 +28,30 @@ bool DeviceFilesSystem::SdSupported() const
 void DeviceFilesSystem::UpdateFileList()
 {
     if(!_sd_supported) return;
-    qDebug()<<"UpdateFileList";
-    GCode::FilesList* command=new GCode::FilesList(this->_device,[this](bool success,QByteArrayList result,QList<uint32_t> sizes)->void{
-        if(success)
-        {
-            _mutex.lock();
-            _files.clear();
-            for(int i=0;i<result.length();i++)
-                _files.insert(result[i],sizes[i]);
-            _mutex.unlock();
-            emit FileListUpdated();
-        }
-    });
+    GCode::FilesList* command=new GCode::FilesList(this->_device);
     this->_device->AddGCodeCommand(command);
 }
 
 void DeviceFilesSystem::DeleteFile(const QByteArray &file)
 {
     if(!_sd_supported) return;
-    GCode::DeleteFile* deleteCommand=new GCode::DeleteFile(this->_device,[file,this](bool b)->void{
-        _mutex.lock();
-        this->_files.remove(file);
-        _mutex.unlock();
-        emit FileDeleted(file);
-        emit FileListUpdated();
-    },file);
+    GCode::DeleteFile* deleteCommand=new GCode::DeleteFile(this->_device,[](bool)->void{},file);
     _device->AddGCodeCommand(deleteCommand);
 }
 
-void DeviceFilesSystem::UploadFile(QByteArray fileName, const QByteArray &data)
+void DeviceFilesSystem::UploadFile(QByteArray fileName)
 {
-    QByteArrayList lines=data.split('\n');
-    lines.erase(std::remove_if(lines.begin(),lines.end(),[](QByteArray& line)->bool{
-        return !line.startsWith("M")&& !line.startsWith("G");
-    }),lines.end());
-    int i=1;
-    for(QByteArray& line:lines){
-        int index=line.indexOf(';');
-        line.remove(index,line.length()-index);
-        line.replace('\r',"");
-        line=line.simplified();
-        line=line.trimmed();
-        line.prepend(QByteArray("N")+QByteArray::number(i)+" ");
-        uint8_t checksum=std::accumulate(line.begin(),line.end(),0,[](uint8_t v,char c){return c^v;});
-        line.append(QByteArray("*")+QByteArray::number(checksum)+"\n");
-        i++;
-    }
-    _mutex.lock();
+
+    if(!_sd_supported) return;
     _failed_uploads.removeAll(fileName);
-    _mutex.unlock();
-    GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,[this,fileName,data](bool success)->void{
-        _uploading_files.removeAt(0);
-        if(success){
-            qDebug()<<"upload finished and success";
-            _mutex.lock();
-            _files.insert(fileName,data.length());
-            _uploaded_files.append(fileName);
-            _mutex.unlock();
-            emit FileUploaded(fileName);
-            emit FileListUpdated();
-        }
-        else{
-            _mutex.lock();
-            _failed_uploads.append(fileName);
-            _mutex.unlock();
-            emit UploadFileFailed(fileName);
-            emit FileListUpdated();
-        }
-        if(_device->ReopenPort())
-            qDebug()<<"reopen port";
-    },fileName,lines);
-    //if(_uploading_files.length()==0)
-    _uploading_files.append(gcode);
-    _device->AddGCodeCommand(gcode);
-    emit WaitListUpdated();
+    if(_wait_for_upload.empty())
+        UpdateLineNumber();
+    _wait_for_upload.append(fileName);
 }
 
 bool DeviceFilesSystem::IsStillUploading()
 {
-    if(_uploading_files.length()>0)
+    if(_uploading_file!=nullptr)
         return true;
     return false;
 }
@@ -105,55 +59,155 @@ bool DeviceFilesSystem::IsStillUploading()
 double DeviceFilesSystem::GetUploadProgress()
 {
     if(this->IsStillUploading())
-        return _uploading_files[0]->GetProgress();
+        return _uploading_file->GetProgress();
     return 0;
 }
 
 QList<QByteArray> DeviceFilesSystem::GetUploadedFiles()
 {
-    QMutexLocker locker(&_mutex);
     return _uploaded_files;
 }
 
 QList<QByteArray> DeviceFilesSystem::GetFailedUploads()
 {
-    QMutexLocker locker(&_mutex);
     return _failed_uploads;
 }
 
 QMap<QByteArray,size_t> DeviceFilesSystem::GetFileList(){
-    QMutexLocker locker(&_mutex);
     return _files;
 }
 
 void DeviceFilesSystem::StopUpload(QByteArray ba)
 {
-    for(GCode::UploadFile* f:_uploading_files){
-        if(f->GetFileName()==ba){
-            _device->ClearCommand(f);
-            _uploading_files.removeAll(f);
-            qDebug()<<"is stopped";
+    auto files=_wait_for_upload;
+    if(_uploading_file!=nullptr && _uploading_file->GetFileName()==ba)
+    {
+        _device->ClearCommand(_uploading_file);
+    }
+    else{
+        for(QByteArray& f:files){
+            QByteArray name=QUrl(f).fileName().replace("gcode","GCO").toUpper().toUtf8();
+            if(name==ba){
+                _wait_for_upload.removeAll(f);
+            }
         }
     }
 }
 
-QList<QByteArray> DeviceFilesSystem::GetWaitUploadingList() const
+QList<QByteArray> DeviceFilesSystem::GetWaitUploadingList()
 {
     QList<QByteArray> ba;
-    for(GCode::UploadFile* f:_uploading_files){
-        ba.append(f->GetFileName());
+    for(QByteArray& f:_wait_for_upload){
+        auto name=QUrl(f).fileName().replace("gcode","GCO").toUpper().toUtf8();
+        ba.append(name);
     }
     return ba;
 }
 
+uint64_t DeviceFilesSystem::GetLineNumber()
+{
+    return _line_number;
+}
+
 void DeviceFilesSystem::WhenDeviceReady(bool b)
 {
-    qDebug()<<"is ready : "<<b;
     if(b && _files.size()==0)
     {
-        qDebug()<<"call update files";
         UpdateFileList();
     }
+}
+
+void DeviceFilesSystem::WhenPortClosed()
+{
+}
+
+
+void DeviceFilesSystem::WhenCommandFinished(GCodeCommand *command,bool b)
+{
+    if(dynamic_cast<GCode::UploadFile*>(command))
+    {
+        auto* uf=dynamic_cast<GCode::UploadFile*>(command);
+        WhenFileUploaded(uf);
+    }
+    else if(dynamic_cast<GCode::DeleteFile*>(command)){
+        if(command->IsSuccess())
+        {
+            auto* df=dynamic_cast<GCode::DeleteFile*>(command);
+            this->_files.remove(df->GetFileName());
+            emit FileDeleted(df->GetFileName());
+            emit FileListUpdated();
+        }
+    }
+    else if(dynamic_cast<GCode::FilesList*>(command)){
+        auto* fs=dynamic_cast<GCode::FilesList*>(command);
+        if(command->IsSuccess())
+        {
+            auto list=fs->GetFilesList();
+            _files.clear();
+            for(int i=0;i<list.size();i++)
+                _files.insert(list.keys()[i],list.values()[i]);
+            emit FileListUpdated();
+        }
+    }
+    else if(dynamic_cast<GCode::LineNumber*>(command)){
+        auto* ln=dynamic_cast<GCode::LineNumber*>(command);
+        WhenLineNumberUpdated(ln);
+    }
+}
+
+void DeviceFilesSystem::WhenStatsUpdated()
+{
+    if(_device->GetStats().contains("SDCARD")&&_device->GetStats()["SDCARD"]=="1"){
+        SetSdSupported(true);
+    }
+    else{
+        SetSdSupported(false);
+    }
+}
+
+void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
+{
+    if(lineNumber->IsSuccess())
+    {
+        _line_number=lineNumber->GetLineNumber();
+        emit LineNumberUpdated(true);
+        if(_wait_for_upload.length()>0){
+            QString filename=_wait_for_upload[0];
+            LoadFileFuture* lff=new LoadFileFuture(filename,[this,filename](QList<QByteArray> array)->void{
+                QByteArray filename2=QUrl(filename).fileName().replace("gcode","GCO").toUpper().toUtf8();
+                GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,[](bool)->void{},filename2,array,
+                    _line_number);
+                this->_uploading_file=gcode;
+                _device->AddGCodeCommand(gcode);
+                emit FileListUpdated();
+        },_line_number,this);
+        }
+    }
+    else{
+        _line_number=0;
+        emit LineNumberUpdated(false);
+    }
+}
+
+void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
+{
+    if(uploadFile->IsSuccess()){
+        _files.insert(uploadFile->GetFileName(),uploadFile->GetSize());
+        _uploaded_files.append(uploadFile->GetFileName());
+        emit FileUploaded(uploadFile->GetFileName());
+    }
+    else
+    {
+        _failed_uploads.append(uploadFile->GetFileName());
+        emit UploadFileFailed(uploadFile->GetFileName());
+    }
+    _wait_for_upload.erase(std::remove_if(_wait_for_upload.begin(),_wait_for_upload.end(),
+                        [uploadFile](QByteArray ba)->bool{
+                            return ba.toLower().contains(uploadFile->GetFileName().mid(0,uploadFile->GetFileName().indexOf(".")).toLower());
+                        }),_wait_for_upload.end());
+    _uploading_file=nullptr;
+    emit this->FileListUpdated();
+    UpdateLineNumber();
 }
 
 void DeviceFilesSystem::SetSdSupported(bool b){
@@ -164,5 +218,12 @@ void DeviceFilesSystem::SetSdSupported(bool b){
 void DeviceFilesSystem::CallFunction(const char* function)
 {
     this->metaObject()->invokeMethod(this,function);
+}
+
+void DeviceFilesSystem::UpdateLineNumber()
+{
+    if(!_sd_supported) return;
+    GCode::LineNumber* gcode=new GCode::LineNumber(this->_device);
+    _device->AddGCodeCommand(gcode);
 }
 

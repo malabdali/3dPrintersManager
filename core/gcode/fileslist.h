@@ -12,23 +12,22 @@ class GCode::FilesList : public GCodeCommand
 {
     Q_OBJECT
 public:
-    explicit FilesList(Device* _device,std::function<void(bool,QByteArrayList,QList<quint32>)> callback);
+    explicit FilesList(Device* _device);
 
 private://fields
-    std::function<void(bool,QByteArrayList,QList<uint32_t>)> _callback;
     bool _is_begin,_files_list_end;
     QByteArrayList _result_files;
     QList<quint32> _sizes;
     // GCodeCommand interface
 public:
-    void Start();
-    void Stop();
+    QMap<QByteArray,size_t> GetFilesList();
 
 protected:
-    void OnAvailableData(const QByteArray &ba);
-    void OnDataWritten();
-    void OnAllDataWritten(bool);
-    void Finish(bool);
+    void OnAvailableData(const QByteArray &ba) override;
+    void OnAllDataWritten() override;
+    void Finish(bool) override;
+    void InsideStart() override;
+    void InsideStop() override;
 };
 
 #endif // FILESLIST_H

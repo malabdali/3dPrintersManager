@@ -22,14 +22,13 @@ signals:
 
     // GCodeCommand interface
 public:
-    void Start() override;
-    void Stop() override;
 
 protected:
     void OnAvailableData(const QByteArray &ba) override;
-    void OnDataWritten() override;
-    void OnAllDataWritten(bool) override;
+    void OnAllDataWritten() override;
     void Finish(bool) override;
+    void InsideStart() override;
+    void InsideStop() override;
 };
 
 #endif // STARTPRINTING_H

@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QPair>
 #include "../core/devicefilessystem.h"
+#include "../core/utilities/loadfilefuture.h"
 
 FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),
@@ -11,7 +12,6 @@ FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
     ui->setupUi(this);
     QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::FileListUpdated,this,&FilesSystemWidget::OnFileListUpdated);
     QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::UploadFileFailed,this,&FilesSystemWidget::OnFileListUpdated);
-    QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::WaitListUpdated,this,&FilesSystemWidget::OnFileListUpdated);
     ui->_delete_file_button->setVisible(false);
     OnFileListUpdated();
 }
@@ -28,7 +28,6 @@ void FilesSystemWidget::on__update_files_button_clicked()
 
 void FilesSystemWidget::OnFileListUpdated()
 {
-    qDebug()<<"files list updated";
     ui->_files_list->clear();
     auto files=_device->GetFileSystem()->GetFileList();
     for(int i=0;i<files.size();i++){
@@ -37,7 +36,6 @@ void FilesSystemWidget::OnFileListUpdated()
         lwi->setText(QString(files.keys()[i]+" : "+QByteArray::number(files.values()[i])));
         ui->_files_list->addItem(lwi);
     }
-
     auto wfiles=_device->GetFileSystem()->GetWaitUploadingList();
     for(int i=0;i<wfiles.size();i++){
         QListWidgetItem* lwi=new QListWidgetItem(ui->_files_list);
@@ -97,14 +95,10 @@ void FilesSystemWidget::on__upload_file_button_clicked()
         {
             for(QString f:fd.selectedFiles())
             {
-                QFile file(f);
-                QByteArray fileName=QUrl(file.fileName()).fileName().replace("gcode","GCO").toUpper().toUtf8();
+                QByteArray fileName=QUrl(f).fileName().replace("gcode","GCO").toUpper().toUtf8();
                 if(!ui->_overwrite_checkbox->isChecked() && _device->GetFileSystem()->GetFileList().contains(fileName))
                     continue;
-                qDebug()<<QUrl(file.fileName()).fileName();
-                file.open(QIODevice::ReadOnly);
-                QByteArray ba=file.readAll();
-                _device->GetFileSystem()->UploadFile(fileName,ba);
+                _device->GetFileSystem()->UploadFile(f.toUtf8());
             }
         }
     }
@@ -113,13 +107,20 @@ void FilesSystemWidget::on__upload_file_button_clicked()
 
 void FilesSystemWidget::on__stop_upload_button_clicked()
 {
+    //qDebug()<<QThread::currentThread()<<_device->thread();
+    _device->PauseCommands();
+    QList<QString> names;
     for(QListWidgetItem* item:ui->_files_list->selectedItems()){
         QString name=item->text().mid(0,item->text().indexOf(" "));
+        names.append(name);
+    }
+    qDebug()<<names;
+    for(QString& name:names){
         if(_device->GetFileSystem()->GetWaitUploadingList().contains(name.toUtf8().mid(0,name.length()-1))){
             _device->GetFileSystem()->StopUpload(name.toUtf8().mid(0,name.length()-1));
-            qDebug()<<"stop upload called";
         }
     }
+    _device->PlayCommands();
 
     OnFileListUpdated();
 }

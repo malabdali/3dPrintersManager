@@ -1,5 +1,6 @@
 #include "devices.h"
 #include <QtDebug>
+#include "deviceinfo.h"
 
 Devices* Devices::_INSTANCE=nullptr;
 
@@ -20,14 +21,17 @@ Devices *Devices::GetInstance(){
 
 Device* Devices::AddDevice(DeviceInfo* dev)
 {
-    QThread* thr=new QThread();
-    thr->start();
+    //QThread* thr=new QThread();
+    //thr->start();
     Device* device=this->GetDevice(dev);
     device=new Device(dev);
-    device->moveToThread(thr);
+    //device->moveToThread(thr);
     _devices.append(device);
     //qDebug()<<this->thread()<<device->thread()<<device->GetDeviceInfo()->thread()<<dev->thread();
+
+    qDebug()<<"Devices::AddDevice 1";
     emit DeviceAdded(device);
+    qDebug()<<"Devices::AddDevice 2";
     return device;
 }
 
@@ -38,10 +42,10 @@ void Devices::RemoveDevice(const DeviceInfo *name)
     emit DeviceRemoved(dev);
     dev->ClosePort();
     dev->setParent(nullptr);
-    QThread* thr=dev->thread();
+    /*QThread* thr=dev->thread();
     thr->quit();
     thr->wait();
-    delete thr;
+    delete thr;*/
     delete dev;
 }
 
@@ -106,14 +110,25 @@ QList<Device *> Devices::GetAllDevices()
     return _devices;
 }
 
+QList<QByteArray> Devices::GetAllDevicesPort()
+{
+    QList<QByteArray> ports;
+    for(Device* dev :this->_devices)
+    {
+        ports.append(dev->GetPort());
+    }
+    return ports;
+}
+
+
 Devices::~Devices()
 {
-    QThread* thr;
+    //QThread* thr;
     for(Device* dev:_devices){
-        thr=dev->thread();
-        thr->quit();
-        thr->wait();
-        delete thr;
+        //thr=dev->thread();
+        //thr->quit();
+        //thr->wait();
+        //delete thr;
         delete dev;
     }
 }

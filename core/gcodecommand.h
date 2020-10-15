@@ -3,36 +3,50 @@
 
 #include <QObject>
 #include <QVariant>
-#include "device.h"
+#include <QDebug>
+#include <QMutex>
 
 class GCodeCommand : public QObject
 {
     Q_OBJECT
+public://types
+    enum CommandError{
+        NoError=0,
+        PortClosed=1,
+        PortError=2,
+        NoChecksum=3
+    };
+
 protected://fields
-    QByteArray _gcode;
     class Device *_device;
-    bool _finished,_started;
+    QByteArray _gcode;
+    bool _finished,_started,_is_success;
+    QMutex _mutex;
+    CommandError _command_error;
 public:
     explicit GCodeCommand(Device *device, QByteArray command);
     virtual ~GCodeCommand();
-    virtual void Start();
+    Q_INVOKABLE void Start();
     bool IsFinished();
-    virtual void Stop()=0;
+    Q_INVOKABLE void Stop();
     bool IsStarted()const;
     QByteArray GetGCode()const;
-
+    bool IsSuccess()const;
+    CommandError GetError()const;
 
 private slots:
     void WhenLineAvailable(QByteArrayList);
-    void WhenWriteFinished(bool b);
-    void WhenWriteLine();
-    void WhenErrorOcurre(int);
+    void WhenWriteFinished();
+    void WhenErrorOccured(int);
+    void WhenPortClosed();
 
 protected:
     virtual void OnAvailableData(const QByteArray& ba)=0;
-    virtual void OnDataWritten()=0;
-    virtual void OnAllDataWritten(bool)=0;
+    virtual void OnAllDataWritten()=0;
     virtual void Finish(bool);
+    virtual void InsideStart()=0;
+    virtual void InsideStop()=0;
+    void SetError(CommandError error);
 
 signals:
     void Finished(bool);

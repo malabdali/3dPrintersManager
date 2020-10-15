@@ -2,7 +2,6 @@
 #define DEVICE_H
 
 #include <QObject>
-#include "deviceinfo.h"
 #include "QSerialPort"
 #include "QSerialPortInfo"
 #include "QThreadPool"
@@ -11,7 +10,8 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QReadWriteLock>
-
+#include <QMap>
+#include <chrono>
 class Device : public QObject
 {
     Q_OBJECT
@@ -32,94 +32,73 @@ public://nested types
 
 private://nested types
 
-    struct WriteTask:public QRunnable{
-        Device* dev;
-        QReadWriteLock _writ_safe_thread;
-        bool _stopWrite;
-        bool _write_task_is_busy=false;
-        QByteArrayList _write_wait_list;
-        void run() override;
-        void WhenEndWriteTask(bool success);
-        void StartWrite(QByteArrayList list);
-        void StopWrite();
-        bool IsBussy();
-
-    };
-
 private://fields
     QByteArray _port; 
-    DeviceInfo* _device_info;
-    QSerialPort* _serial_port;
+    QThread* _port_thread;
     DeviceStatus _current_status;
-    bool _reopen;
-    QMutex mutex;
     bool _is_ready;
-    // read data
-    QByteArrayList _availableLines;
-    QByteArray _availableData;
-    //write data
-    WriteTask* _write_task;
-    //detect ports by device name
-    QList<QSerialPort*> _lookfor_available_ports;
-    QByteArrayList _lookfor_available_ports_data;
-    QSignalMapper _lookfor_ports_signals_mapper;
-    int _lookfor_timer_id=0;
-    //end end detect ports by device name
+    QMap<QByteArray,QByteArray> _device_stats;
+    //gcode commands
     QList<class GCodeCommand*> _commands;
+    class GCodeCommand* _current_command;
+    bool _commands_paused,_delay_command_state;
+    std::chrono::time_point<std::chrono::steady_clock> _last_command_time_finished;
+    //end gcode commands
     class DeviceFilesSystem* _fileSystem;
+    class DevicePortDetector* _port_detector;
+    class DevicePort* _device_port;
+    class DeviceInfo* _device_info;
+    class DeviceProblemSolver* _problem_solver;
 
 
 public:
-    Q_INVOKABLE void DetectDevicePort();
+    void DetectDevicePort();
     void SetPort(const QByteArray& port);
     QByteArray GetPort();
     void SetDeviceInfo(DeviceInfo* device);
     DeviceInfo* GetDeviceInfo();
     DeviceStatus GetStatus()const;
     bool IsOpen()const;
-    bool OpenPort();
-    bool ReopenPort();
+    void OpenPort();
     void ClosePort();
+    void UpdateDeviceStats();
     void Clear();
-    void StopWrite();
-    bool IsThereAvailableLines()const;
     void Write(QByteArray bytes);
-    void Write(QByteArrayList bytes);
-    QByteArray ReadLine();
-    bool WriteIsBusy();
-    void ClearLines();
-    Q_INVOKABLE void AddGCodeCommand(GCodeCommand* command);
-    Q_INVOKABLE void ClearCommands();
-    Q_INVOKABLE void ClearCommand(GCodeCommand* command);
-    GCodeCommand *GetCurrentCommand();
     DeviceFilesSystem *GetFileSystem()const;
     bool IsReady();
+    QMap<QByteArray,QByteArray> GetStats()const;
+    DevicePort* GetDevicePort();
+    DeviceProblemSolver *GetProblemSolver()const;
+    //commands
+    void AddGCodeCommand(GCodeCommand* command);
+    void ClearCommands();
+    void ClearCommand(GCodeCommand* command);
+    void PauseCommands();
+    void PlayCommands();
+    void StartCommand(GCodeCommand* command);
+    bool CommandsIsPlayed();
+    GCodeCommand *GetCurrentCommand();
+    QList<GCodeCommand *> GetWaitingCommandsList()const;
+    //end commands
+
     ~Device();
 
 
 private://methods
     explicit Device(DeviceInfo* device_info,QObject *parent = nullptr);
-    void timerEvent(QTimerEvent *event) override;
-    void DetectPortProcessing();
     void SetStatus(DeviceStatus status);
-    void WhenEndDetectPort();
-    void CleanDetectPortsProcessing();
     void CalculateAndSetStatus();
     void SerialInputFilter(QByteArrayList& list);
     void SetReady(bool ready);
 
 private slots:
-    void OnAvailableData();
-    //void OnWrittenData();
-    void OnChecPortsDataAvailableMapped(int);
-    void OnErrorOccurred(QSerialPort::SerialPortError);
+    void OnErrorOccurred(int i);
     void OnClosed();
-    void OnDataTerminalReadyChanged(bool b);
+    void OnOpen(bool);
     void WhenCommandFinished(bool);
-    void CallFunction(const char* function);
-    void CallFunction(const char* function,QGenericArgument);
     void StartNextCommand();
-
+    void OnDetectPort(QByteArray port="");
+    void WhenStatsUpdated();
 
 
 signals:
@@ -129,13 +108,15 @@ signals:
     void PortOpened();
     void PortClosed();
     void ErrorOccurred(int);
-    void NewLinesAvailable(QByteArrayList);
     void BytesWritten();
     void EndWrite(bool);
     void CommandFinished(GCodeCommand* , bool);
     void CommandStarted(GCodeCommand*);
     void CommandAdded(GCodeCommand*);
+    void CommandRemoved(GCodeCommand*);
     void ReadyFlagChanged(bool);
+    void DeviceStatsUpdated(GCodeCommand*);
+    void DeviceStatsUpdateFailed(GCodeCommand*);
 
 
 };

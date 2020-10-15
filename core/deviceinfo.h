@@ -14,7 +14,6 @@ private://fields
     QByteArray _name,_filament_material;
     uint32_t _baud_rate,_x,_y,_z,_id,_status;
     float _nozzle;
-    QMutex* _mutex;
 
 
 public:

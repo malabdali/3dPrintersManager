@@ -1,5 +1,6 @@
 #include "deletefile.h"
 #include "../device.h"
+#include "../deviceport.h"
 
 GCode::DeleteFile::DeleteFile(Device *device, std::function<void(bool)> callback, QByteArray fileName) :GCodeCommand(device,"M30"),
     _callback(callback),_file(fileName)
@@ -7,44 +8,40 @@ GCode::DeleteFile::DeleteFile(Device *device, std::function<void(bool)> callback
 
 }
 
-void GCode::DeleteFile::Start()
+void GCode::DeleteFile::InsideStart()
 {
-    GCodeCommand::Start();
-    _device->Write(QByteArray("M30 ")+_file+"\n");
+    _device->GetDevicePort()->Write(QByteArray("M30 ")+_file+"\n");
 }
 
-void GCode::DeleteFile::Stop()
+void GCode::DeleteFile::InsideStop()
 {
-    Finish(false);
+}
+
+QByteArray GCode::DeleteFile::GetFileName()
+{
+    return _file;
 }
 
 void GCode::DeleteFile::OnAvailableData(const QByteArray &ba)
 {
     if(ba.contains("File deleted:")){
         _is_success=true;
-        qDebug()<<"delete file success";
     }
     else if(ba.contains("Deletion failed")){
         _is_success=false;
-        qDebug()<<"delete file failed";
     }
     else if("ok"){
         Finish(_is_success);
     }
 }
 
-void GCode::DeleteFile::OnDataWritten()
-{
 
-}
-
-void GCode::DeleteFile::OnAllDataWritten(bool)
+void GCode::DeleteFile::OnAllDataWritten()
 {
 
 }
 
 void GCode::DeleteFile::Finish(bool b)
 {
-    _callback(b);
     GCodeCommand::Finish(b);
 }

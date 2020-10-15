@@ -16,7 +16,7 @@ private://fields
     Device* _device;
     Ui::DeviceWidget *ui;
     FilesSystemWidget *_files_widget;
-
+    class SerialWidget *_serial_widget;
 public:
     explicit DeviceWidget(Device* device,QWidget *parent = nullptr);
     void Update();
@@ -35,6 +35,8 @@ private slots:
     void OnDetectPort();
     void WhenEditValues();
     void SaveChanges();
+    void WhenProblemDetected();
+    void WhenSolveProblemFinished();
     void CreateDevice();
     void DeleteDevice();
     void DetectPort();
@@ -42,6 +44,7 @@ private slots:
     void ClosePort();
     void ShowContextMenu(const QPoint &pos);
     void FilesWidgetClosed();
+    void SerialWidgetClosed();
     void on__files_action_triggered(bool checked);
     void on__test_action_triggered();
 };
