@@ -50,6 +50,7 @@ void GCode::LineNumber::OnAllDataWritten()
 
 void GCode::LineNumber::Finish(bool b)
 {
+    qDebug()<<"GCode::LineNumber::Finish";
     GCodeCommand::Finish(b);
 }
 

@@ -12,6 +12,8 @@
 #include <QReadWriteLock>
 #include <QMap>
 #include <chrono>
+#include <QJsonObject>
+#include <QJsonObject>
 class Device : public QObject
 {
     Q_OBJECT
@@ -38,6 +40,7 @@ private://fields
     DeviceStatus _current_status;
     bool _is_ready;
     QMap<QByteArray,QByteArray> _device_stats;
+    int _stats_update_steps;
     //gcode commands
     QList<class GCodeCommand*> _commands;
     class GCodeCommand* _current_command;
@@ -56,7 +59,7 @@ public:
     void SetPort(const QByteArray& port);
     QByteArray GetPort();
     void SetDeviceInfo(DeviceInfo* device);
-    DeviceInfo* GetDeviceInfo();
+    DeviceInfo *GetDeviceInfo();
     DeviceStatus GetStatus()const;
     bool IsOpen()const;
     void OpenPort();
@@ -67,6 +70,7 @@ public:
     DeviceFilesSystem *GetFileSystem()const;
     bool IsReady();
     QMap<QByteArray,QByteArray> GetStats()const;
+    QJsonDocument GetStatsAsJSONObject()const;
     DevicePort* GetDevicePort();
     DeviceProblemSolver *GetProblemSolver()const;
     //commands

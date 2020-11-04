@@ -1,7 +1,7 @@
 #include "devices.h"
 #include <QtDebug>
 #include "deviceinfo.h"
-
+#include <QDir>
 Devices* Devices::_INSTANCE=nullptr;
 
 Devices::Devices(QObject *parent) : QObject(parent)

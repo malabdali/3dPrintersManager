@@ -23,19 +23,27 @@ private:
     bool _sd_supported;
 public:
     explicit DeviceFilesSystem(class Device*,QObject *parent = nullptr);
+    void Initiate();
     bool SdSupported()const;
     void UpdateFileList();
     void DeleteFile(const QByteArray& file);
     void UploadFile(QByteArray fileName);
+    void Print();
     bool IsStillUploading();
     double GetUploadProgress();
     QList<QByteArray> GetUploadedFiles();
     QList<QByteArray> GetFailedUploads();
-    QMap<QByteArray,size_t> GetFileList();
+    QMap<QByteArray,size_t> GetFileList(bool=true);
     void StopUpload(QByteArray ba);
     QList<QByteArray> GetWaitUploadingList();
     void UpdateLineNumber();
     uint64_t GetLineNumber();
+    QByteArray GetLocaleDirectory();
+    void SaveLocaleFile(const QString& path,const QByteArray& data,std::function<void(bool)> callback);
+    bool DeleteLocaleFile(const QByteArray& path);
+    void ReadLocaleFile(const QByteArray& path,std::function<void(QByteArray)> callback);
+    void CopyLocaleFile(const QByteArray& fpath,const QByteArray& tpath,std::function<void (bool)> callback);
+    QStringList GetLocaleFiles(const QByteArray& path , const QByteArray& suffix);
 
 
 signals:
@@ -44,6 +52,7 @@ signals:
     void UploadFileFailed(QByteArray);
     void FileListUpdated();
     void LineNumberUpdated(bool);
+
 private slots:
     void WhenDeviceReady(bool b);
     void WhenPortClosed();

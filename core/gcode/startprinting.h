@@ -12,10 +12,10 @@ class GCode::StartPrinting : public GCodeCommand
 {
     Q_OBJECT
 private:
-    std::function<void(bool)> _callback;
     QByteArray _file_name;
+    bool _m24_sent,_file_selected;
 public:
-    explicit StartPrinting(Device* _device,std::function<void(bool)> callback,QByteArray fileName);
+    explicit StartPrinting(Device* _device,QByteArray fileName);
 
 signals:
 

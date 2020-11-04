@@ -24,10 +24,10 @@ void GCode::DeviceStats::InsideStop()
 void GCode::DeviceStats::OnAvailableData(const QByteArray &ba)
 {
     if(ba.toLower().startsWith("ok")){
-        if(_stats.size()>1)
-            Finish(true);
-        else
+        if(_command_error!=CommandError::NoError)
             Finish(false);
+        else
+            Finish(true);
     }
     else if(ba.startsWith("Cap:")||ba.startsWith("FIRMWARE_NAME:"))
     {

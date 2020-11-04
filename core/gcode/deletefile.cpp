@@ -31,6 +31,12 @@ void GCode::DeleteFile::OnAvailableData(const QByteArray &ba)
         _is_success=false;
     }
     else if("ok"){
+
+        if(_command_error!=CommandError::NoError)
+        {
+            Finish(false);
+            return;
+        }
         Finish(_is_success);
     }
 }

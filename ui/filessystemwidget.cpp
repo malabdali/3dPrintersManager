@@ -4,6 +4,7 @@
 #include <QPair>
 #include "../core/devicefilessystem.h"
 #include "../core/utilities/loadfilefuture.h"
+#include "../core/gcode/startprinting.h"
 
 FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),
@@ -13,6 +14,7 @@ FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
     QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::FileListUpdated,this,&FilesSystemWidget::OnFileListUpdated);
     QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::UploadFileFailed,this,&FilesSystemWidget::OnFileListUpdated);
     ui->_delete_file_button->setVisible(false);
+    ui->_print_button->setVisible(false);
     OnFileListUpdated();
 }
 
@@ -57,11 +59,13 @@ void FilesSystemWidget::on__files_list_itemSelectionChanged()
 {
     ui->_delete_file_button->setVisible(false);
     ui->_stop_upload_button->setVisible(false);
+    ui->_print_button->setVisible(false);
     if(ui->_files_list->selectedItems().length()>0){
         for(QListWidgetItem* &item:ui->_files_list->selectedItems()){
             QString name=item->text().mid(0,item->text().indexOf(" "));
             if(_device->GetFileSystem()->GetFileList().contains(name.toUtf8())){
                 ui->_delete_file_button->setVisible(true);
+                ui->_print_button->setVisible(true);
             }
             else if(name.indexOf("*")){
                 if(_device->GetFileSystem()->GetWaitUploadingList().contains(name.mid(0,name.length()-1).toUtf8()))
@@ -76,6 +80,7 @@ void FilesSystemWidget::on__files_list_itemSelectionChanged()
 void FilesSystemWidget::on__delete_file_button_clicked()
 {
     ui->_delete_file_button->setVisible(false);
+    ui->_print_button->setVisible(false);
     for(QListWidgetItem* &item:ui->_files_list->selectedItems()){
         QString name=item->text().mid(0,item->text().indexOf(" "));
         if(_device->GetFileSystem()->GetFileList().contains(name.toUtf8())){
@@ -123,4 +128,14 @@ void FilesSystemWidget::on__stop_upload_button_clicked()
     _device->PlayCommands();
 
     OnFileListUpdated();
+}
+
+void FilesSystemWidget::on__print_button_clicked()
+{
+    ui->_delete_file_button->setVisible(false);
+    ui->_print_button->setVisible(false);
+    QListWidgetItem* item=ui->_files_list->selectedItems()[0];
+    QString name=item->text().mid(0,item->text().indexOf(" "));
+    _device->AddGCodeCommand(new GCode::StartPrinting(_device,name.toUtf8()));
+
 }

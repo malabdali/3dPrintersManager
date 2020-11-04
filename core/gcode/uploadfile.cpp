@@ -43,6 +43,11 @@ QByteArray GCode::UploadFile::GetFileName()
     return _file_name;
 }
 
+QByteArrayList GCode::UploadFile::GetData()
+{
+    return _data;
+}
+
 quint32 GCode::UploadFile::GetSize()
 {
     return _file_size;
@@ -143,6 +148,7 @@ void GCode::UploadFile::OnAllDataWritten()
 
 void GCode::UploadFile::Finish(bool b)
 {
+    qDebug()<<"UploadFile::Finish";
     if(!_finished && !b)
         Send29();
     GCodeCommand::Finish(b);

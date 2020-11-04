@@ -34,6 +34,7 @@ private://fields
 public:
     double GetProgress();
     QByteArray GetFileName();
+    QByteArrayList GetData();
     quint32 GetSize();
     bool IsSuccess();
 private slots:

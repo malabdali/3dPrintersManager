@@ -8,6 +8,7 @@
 #include "../core/deviceinfo.h"
 #include "serialwidget.h"
 #include "../core/deviceproblemsolver.h"
+#include "../core/gcode/printingstats.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -27,7 +28,9 @@ void DeviceWidget::Update()
             qDebug()<<_device->GetFileSystem()->GetUploadProgress();
         }
         else if(_device->IsReady())
+        {
             ui->_status->setText("Ready");
+        }
         else if(!_device->IsReady() && _device->IsOpen() && !_device->GetProblemSolver()->IsThereProblem())
         {
             ui->_status->setText("port is open not ready");
@@ -169,6 +172,10 @@ void DeviceWidget::OnPortDisconnected()
     ui->_open_port_button->setVisible(true);
     ui->_close_port_button->setVisible(false);
     ui->_detect_port_button->setVisible(true);
+    if(_serial_widget)
+        _serial_widget->close();
+    if(_files_widget)
+        _files_widget->close();
 }
 
 void DeviceWidget::OnDetectPort()
@@ -311,7 +318,6 @@ void DeviceWidget::ShowContextMenu(const QPoint &pos)
         contextMenu.addAction(ui->_files_action);
     }
     contextMenu.addAction(ui->_test_action);
-
     contextMenu.exec(mapToGlobal(pos));
 }
 
@@ -330,8 +336,8 @@ void DeviceWidget::on__files_action_triggered(bool checked)
     //_device->AddFunction(DeviceFunctions::Function::FileList);
 
     if(_files_widget){
-        _serial_widget->show();
-        _serial_widget->raise();
+        _files_widget->show();
+        _files_widget->raise();
         return;
     }
     _files_widget=new FilesSystemWidget(this->_device);
@@ -352,11 +358,11 @@ void DeviceWidget::on__test_action_triggered()
         _serial_widget->raise();
         return;
     }
-    _serial_widget=new SerialWidget(this);
+    _serial_widget=new SerialWidget(_device,this);
     _serial_widget->setParent(this->window(),Qt::WindowType::Window);
     _serial_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " : serial");
     _serial_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
     _serial_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _serial_widget->show();
-    QObject::connect(_serial_widget,&QWidget::destroyed,this,&DeviceWidget::FilesWidgetClosed);
+    QObject::connect(_serial_widget,&QWidget::destroyed,this,&DeviceWidget::SerialWidgetClosed);
 }

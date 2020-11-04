@@ -29,6 +29,7 @@ SOURCES += \
     core/gcode/fileslist.cpp \
     core/gcode/linenumber.cpp \
     core/gcode/powersupply.cpp \
+    core/gcode/printingstats.cpp \
     core/gcode/startprinting.cpp \
     core/gcode/uploadfile.cpp \
     core/gcodecommand.cpp \
@@ -54,6 +55,7 @@ HEADERS += \
     core/gcode/fileslist.h \
     core/gcode/linenumber.h \
     core/gcode/powersupply.h \
+    core/gcode/printingstats.h \
     core/gcode/startprinting.h \
     core/gcode/uploadfile.h \
     core/gcodecommand.h \

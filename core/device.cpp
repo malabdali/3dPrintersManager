@@ -8,10 +8,12 @@
 #include "gcodecommand.h"
 #include "deviceportdetector.h"
 #include "gcode/devicestats.h"
+#include "gcode/printingstats.h"
 #include "deviceport.h"
 #include "deviceproblemsolver.h"
 #include "deviceinfo.h"
 #include <QTimer>
+#include <QDir>
 
 Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),_port_thread(new QThread()),
     _fileSystem(new DeviceFilesSystem(this,this)),_device_port(new DevicePort()),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this))
@@ -25,10 +27,12 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _port_thread->start();
     _device_port->moveToThread(_port_thread);
     _last_command_time_finished=std::chrono::steady_clock::now();
+    _fileSystem->Initiate();
 
     QObject::connect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
     QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);
     QObject::connect(_device_port,&DevicePort::PortOpened,this,&Device::OnOpen);
+
 
 }
 
@@ -114,6 +118,7 @@ void Device::ClosePort(){
 }
 
 void Device::UpdateDeviceStats(){
+    _stats_update_steps=0;
     GCode::DeviceStats* ds=new GCode::DeviceStats(this);
     ds->setParent(nullptr);
     ds->moveToThread(_port_thread);
@@ -295,16 +300,28 @@ void Device::OnDetectPort(QByteArray port)
 
 void Device::WhenStatsUpdated()
 {
-    GCode::DeviceStats* stats=qobject_cast<GCode::DeviceStats*>(this->sender());
-    if(stats->IsSuccess())
+    GCodeCommand* command=qobject_cast<GCodeCommand*>(this->sender());
+
+    if(command->IsSuccess())
     {
-        this->_device_stats=stats->GetStats();
-        emit DeviceStatsUpdated(stats);
-        this->SetReady(true);
+        if(GCode::DeviceStats* stats=qobject_cast<GCode::DeviceStats*>(this->sender())){
+            this->_device_stats=stats->GetStats();
+            GCode::PrintingStats* ds=new GCode::PrintingStats(this);
+            ds->setParent(nullptr);
+            ds->moveToThread(_port_thread);
+            QObject::connect(ds,&GCode::PrintingStats::Finished,this,&Device::WhenStatsUpdated);
+            ds->Start();
+        }
+        else if(GCode::PrintingStats* stats=qobject_cast<GCode::PrintingStats*>(this->sender())){
+            this->_device_stats.insert("IS_PRINTING",QByteArray::number(stats->IsPrinting()));
+            this->_device_stats.insert("PRINT_PERCENT",QByteArray::number(stats->GetPercent()));
+            emit DeviceStatsUpdated(stats);
+            this->SetReady(true);
+        }
     }
     else
     {
-        emit DeviceStatsUpdateFailed(stats);
+        emit DeviceStatsUpdateFailed(command);
     }
     this->sender()->deleteLater();
 }
@@ -317,6 +334,15 @@ bool Device::IsReady()
 QMap<QByteArray, QByteArray> Device::GetStats() const
 {
     return _device_stats;
+}
+
+QJsonDocument Device::GetStatsAsJSONObject() const
+{
+    QVariantHash vh;
+    for(auto& [k,v]:_device_stats.toStdMap()){
+        vh.insert(k,v);
+    }
+    return QJsonDocument(QJsonObject::fromVariantHash(vh));
 }
 
 DevicePort *Device::GetDevicePort(){
