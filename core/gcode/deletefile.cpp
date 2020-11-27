@@ -42,7 +42,7 @@ void GCode::DeleteFile::OnAvailableData(const QByteArray &ba)
 }
 
 
-void GCode::DeleteFile::OnAllDataWritten()
+void GCode::DeleteFile::OnAllDataWritten(bool success)
 {
 
 }

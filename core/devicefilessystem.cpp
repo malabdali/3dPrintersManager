@@ -57,10 +57,14 @@ void DeviceFilesSystem::DeleteFile(const QByteArray &file)
 
 void DeviceFilesSystem::UploadFile(QByteArray fileName)
 {
+    qDebug()<<_sd_supported;
     if(!_sd_supported) return;
     _failed_uploads.removeAll(fileName);
     if(_wait_for_upload.empty())
+    {
+        qDebug()<<"call update line number";
         UpdateLineNumber();
+    }
     _wait_for_upload.append(fileName);
 }
 
@@ -88,23 +92,9 @@ QList<QByteArray> DeviceFilesSystem::GetFailedUploads()
     return _failed_uploads;
 }
 
-QMap<QByteArray, size_t> DeviceFilesSystem::GetFileList(bool syncWithLocale)
+QList<FileInfo>& DeviceFilesSystem::GetFileList()
 {
-    if(syncWithLocale)
-    {
-        QStringList sl=this->GetLocaleFiles("files",".GCO");
-        qDebug()<<_files<<sl;
-        QMap<QByteArray, size_t> files;
-        for(std::pair<QByteArray, size_t> pair:_files.toStdMap()){
-            if(sl.contains(pair.first)){
-                files.insert(pair.first,pair.second);
-            }
-        }
-        qDebug()<<files;
-        return files;
-    }
-    else
-        return _files;
+    return _files;
 }
 
 void DeviceFilesSystem::StopUpload(QByteArray ba)
@@ -116,7 +106,7 @@ void DeviceFilesSystem::StopUpload(QByteArray ba)
     }
     else{
         for(QByteArray& f:files){
-            QByteArray name=QUrl(f).fileName().replace("gcode","GCO").toUpper().toUtf8();
+            QByteArray name=QUrl(f).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
             if(name==ba){
                 _wait_for_upload.removeAll(f);
             }
@@ -128,7 +118,7 @@ QList<QByteArray> DeviceFilesSystem::GetWaitUploadingList()
 {
     QList<QByteArray> ba;
     for(QByteArray& f:_wait_for_upload){
-        auto name=QUrl(f).fileName().replace("gcode","GCO").toUpper().toUtf8();
+        auto name=QUrl(f).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
         ba.append(name);
     }
     return ba;
@@ -137,10 +127,6 @@ QList<QByteArray> DeviceFilesSystem::GetWaitUploadingList()
 uint64_t DeviceFilesSystem::GetLineNumber()
 {
     return _line_number;
-}
-
-QByteArray DeviceFilesSystem::GetLocaleDirectory(){
-    return (QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()).toUtf8();
 }
 
 void DeviceFilesSystem::WhenDeviceReady(bool b)
@@ -156,7 +142,6 @@ void DeviceFilesSystem::WhenPortClosed()
 
 }
 
-
 void DeviceFilesSystem::WhenCommandFinished(GCodeCommand *command,bool b)
 {
     if(dynamic_cast<GCode::UploadFile*>(command))
@@ -170,7 +155,8 @@ void DeviceFilesSystem::WhenCommandFinished(GCodeCommand *command,bool b)
         {
             auto* df=dynamic_cast<GCode::DeleteFile*>(command);
             this->DeleteLocaleFile("files/"+df->GetFileName());
-            this->_files.remove(df->GetFileName());
+
+            _files.erase(std::remove_if(_files.begin(),_files.end(),[fn=df->GetFileName()](const FileInfo& fi)->bool{return fi.GetFileName()==fn;}));
             emit FileDeleted(df->GetFileName());
             emit FileListUpdated();
         }
@@ -179,11 +165,7 @@ void DeviceFilesSystem::WhenCommandFinished(GCodeCommand *command,bool b)
         auto* fs=dynamic_cast<GCode::FilesList*>(command);
         if(command->IsSuccess())
         {
-            auto list=fs->GetFilesList();
-            _files.clear();
-            for(int i=0;i<list.size();i++)
-                _files.insert(list.keys()[i],list.values()[i]);
-            emit FileListUpdated();
+            WhenFileListUpdated(fs);
         }
     }
     else if(dynamic_cast<GCode::LineNumber*>(command)){
@@ -204,6 +186,7 @@ void DeviceFilesSystem::WhenStatsUpdated()
 
 void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
 {
+    qDebug()<<lineNumber->GetLineNumber();
     if(lineNumber->IsSuccess())
     {
         _line_number=lineNumber->GetLineNumber();
@@ -211,7 +194,7 @@ void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
         if(_wait_for_upload.length()>0){
             QString filename=_wait_for_upload[0];
             LoadFileFuture* lff=new LoadFileFuture(filename,[this,filename](QList<QByteArray> array)->void{
-                QByteArray filename2=QUrl(filename).fileName().replace("gcode","GCO").toUpper().toUtf8();
+                QByteArray filename2=QUrl(filename).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
                 GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,[](bool)->void{},filename2,array,
                 _line_number);
                 this->_uploading_file=gcode;
@@ -241,20 +224,57 @@ void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
 });
 
     if(uploadFile->IsSuccess()){
-        _files.insert(uploadFile->GetFileName(),uploadFile->GetSize());
-        _uploaded_files.append(uploadFile->GetFileName());
-        CopyLocaleFile(*res,"files/"+uploadFile->GetFileName(),[](bool){});
-        emit FileUploaded(uploadFile->GetFileName());
+        DeleteLocaleFile("files/"+uploadFile->GetFileName());
+        CopyLocaleFile(*res,"files/"+uploadFile->GetFileName(),[fileName=uploadFile->GetFileName(),this,res](bool success){
+            if(success)
+            {
+                _uploaded_files.append(fileName);FileInfo fi(fileName);
+                fi.SetLocalePath(GetLocaleDirectory("files/"+fileName));
+                fi.SetSourcePath(*res);
+                _files.removeAll(fi);
+                _files.append(fi);
+                emit FileUploaded(fileName);
+            }
+            else{
+                _failed_uploads.append(fileName);
+                emit UploadFileFailed(fileName);
+            }
+
+            _wait_for_upload.erase(res);
+            _uploading_file=nullptr;
+            emit this->FileListUpdated();
+            UpdateLineNumber();
+        });
     }
     else
     {
         _failed_uploads.append(uploadFile->GetFileName());
         emit UploadFileFailed(uploadFile->GetFileName());
+        _wait_for_upload.erase(res);
+        _uploading_file=nullptr;
+        emit this->FileListUpdated();
+        UpdateLineNumber();
     }
-    _wait_for_upload.erase(res);
-    _uploading_file=nullptr;
-    emit this->FileListUpdated();
-    UpdateLineNumber();
+}
+
+void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
+{
+    auto list=fs->GetFilesList();
+    QStringList sl=this->GetLocaleFiles("files","."+QByteArray(UPLOAD_SUFFIX));
+    qDebug()<<sl;
+    for(int i=0;i<list.size();i++)
+    {
+        if(_files.contains(FileInfo(list.keys()[i])))
+                continue;
+        FileInfo fi=FileInfo(list.keys()[i]);
+        fi.SetIsUploaded(true);
+        fi.SetUploadPercent(100.0);
+        if(sl.filter(fi.GetFileName(),Qt::CaseInsensitive).length()>0){
+            fi.SetLocalePath(GetLocaleDirectory("files/"+sl.filter(fi.GetFileName(),Qt::CaseInsensitive)[0].toUtf8()));
+        }
+        _files.append(fi);
+    }
+    emit FileListUpdated();
 }
 
 void DeviceFilesSystem::SetSdSupported(bool b){
@@ -266,7 +286,6 @@ void DeviceFilesSystem::CallFunction(const char* function)
 {
     this->metaObject()->invokeMethod(this,function);
 }
-
 
 void DeviceFilesSystem::UpdateLineNumber()
 {
@@ -302,14 +321,14 @@ void DeviceFilesSystem::SaveLocaleFile(const QString &path, const QByteArray &da
 
 bool DeviceFilesSystem::DeleteLocaleFile(const QByteArray &path)
 {
-    QString path2=GetLocaleDirectory()+"/"+path;
+    QString path2=GetLocaleDirectory(path);
     QDir dir;
     return dir.remove(path2);
 }
 
 void DeviceFilesSystem::ReadLocaleFile(const QByteArray &path, std::function<void (QByteArray)> callback)
 {
-    QString path2=GetLocaleDirectory()+"/"+path;
+    QString path2=GetLocaleDirectory(path);
     QFuture<QByteArray> _future=QtConcurrent::run([path2]()->QByteArray{
                                                       QFile file(path2);
                                                       if(file.open(QIODevice::ReadOnly))
@@ -332,7 +351,7 @@ void DeviceFilesSystem::ReadLocaleFile(const QByteArray &path, std::function<voi
 
 void DeviceFilesSystem::CopyLocaleFile(const QByteArray &fpath, const QByteArray &tpath, std::function<void (bool)> callback)
 {
-    QString path2=GetLocaleDirectory()+"/"+tpath;
+    QString path2=GetLocaleDirectory(tpath);
     QFuture<bool> _future=QtConcurrent::run([path2,fpath]()->bool{
         return QFile::copy(fpath,path2);
     });
@@ -346,7 +365,7 @@ void DeviceFilesSystem::CopyLocaleFile(const QByteArray &fpath, const QByteArray
 
 QStringList DeviceFilesSystem::GetLocaleFiles(const QByteArray &path, const QByteArray &suffix)
 {
-    QDir dir(GetLocaleDirectory()+"/"+path);
+    QDir dir(GetLocaleDirectory(path));
     dir.setFilter(QDir::Files);
     QStringList sl=dir.entryList();
     auto it=std::remove_if(sl.begin(),sl.end(),[suffix](QString name)->bool{return !name.contains(suffix);});
@@ -356,4 +375,9 @@ QStringList DeviceFilesSystem::GetLocaleFiles(const QByteArray &path, const QByt
     return sl;
 }
 
-
+QByteArray DeviceFilesSystem::GetLocaleDirectory(const QByteArray& subdir){
+    QByteArray sub="";
+    if(!subdir.isEmpty())
+        sub="/"+subdir;
+    return (QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()).toUtf8()+sub;
+}

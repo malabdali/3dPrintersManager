@@ -21,6 +21,7 @@ void GCode::LineNumber::InsideStop()
 
 void GCode::LineNumber::OnAvailableData(const QByteArray &ba)
 {
+    qDebug()<<ba;
     if(ba.contains("Writing to file:"))
     {
         _is_open=true;
@@ -43,7 +44,7 @@ void GCode::LineNumber::OnAvailableData(const QByteArray &ba)
     }
 }
 
-void GCode::LineNumber::OnAllDataWritten()
+void GCode::LineNumber::OnAllDataWritten(bool success)
 {
 
 }

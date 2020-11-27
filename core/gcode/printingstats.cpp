@@ -56,7 +56,7 @@ void GCode::PrintingStats::OnAvailableData(const QByteArray &ba)
 }
 
 
-void GCode::PrintingStats::OnAllDataWritten()
+void GCode::PrintingStats::OnAllDataWritten(bool success)
 {
 
 }

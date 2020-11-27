@@ -75,9 +75,9 @@ void GCodeCommand::WhenLineAvailable(QByteArrayList list)
         this->OnAvailableData(_device->GetDevicePort()->ReadLine());
 }
 
-void GCodeCommand::WhenWriteFinished()
+void GCodeCommand::WhenWriteFinished(bool success)
 {
-    this->OnAllDataWritten();
+    this->OnAllDataWritten(success);
 }
 
 void GCodeCommand::WhenErrorOccured(int error)

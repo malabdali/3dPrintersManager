@@ -36,13 +36,13 @@ public:
 
 private slots:
     void WhenLineAvailable(QByteArrayList);
-    void WhenWriteFinished();
+    void WhenWriteFinished(bool success);
     void WhenErrorOccured(int);
     void WhenPortClosed();
 
 protected:
     virtual void OnAvailableData(const QByteArray& ba)=0;
-    virtual void OnAllDataWritten()=0;
+    virtual void OnAllDataWritten(bool)=0;
     virtual void Finish(bool);
     virtual void InsideStart()=0;
     virtual void InsideStop()=0;

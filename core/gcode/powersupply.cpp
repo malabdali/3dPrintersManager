@@ -20,7 +20,7 @@ void GCode::PowerSupply::OnAvailableData(const QByteArray &ba)
 {
 }
 
-void GCode::PowerSupply::OnAllDataWritten()
+void GCode::PowerSupply::OnAllDataWritten(bool success)
 {
 }
 

@@ -40,7 +40,7 @@ void GCode::FilesList::OnAvailableData(const QByteArray &ba)
     {
         _files_list_end=true;
     }
-    else if(_is_begin && (ba.contains(".GCO")||ba.contains(".gcode")))
+    else if(_is_begin && ba!="ok")
     {
         int index=ba.indexOf(" ");
         QByteArray file=ba.left(index);
@@ -55,7 +55,7 @@ void GCode::FilesList::OnAvailableData(const QByteArray &ba)
     }
 }
 
-void GCode::FilesList::OnAllDataWritten()
+void GCode::FilesList::OnAllDataWritten(bool success)
 {
 
 }

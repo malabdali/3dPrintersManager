@@ -19,7 +19,7 @@ public:
 
 protected:
     void OnAvailableData(const QByteArray &ba) override;
-    void OnAllDataWritten() override;
+    void OnAllDataWritten(bool success) override;
     void Finish(bool) override;
     void InsideStart() override;
     void InsideStop() override;

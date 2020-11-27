@@ -79,7 +79,6 @@ void GCode::UploadFile::Send29()
 
 void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
 {
-
     if(_end_timer->isActive())
     {
         _end_timer->stop();
@@ -106,10 +105,12 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
         Finish(true);
     }
     else if(ba.contains("Resend: ")){
-        _resend_tries--;
-        if(_resend_tries<0){
-            Finish(false);
-            return;
+        if(RESEND_TRIES>0){
+            _resend_tries--;
+            if(_resend_tries<0){
+                Finish(false);
+                return;
+            }
         }
         _device->GetDevicePort()->Clear();
         _resend=true;
@@ -120,27 +121,32 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
         }
         else
             _counter=ln-1;
-        //this->_device->Write(_data[_counter]);
+        this->_device->Write(_data[_counter]);
     }
     else if(ba.contains("ok")&& _open_failed){
         Finish(false);
     }
 }
 
-void GCode::UploadFile::OnAllDataWritten()
+void GCode::UploadFile::OnAllDataWritten(bool success)
 {
+    if(!success)
+    {
+        _counter--;
+        qDebug()<<"UploadFile::OnAllDataWritten : write failed";
+    }
     if((uint32_t)_data.length()>(_counter+1) && _upload_stage)
     {
         if(_resend && !_wait_resend)
         {
             _wait_resend=true;
 
-            QTimer::singleShot(50,this,&UploadFile::Resend);
+            QTimer::singleShot(10,this,&UploadFile::Resend);
         }
         else if(!_resend)
         {
             Send();
-            //QTimer::singleShot(_data[_counter].length()/30,this,&UploadFile::Send);
+            //QTimer::singleShot(_data[_counter].length()/20,this,&UploadFile::Send);
         }
 
     }

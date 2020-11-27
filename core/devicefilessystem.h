@@ -9,6 +9,7 @@
 #include "gcode/uploadfile.h"
 #include "gcode/deletefile.h"
 #include "gcode/linenumber.h"
+#include "./fileinfo.h"
 
 class DeviceFilesSystem : public QObject
 {
@@ -16,7 +17,7 @@ class DeviceFilesSystem : public QObject
     friend class Device;
 private:
     class Device* _device;
-    QMap<QByteArray,size_t> _files;
+    QList<FileInfo> _files;
     GCode::UploadFile* _uploading_file;
     quint64 _line_number;
     QList<QByteArray> _uploaded_files,_failed_uploads,_wait_for_upload;
@@ -33,12 +34,12 @@ public:
     double GetUploadProgress();
     QList<QByteArray> GetUploadedFiles();
     QList<QByteArray> GetFailedUploads();
-    QMap<QByteArray,size_t> GetFileList(bool=true);
+    QList<FileInfo>& GetFileList();
     void StopUpload(QByteArray ba);
     QList<QByteArray> GetWaitUploadingList();
     void UpdateLineNumber();
     uint64_t GetLineNumber();
-    QByteArray GetLocaleDirectory();
+    QByteArray GetLocaleDirectory(const QByteArray& subdir="");
     void SaveLocaleFile(const QString& path,const QByteArray& data,std::function<void(bool)> callback);
     bool DeleteLocaleFile(const QByteArray& path);
     void ReadLocaleFile(const QByteArray& path,std::function<void(QByteArray)> callback);
@@ -60,6 +61,7 @@ private slots:
     void WhenStatsUpdated();
     void WhenLineNumberUpdated(GCode::LineNumber*);
     void WhenFileUploaded(GCode::UploadFile*);
+    void WhenFileListUpdated(GCode::FilesList*);
 
 private: //methods
     void SetSdSupported(bool b);

@@ -1,10 +1,13 @@
 #include "deviceport.h"
 #include "device.h"
+#include "../config.h"
+#include <QTimerEvent>
 DevicePort::DevicePort(QObject* object):QObject(object)
 {
     _serial_port=new QSerialPort(this);
     _writing_data_size=0;
     _can_read=false;
+    _writing_timer=-1;
 
     QObject::connect(_serial_port,&QSerialPort::readyRead,this,&DevicePort::OnAvailableData);
     QObject::connect(_serial_port,&QSerialPort::errorOccurred,this,&DevicePort::OnErrorOccurred);
@@ -33,7 +36,11 @@ void DevicePort::Open(QByteArray port, quint64 baud_rate){
     Clear();
     _serial_port->setBaudRate(baud_rate);
     _serial_port->setPortName(port);
+    //_serial_port->setCurrentReadChannel(0);
+    _serial_port->setDataTerminalReady(true);
     if(_serial_port->open(QIODevice::ReadWrite)){
+        //_serial_port->setCurrentReadChannel(0);
+        _serial_port->setDataTerminalReady(true);
         emit PortOpened(true);
     }
     else
@@ -145,14 +152,47 @@ void DevicePort::OnDataWritten(quint64 size)
     this->_writing_data_size-=size;
     _mutex.unlock();
     if(_writing_data_size<=0){
-        emit DataWritten();
+        if(_writing_timer!=-1)
+        {
+            this->killTimer(_writing_timer);
+            _writing_timer=-1;
+        }
+        emit DataWritten(true);
+    }
+    else{
+        if(_writing_timer!=-1)
+        {
+            this->killTimer(_writing_timer);
+            _writing_timer=-1;
+        }
+        _writing_timer=this->startTimer(SERIAL_WRITE_WAIT);
     }
 
 }
 
 void DevicePort::InsideWrite(QByteArray bytes)
 {
+
+    if(_writing_timer!=-1)
+    {
+        this->killTimer(_writing_timer);
+        _writing_timer=-1;
+    }
+    _writing_timer=this->startTimer(SERIAL_WRITE_WAIT);
     _serial_port->write(bytes);
+}
+
+void DevicePort::timerEvent(QTimerEvent *event)
+{
+    if(event->timerId()==_writing_timer)
+    {
+        if(_writing_timer!=-1)
+        {
+            this->killTimer(_writing_timer);
+            _writing_timer=-1;
+        }
+        emit DataWritten(false);
+    }
 }
 
 void DevicePort::SerialInputFilter(QByteArrayList &list)

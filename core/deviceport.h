@@ -16,6 +16,7 @@ private://fields
     QSerialPort* _serial_port;
     QMutex _mutex;
     quint64 _writing_data_size;
+    int _writing_timer;
 public:
     explicit DevicePort(QObject* object=nullptr);
     Q_INVOKABLE void Write(QByteArray bytes);
@@ -30,7 +31,7 @@ public:
 
 signals:
     void NewLinesAvailable(QByteArrayList);
-    void DataWritten();
+    void DataWritten(bool);
     void ErrorOccurred(int);
     void PortOpened(bool);
     void PortClosed();
@@ -39,6 +40,7 @@ private slots:
     void OnErrorOccurred(QSerialPort::SerialPortError);
     void OnDataWritten(quint64);
     void InsideWrite(QByteArray);
+    void timerEvent(QTimerEvent *event) override;
 private://methods
     void SerialInputFilter(QByteArrayList& list);
     void CallFunction(QByteArray function);

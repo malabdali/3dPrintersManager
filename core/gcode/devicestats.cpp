@@ -49,7 +49,7 @@ void GCode::DeviceStats::OnAvailableData(const QByteArray &ba)
 }
 
 
-void GCode::DeviceStats::OnAllDataWritten()
+void GCode::DeviceStats::OnAllDataWritten(bool success)
 {
 
 }

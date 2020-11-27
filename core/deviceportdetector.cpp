@@ -46,8 +46,11 @@ void DevicePortDetector::StartDetect()
         if(port.isBusy() || Devices::GetInstance()->GetAllDevicesPort().contains(port.portName().toUtf8()))
             continue;
         QSerialPort *sp=new QSerialPort(port);
-
+        //sp->setCurrentReadChannel(0);
+        sp->setDataTerminalReady(true);
         if(sp->open(QIODevice::ReadWrite)){
+            //sp->setCurrentReadChannel(0);
+            sp->setDataTerminalReady(true);
             _lookfor_available_ports.append(sp);
             _lookfor_available_ports_data.append("");
             sp->setBaudRate(_baud_rate);
