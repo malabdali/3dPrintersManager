@@ -27,11 +27,7 @@ Device* Devices::AddDevice(DeviceInfo* dev)
     device=new Device(dev);
     //device->moveToThread(thr);
     _devices.append(device);
-    //qDebug()<<this->thread()<<device->thread()<<device->GetDeviceInfo()->thread()<<dev->thread();
-
-    qDebug()<<"Devices::AddDevice 1";
     emit DeviceAdded(device);
-    qDebug()<<"Devices::AddDevice 2";
     return device;
 }
 

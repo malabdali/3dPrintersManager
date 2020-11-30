@@ -50,7 +50,7 @@ void DeviceProblemSolver::WhenPortClosed()
 
 void DeviceProblemSolver::WhenPortOpened()
 {
-    WhenProblemSolved();
+    //WhenProblemSolved();
 }
 
 void DeviceProblemSolver::WhenCommandStarted(GCodeCommand *command)
@@ -70,10 +70,7 @@ void DeviceProblemSolver::WhenStatsUpdateFailed(GCodeCommand *command)
 
 void DeviceProblemSolver::SolveProblem()
 {
-    _commands_was_played=_device->CommandsIsPlayed();
-    _device->PauseCommands();
     if(_last_command_error!=GCodeCommand::NoError){
-        _device->CommandsIsPlayed();
         switch (_last_command_error) {
             case GCodeCommand::NoChecksum:
             SolveNoChecksumProblem();
@@ -104,13 +101,14 @@ void DeviceProblemSolver::CheckCommandError(GCodeCommand *command)
 
 void DeviceProblemSolver::SolveNoChecksumProblem()
 {
+    _commands_was_played=_device->CommandsIsPlayed();
+    _device->PauseCommands();
     QObject::connect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&DeviceProblemSolver::WhenLinesAvailable);
     _device->GetDevicePort()->Write("M29 \n");
 }
 
 void DeviceProblemSolver::WhenProblemSolved()
 {
-
     _last_command_error=GCodeCommand::NoError;
     _last_device_error=Device::Errors::NoError;
     QObject::disconnect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&DeviceProblemSolver::WhenLinesAvailable);

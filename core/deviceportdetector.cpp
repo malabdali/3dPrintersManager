@@ -2,7 +2,7 @@
 #include <QDebug>
 #include "devices.h"
 
-DevicePortDetector::DevicePortDetector(QByteArray deviceName, size_t baudRate, QObject *parent):QObject(parent),
+DevicePortDetector::DevicePortDetector(QByteArray deviceName, quint32 baudRate, QObject *parent):QObject(parent),
     _device_name(deviceName),_baud_rate(baudRate)
 {
 
@@ -16,6 +16,7 @@ DevicePortDetector::DevicePortDetector(QByteArray deviceName, size_t baudRate, Q
 
 void DevicePortDetector::timerEvent(QTimerEvent *event)
 {
+    Q_UNUSED(event);
     if(_wait_for_send_m29)
     {
         for(QSerialPort* sp : _lookfor_available_ports){
@@ -46,14 +47,11 @@ void DevicePortDetector::StartDetect()
         if(port.isBusy() || Devices::GetInstance()->GetAllDevicesPort().contains(port.portName().toUtf8()))
             continue;
         QSerialPort *sp=new QSerialPort(port);
-        //sp->setCurrentReadChannel(0);
-        sp->setDataTerminalReady(true);
+        sp->setBaudRate(_baud_rate);
         if(sp->open(QIODevice::ReadWrite)){
-            //sp->setCurrentReadChannel(0);
             sp->setDataTerminalReady(true);
             _lookfor_available_ports.append(sp);
             _lookfor_available_ports_data.append("");
-            sp->setBaudRate(_baud_rate);
             QObject::connect(sp,SIGNAL(readyRead()),&_lookfor_ports_signals_mapper,SLOT(map()));
             _lookfor_ports_signals_mapper.setMapping(sp,_lookfor_available_ports.length()-1);
         }
@@ -102,7 +100,6 @@ void DevicePortDetector::OnChecPortsDataAvailableMapped(int sid)
         return;
     killTimer(_lookfor_timer_id);
     _lookfor_timer_id=this->startTimer(DETECT_PORT_WAIT_TIME);
-    qDebug()<<ba;
     _lookfor_available_ports_data[sid].append(ba);
     DetectPortProcessing();
 }

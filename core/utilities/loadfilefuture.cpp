@@ -15,22 +15,27 @@ QList<QByteArray> LoadFileFuture::LoadFile()
     f.open(QIODevice::ReadOnly);
     QByteArray data=f.readAll();
     QByteArrayList lines=data.split('\n');
-    lines.erase(std::remove_if(lines.begin(),lines.end(),[](QByteArray& line)->bool{
+    /*lines.erase(std::remove_if(lines.begin(),lines.end(),[](QByteArray& line)->bool{
         return !line.startsWith("M")&& !line.startsWith("G");
-    }),lines.end());
+    }),lines.end());*/
+    QList<QByteArray> newLines;
     int i=_offset;
     for(QByteArray& line:lines){
-        int index=line.indexOf(';');
-        line.remove(index,line.length()-index);
         line.replace('\r',"");
         line=line.simplified();
         line=line.trimmed();
+        if(!line.startsWith("M")&& !line.startsWith("G")){
+            continue;
+        }
+        int index=line.indexOf(';');
+        line.remove(index,line.length()-index);
         line.prepend(QByteArray("N")+QByteArray::number(i)+" ");
         uint8_t checksum=std::accumulate(line.begin(),line.end(),0,[](uint8_t v,char c){return c^v;});
         line.append(QByteArray("*")+QByteArray::number(checksum)+"\n");
         i++;
+        newLines.append(line);
     }
-    return lines;
+    return newLines;
 }
 
 void LoadFileFuture::WhenFinished()

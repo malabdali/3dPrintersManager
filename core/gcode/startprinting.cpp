@@ -51,15 +51,29 @@ void GCode::StartPrinting::OnAvailableData(const QByteArray &ba)
         _file_selected=true;
     }
     else{
-        if(ba.contains("Error:No Checksum"))
+        if(ba.contains("Error:No Checksum") || ba.contains("Resend:"))
         {
             SetError(CommandError::NoChecksum);
+        }
+        else if(ba.toLower().contains("busy")||ba.toLower().startsWith("t:"))
+        {
+            SetError(CommandError::Busy);
+            Finish(false);
+        }
+        else{
+            SetError(CommandError::UnknownError);
+            Finish(false);
         }
     }
 }
 
 void GCode::StartPrinting::OnAllDataWritten(bool success)
 {
+    if(!success)
+    {
+        SetError(CommandError::WriteError);
+        Finish(false);
+    }
 }
 
 void GCode::StartPrinting::Finish(bool b)

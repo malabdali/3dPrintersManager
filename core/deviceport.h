@@ -22,6 +22,9 @@ public:
     Q_INVOKABLE void Write(QByteArray bytes);
     Q_INVOKABLE void Open(QByteArray port,quint64 baud_rate);
     QByteArray ReadLine();
+    QList<QByteArray> ReadAllLines();
+    uint32_t LinesCount();
+    QByteArray PeakLine(int i);
     bool IsThereAvailableLines();
     void Clear();
     bool IsOpen();

@@ -46,11 +46,21 @@ void GCode::PrintingStats::OnAvailableData(const QByteArray &ba)
         std::match_results<QByteArray::ConstIterator> matches;
         std::regex_search(ba.begin(),ba.end(), matches, rgx);
         _percent=(double) QString(matches[0].first).split('/')[0].toUInt()/(double) QString(matches[0].first).split('/')[1].toUInt();
+        _percent*=100.0;
     }
     else{
-        if(ba.contains("Error:No Checksum"))
+        if(ba.contains("Error:No Checksum") || ba.contains("Resend:"))
         {
             SetError(CommandError::NoChecksum);
+        }
+        else if(ba.toLower().contains("busy")||ba.toLower().startsWith("t:"))
+        {
+            SetError(CommandError::Busy);
+            Finish(false);
+        }
+        else{
+            SetError(CommandError::UnknownError);
+            Finish(false);
         }
     }
 }
@@ -58,7 +68,11 @@ void GCode::PrintingStats::OnAvailableData(const QByteArray &ba)
 
 void GCode::PrintingStats::OnAllDataWritten(bool success)
 {
-
+    if(!success)
+    {
+        SetError(CommandError::WriteError);
+        Finish(false);
+    }
 }
 
 void GCode::PrintingStats::Finish(bool b)

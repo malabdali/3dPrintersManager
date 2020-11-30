@@ -1,22 +1,23 @@
-#ifndef PRINTINGSTATUS_H
-#define PRINTINGSTATUS_H
+#ifndef REPORTTEMPERATURE_H
+#define REPORTTEMPERATURE_H
 
 #include <QObject>
 #include "../gcodecommand.h"
 #include "../device.h"
 
 namespace GCode {
-    class DeviceStats;
+    class ReportTemperature;
 }
-class GCode::DeviceStats : public GCodeCommand
+class GCode::ReportTemperature : public GCodeCommand
 {
     Q_OBJECT
 private://fields
 
-    QMap<QByteArray,QByteArray> _stats;
+    double _bed_temperature,_hotend_temperature;
 public:
-    explicit DeviceStats(Device* _device);
-    QMap<QByteArray,QByteArray> GetStats();
+    explicit ReportTemperature(Device* _device);
+    double GetHotendTemperature()const;
+    double GetBedTemperature()const;
 
 protected:
     void OnAvailableData(const QByteArray &ba) override;

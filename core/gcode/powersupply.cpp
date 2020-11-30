@@ -22,6 +22,11 @@ void GCode::PowerSupply::OnAvailableData(const QByteArray &ba)
 
 void GCode::PowerSupply::OnAllDataWritten(bool success)
 {
+    if(!success)
+    {
+        SetError(CommandError::WriteError);
+        Finish(false);
+    }
 }
 
 void GCode::PowerSupply::Finish(bool b)

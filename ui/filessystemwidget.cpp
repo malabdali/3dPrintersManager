@@ -17,11 +17,23 @@ FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
     ui->_delete_file_button->setVisible(false);
     ui->_print_button->setVisible(false);
     OnFileListUpdated();
+    this->startTimer(1000);
 }
 
 FilesSystemWidget::~FilesSystemWidget()
 {
     delete ui;
+}
+
+void FilesSystemWidget::timerEvent(QTimerEvent *event)
+{
+    if(_device->GetFileSystem()->IsStillUploading()){
+        QByteArray ba=_device->GetFileSystem()->GetWaitUploadingList()[0];
+        for(int i=0;i<ui->_files_list->count();i++)
+            if(ui->_files_list->item(i)->data(0x0100)==ba && ui->_files_list->item(i)->data(3).toString()=="waiting")
+                ui->_files_list->item(i)->setText(ui->_files_list->item(i)->data(0x0100).toString()+QStringLiteral("* \r")+
+                                                  QString::number(_device->GetFileSystem()->GetUploadProgress(),'f',2));
+    }
 }
 
 void FilesSystemWidget::on__update_files_button_clicked()
@@ -33,6 +45,9 @@ void FilesSystemWidget::OnFileListUpdated()
 {
     ui->_files_list->clear();
     auto files=_device->GetFileSystem()->GetFileList();
+    ui->_delete_file_button->setVisible(false);
+    ui->_stop_upload_button->setVisible(false);
+    ui->_print_button->setVisible(false);
     for(int i=0;i<files.size();i++){
         QListWidgetItem* lwi=new QListWidgetItem(ui->_files_list);
         lwi->setIcon(QIcon(":/icon/images/file.png"));
@@ -118,14 +133,12 @@ void FilesSystemWidget::on__upload_file_button_clicked()
 
 void FilesSystemWidget::on__stop_upload_button_clicked()
 {
-    //qDebug()<<QThread::currentThread()<<_device->thread();
     _device->PauseCommands();
     QList<QString> names;
     for(QListWidgetItem* item:ui->_files_list->selectedItems()){
         QString name=item->data(0x0100).toString();
         names.append(name);
     }
-    qDebug()<<names;
     for(QString& name:names){
         if(_device->GetFileSystem()->GetWaitUploadingList().contains(name.toUtf8())){
             _device->GetFileSystem()->StopUpload(name.toUtf8());

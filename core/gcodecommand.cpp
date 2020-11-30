@@ -1,8 +1,9 @@
 #include "gcodecommand.h"
 #include "device.h"
 #include "deviceport.h"
+#include <QTimer>
 
-GCodeCommand::GCodeCommand(Device *device, QByteArray gcode):_device(device),_gcode(gcode)
+GCodeCommand::GCodeCommand(Device *device, QByteArray gcode, uint32_t noResponseTimeout):_device(device),_gcode(gcode)
 {
     this->moveToThread(device->thread());
     this->setParent(device);
@@ -10,6 +11,7 @@ GCodeCommand::GCodeCommand(Device *device, QByteArray gcode):_device(device),_gc
     _started=false;
     _is_success=false;
     _command_error=NoError;
+    _no_response_time_out=noResponseTimeout;
 }
 
 GCodeCommand::~GCodeCommand()
@@ -27,10 +29,16 @@ void GCodeCommand::Start()
         QMetaObject::invokeMethod(this,"Start");
         return;
     }
+    if(_no_response_time_out){
+        _no_response_timer=new QTimer(this);
+        QObject::connect(_no_response_timer,&QTimer::timeout,this,&GCodeCommand::WhenTimeOut);
+    }
     QObject::connect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);
     QObject::connect(_device->GetDevicePort(),&DevicePort::DataWritten,this,&GCodeCommand::WhenWriteFinished);
     QObject::connect(_device->GetDevicePort(),&DevicePort::ErrorOccurred,this,&GCodeCommand::WhenErrorOccured);
     QObject::connect(_device->GetDevicePort(),&DevicePort::PortClosed,this,&GCodeCommand::WhenPortClosed);
+
+
     InsideStart();
 }
 
@@ -77,6 +85,10 @@ void GCodeCommand::WhenLineAvailable(QByteArrayList list)
 
 void GCodeCommand::WhenWriteFinished(bool success)
 {
+    if(_no_response_time_out>0){
+        _no_response_timer->stop();
+        _no_response_timer->start(_no_response_time_out);
+    }
     this->OnAllDataWritten(success);
 }
 
@@ -105,6 +117,13 @@ void GCodeCommand::Finish(bool b)
     QObject::disconnect(_device->GetDevicePort(),&DevicePort::ErrorOccurred,this,&GCodeCommand::WhenErrorOccured);
     QObject::disconnect(_device->GetDevicePort(),&DevicePort::PortClosed,this,&GCodeCommand::WhenPortClosed);
     emit Finished(b);
+}
+
+void GCodeCommand::WhenTimeOut()
+{
+    this->_no_response_timer->stop();
+    this->SetError(TimeOut);
+    this->Stop();
 }
 
 void GCodeCommand::SetError(GCodeCommand::CommandError error)

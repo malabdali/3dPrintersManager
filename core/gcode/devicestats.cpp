@@ -41,9 +41,18 @@ void GCode::DeviceStats::OnAvailableData(const QByteArray &ba)
         }
     }
     else{
-        if(ba.contains("Error:No Checksum"))
+        if(ba.contains("Error:No Checksum") || ba.contains("Resend:"))
         {
             SetError(CommandError::NoChecksum);
+        }
+        else if(ba.toLower().contains("busy")||ba.toLower().startsWith("t:"))
+        {
+            SetError(CommandError::Busy);
+            Finish(false);
+        }
+        else{
+            SetError(CommandError::UnknownError);
+            Finish(false);
         }
     }
 }
@@ -51,7 +60,11 @@ void GCode::DeviceStats::OnAvailableData(const QByteArray &ba)
 
 void GCode::DeviceStats::OnAllDataWritten(bool success)
 {
-
+    if(!success)
+    {
+        SetError(CommandError::WriteError);
+        Finish(false);
+    }
 }
 
 void GCode::DeviceStats::Finish(bool b)

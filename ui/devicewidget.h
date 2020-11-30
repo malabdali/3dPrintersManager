@@ -45,6 +45,7 @@ private slots:
     void ShowContextMenu(const QPoint &pos);
     void FilesWidgetClosed();
     void SerialWidgetClosed();
+    void WhenMonitorUpdated();
     void on__files_action_triggered(bool checked);
     void on__test_action_triggered();
 };

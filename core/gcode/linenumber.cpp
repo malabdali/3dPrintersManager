@@ -21,7 +21,6 @@ void GCode::LineNumber::InsideStop()
 
 void GCode::LineNumber::OnAvailableData(const QByteArray &ba)
 {
-    qDebug()<<ba;
     if(ba.contains("Writing to file:"))
     {
         _is_open=true;
@@ -37,21 +36,39 @@ void GCode::LineNumber::OnAvailableData(const QByteArray &ba)
         else if(_is_fail)
             Finish(false);
     }
+    else if(ba.contains("Line Number") || ba.contains("Error:No Checksum")){
+
+    }
     else if(ba.contains("Resend: ")){
         _line_number=ba.mid(8).simplified().trimmed().toUInt();
         _29_sent=true;
         _device->GetDevicePort()->Write("M29 \n");
     }
+
+    else{
+        if(ba.toLower().contains("busy")||ba.toLower().startsWith("t:"))
+        {
+            SetError(CommandError::Busy);
+            Finish(false);
+        }
+        else{
+            SetError(CommandError::UnknownError);
+            Finish(false);
+        }
+    }
 }
 
 void GCode::LineNumber::OnAllDataWritten(bool success)
 {
-
+    if(!success)
+    {
+        SetError(CommandError::WriteError);
+        Finish(false);
+    }
 }
 
 void GCode::LineNumber::Finish(bool b)
 {
-    qDebug()<<"GCode::LineNumber::Finish";
     GCodeCommand::Finish(b);
 }
 

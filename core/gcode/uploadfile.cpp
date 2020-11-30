@@ -3,8 +3,8 @@
 #include "QTimer"
 #include "../deviceport.h"
 #include "../device.h"
-GCode::UploadFile::UploadFile(Device *device, std::function<void (bool)> callback,QByteArray fileName,const QByteArrayList& data,quint64 firstLine):
-    GCodeCommand(device,"M28"),_callback(callback),_file_name(fileName),_file_size(0),_data(data),_first_line(firstLine)
+GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine):
+    GCodeCommand(device,"M28",0),_file_name(fileName),_file_size(0),_data(data),_first_line(firstLine)
 {
     _resend_tries=RESEND_TRIES;
     _resend=false;
@@ -13,6 +13,7 @@ GCode::UploadFile::UploadFile(Device *device, std::function<void (bool)> callbac
     _open_failed=false;
     _open_success=false;
     _wait_resend=false;
+    _file_saved=false;
 }
 
 void GCode::UploadFile::InsideStart()
@@ -98,10 +99,13 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
     }
     else if((uint32_t)_data.length()<=(_counter+1) && ba.contains("ok") && _upload_stage)
     {
+        _end_timer->stop();
         _end_timer->start(500);
     }
-    else if(ba.contains("Done saving file")|| (_open_success && !_upload_stage && ba.contains("ok"))){
-        //qDebug()<<(std::chrono::system_clock::now()-from).count();
+    else if(ba.contains("Done saving file")){
+        _file_saved=true;
+    }
+    else if(_open_success && !_upload_stage && ba.contains("ok")){
         Finish(true);
     }
     else if(ba.contains("Resend: ")){
@@ -117,6 +121,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
         uint32_t ln=ba.mid(8).simplified().trimmed().toUInt()-_first_line;
         if(ln>=_counter)
         {
+            _end_timer->stop();
             _end_timer->start(500);
         }
         else
@@ -126,6 +131,11 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
     else if(ba.contains("ok")&& _open_failed){
         Finish(false);
     }
+    else if(ba.toLower().contains("busy")||ba.toLower().startsWith("t:"))
+    {
+        SetError(CommandError::Busy);
+        Finish(false);
+    }
 }
 
 void GCode::UploadFile::OnAllDataWritten(bool success)
@@ -133,7 +143,6 @@ void GCode::UploadFile::OnAllDataWritten(bool success)
     if(!success)
     {
         _counter--;
-        qDebug()<<"UploadFile::OnAllDataWritten : write failed";
     }
     if((uint32_t)_data.length()>(_counter+1) && _upload_stage)
     {
@@ -154,7 +163,6 @@ void GCode::UploadFile::OnAllDataWritten(bool success)
 
 void GCode::UploadFile::Finish(bool b)
 {
-    qDebug()<<"UploadFile::Finish";
     if(!_finished && !b)
         Send29();
     GCodeCommand::Finish(b);

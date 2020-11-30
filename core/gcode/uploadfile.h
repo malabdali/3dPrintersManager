@@ -15,15 +15,14 @@ class GCode::UploadFile : public GCodeCommand
 {
     Q_OBJECT
 public:
-    explicit UploadFile(Device *device, std::function<void (bool)> callback,QByteArray fileName,const QByteArrayList& data,quint64 firstLine);
+    explicit UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine);
 
 signals:
 
 private://fields
     //todo
     uint32_t _counter,_first_line;
-    bool _resend,_upload_stage,_open_failed,_open_success,_wait_resend;
-    std::function<void(bool)> _callback;
+    bool _resend,_upload_stage,_open_failed,_open_success,_wait_resend,_file_saved;
     QByteArray _file_name;
     size_t _file_size;
     QByteArrayList _data;

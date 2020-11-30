@@ -25,7 +25,8 @@ public://nested types
         DetectDevicePort,
         PortDetected,
         Connected,
-        Ready
+        Ready,
+        Busy
 
     };
     Q_ENUM(DeviceStatus);
@@ -39,19 +40,21 @@ private://fields
     QThread* _port_thread;
     DeviceStatus _current_status;
     bool _is_ready;
+    bool _is_busy;
     QMap<QByteArray,QByteArray> _device_stats;
-    int _stats_update_steps;
     //gcode commands
     QList<class GCodeCommand*> _commands;
     class GCodeCommand* _current_command;
     bool _commands_paused,_delay_command_state;
     std::chrono::time_point<std::chrono::steady_clock> _last_command_time_finished;
+    QTimer* _delay_command_timer;
     //end gcode commands
     class DeviceFilesSystem* _fileSystem;
     class DevicePortDetector* _port_detector;
     class DevicePort* _device_port;
     class DeviceInfo* _device_info;
     class DeviceProblemSolver* _problem_solver;
+    class DeviceMonitor* _device_monitor;
 
 
 public:
@@ -73,6 +76,7 @@ public:
     QJsonDocument GetStatsAsJSONObject()const;
     DevicePort* GetDevicePort();
     DeviceProblemSolver *GetProblemSolver()const;
+    DeviceMonitor *GetDeviceMonitor();
     //commands
     void AddGCodeCommand(GCodeCommand* command);
     void ClearCommands();
@@ -94,6 +98,7 @@ private://methods
     void CalculateAndSetStatus();
     void SerialInputFilter(QByteArrayList& list);
     void SetReady(bool ready);
+    void DelayCommandCallback();
 
 private slots:
     void OnErrorOccurred(int i);

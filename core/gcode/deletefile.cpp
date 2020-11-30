@@ -39,12 +39,31 @@ void GCode::DeleteFile::OnAvailableData(const QByteArray &ba)
         }
         Finish(_is_success);
     }
+    else{
+        if(ba.contains("Error:No Checksum") || ba.contains("Resend:"))
+        {
+            SetError(CommandError::NoChecksum);
+        }
+        else if(ba.toLower().contains("busy")||ba.toLower().startsWith("t:"))
+        {
+            SetError(CommandError::Busy);
+            Finish(false);
+        }
+        else{
+            SetError(CommandError::UnknownError);
+            Finish(false);
+        }
+    }
 }
 
 
 void GCode::DeleteFile::OnAllDataWritten(bool success)
 {
-
+    if(!success)
+    {
+        SetError(CommandError::WriteError);
+        Finish(false);
+    }
 }
 
 void GCode::DeleteFile::Finish(bool b)

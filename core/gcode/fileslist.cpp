@@ -51,13 +51,29 @@ void GCode::FilesList::OnAvailableData(const QByteArray &ba)
         Finish(true);
     }
     else{
-        Finish(false);
+        if(ba.contains("Error:No Checksum") || ba.contains("Resend:"))
+        {
+            SetError(CommandError::NoChecksum);
+        }
+        else if(ba.toLower().contains("busy")||ba.toLower().startsWith("t:"))
+        {
+            SetError(CommandError::Busy);
+            Finish(false);
+        }
+        else{
+            SetError(CommandError::UnknownError);
+            Finish(false);
+        }
     }
 }
 
 void GCode::FilesList::OnAllDataWritten(bool success)
 {
-
+    if(!success)
+    {
+        SetError(CommandError::WriteError);
+        Finish(false);
+    }
 }
 
 void GCode::FilesList::Finish(bool b)

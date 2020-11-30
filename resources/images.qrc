@@ -5,5 +5,8 @@
         <file>images/uploading_file.png</file>
         <file>images/fail.png</file>
         <file>images/success.png</file>
+        <file>images/temperature.png</file>
+        <file>images/bed.png</file>
+        <file>images/hotend.png</file>
     </qresource>
 </RCC>

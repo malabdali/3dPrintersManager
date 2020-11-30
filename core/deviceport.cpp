@@ -37,7 +37,7 @@ void DevicePort::Open(QByteArray port, quint64 baud_rate){
     _serial_port->setBaudRate(baud_rate);
     _serial_port->setPortName(port);
     //_serial_port->setCurrentReadChannel(0);
-    _serial_port->setDataTerminalReady(true);
+    //_serial_port->setDataTerminalReady(true);
     if(_serial_port->open(QIODevice::ReadWrite)){
         //_serial_port->setCurrentReadChannel(0);
         _serial_port->setDataTerminalReady(true);
@@ -54,6 +54,28 @@ QByteArray DevicePort::ReadLine()
     QMutexLocker locker(&_mutex);
     if(_available_lines.length()>0)
         return _available_lines.takeAt(0);
+    else
+        return "";
+}
+
+QList<QByteArray> DevicePort::ReadAllLines()
+{
+    QMutexLocker locker(&_mutex);
+    QList<QByteArray> allLines;
+    allLines=std::move(_available_lines);
+    return allLines;
+}
+
+uint32_t DevicePort::LinesCount()
+{
+    return _available_lines.length();
+}
+
+QByteArray DevicePort::PeakLine(int i)
+{
+    QMutexLocker locker(&_mutex);
+    if(_available_lines.length()>i)
+        return _available_lines.at(i);
     else
         return "";
 }

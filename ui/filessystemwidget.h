@@ -15,6 +15,7 @@ private://fields
 public:
     explicit FilesSystemWidget(Device* device,QWidget *parent = nullptr);
     ~FilesSystemWidget();
+    void timerEvent(QTimerEvent* event)override;
 
 private slots:
     void on__update_files_button_clicked();

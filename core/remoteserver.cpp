@@ -79,7 +79,6 @@ bool RemoteServer::IsSuccess(QNetworkReply *reply)
     QString res=QJsonDocument::fromJson(data.toUtf8()).object()["result"].toString();
     if(res=="ok")
         return true;
-    //qDebug()<<data;
     return false;
 }
 

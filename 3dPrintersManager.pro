@@ -20,17 +20,18 @@ SOURCES += \
     core/device.cpp \
     core/devicefilessystem.cpp \
     core/deviceinfo.cpp \
+    core/devicemonitor.cpp \
     core/deviceport.cpp \
     core/deviceportdetector.cpp \
     core/deviceproblemsolver.cpp \
     core/devices.cpp \
     core/fileinfo.cpp \
     core/gcode/deletefile.cpp \
-    core/gcode/devicestats.cpp \
     core/gcode/fileslist.cpp \
     core/gcode/linenumber.cpp \
     core/gcode/powersupply.cpp \
     core/gcode/printingstats.cpp \
+    core/gcode/reporttemperature.cpp \
     core/gcode/startprinting.cpp \
     core/gcode/uploadfile.cpp \
     core/gcodecommand.cpp \
@@ -41,23 +42,25 @@ SOURCES += \
     ui/devicewidget.cpp \
     ui/filessystemwidget.cpp \
     ui/mainwindow.cpp \
-    ui/serialwidget.cpp
+    ui/serialwidget.cpp\
+    core/gcode/devicestats.cpp
 
 HEADERS += \
     core/device.h \
     core/devicefilessystem.h \
     core/deviceinfo.h \
+    core/devicemonitor.h \
     core/deviceport.h \
     core/deviceportdetector.h \
     core/deviceproblemsolver.h \
     core/devices.h \
     core/fileinfo.h \
     core/gcode/deletefile.h \
-    core/gcode/devicestats.h \
     core/gcode/fileslist.h \
     core/gcode/linenumber.h \
     core/gcode/powersupply.h \
     core/gcode/printingstats.h \
+    core/gcode/reporttemperature.h \
     core/gcode/startprinting.h \
     core/gcode/uploadfile.h \
     core/gcodecommand.h \
@@ -67,7 +70,8 @@ HEADERS += \
     ui/devicewidget.h \
     ui/filessystemwidget.h \
     ui/mainwindow.h \
-    ui/serialwidget.h
+    ui/serialwidget.h\
+    core/gcode/devicestats.h
 
 FORMS += \
     ui/deviceswidget.ui \

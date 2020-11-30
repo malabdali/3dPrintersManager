@@ -9,6 +9,7 @@
 #include "serialwidget.h"
 #include "../core/deviceproblemsolver.h"
 #include "../core/gcode/printingstats.h"
+#include "../core/devicemonitor.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -16,28 +17,50 @@ DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     Setup();
     _serial_widget=nullptr;
     _files_widget=nullptr;
+    if(device){
+        connect(device->GetDeviceMonitor(),&DeviceMonitor::updated,this,&DeviceWidget::WhenMonitorUpdated);
+    }
 }
 
 void DeviceWidget::Update()
 {
     if(_device)
     {
+        ui->_uploading->setText("");
+        ui->_uploading->setVisible(false);
+        ui->_uploading_label->setVisible(false);
         if(_device->GetFileSystem()->IsStillUploading() && _device->IsReady())
         {
+            ui->_uploading->setVisible(true);
+            ui->_uploading_label->setVisible(true);
             ui->_status->setText("Uploading Files");
-            qDebug()<<_device->GetFileSystem()->GetUploadProgress();
+            ui->_uploading->setText(QString::number(_device->GetFileSystem()->GetUploadProgress(),'f',2)+"%");
         }
-        else if(_device->IsReady())
+        /*else if(_device->IsReady())
         {
-            ui->_status->setText("Ready");
         }
         else if(!_device->IsReady() && _device->IsOpen() && !_device->GetProblemSolver()->IsThereProblem())
         {
             ui->_status->setText("port is open not ready");
-            _device->UpdateDeviceStats();
-        }
+        }*/
         else
-            ui->_status->setText("port is closed");
+        {
+            auto status=_device->GetStatus();
+            switch (status) {
+            case Device::DeviceStatus::Ready:
+                ui->_status->setText("Ready");
+                break;
+            case Device::DeviceStatus::Busy:
+                ui->_status->setText("Busy");
+                break;
+            case Device::DeviceStatus::Connected:
+                ui->_status->setText("open not ready");
+                break;
+            default:
+                ui->_status->setText("closed");
+                break;
+            }
+        }
     }
 }
 
@@ -98,6 +121,11 @@ void DeviceWidget::Setup()
         ui->_error->setVisible(false);
 
     }
+
+    ui->_uploading->setVisible(false);
+    ui->_uploading_label->setVisible(false);
+    ui->_printing->setVisible(false);
+    ui->_printing_label->setVisible(false);
 
     {
         //ui events
@@ -184,7 +212,6 @@ void DeviceWidget::OnDetectPort()
     ui->_detect_port_button->setVisible(true);
     if(!this->_device->GetPort().isEmpty())
     {
-        //ui->_detect_port_button->setVisible(false);
         ui->_open_port_button->setVisible(true);
     }
     else
@@ -216,7 +243,6 @@ void DeviceWidget::WhenEditValues()
 
 void DeviceWidget::SaveChanges()
 {
-    qDebug()<<_device->thread()<<_device->GetDeviceInfo()->thread()<<this->thread()<<qApp->thread();
     ui->_save_changes_button->setEnabled(false);
     _device->GetDeviceInfo()->SetDimensions(ui->_x->text().toUInt(),ui->_y->text().toUInt(),ui->_z->text().toUInt());
     _device->GetDeviceInfo()->SetBaudRate(ui->_baud_rate->text().toUInt());
@@ -225,7 +251,6 @@ void DeviceWidget::SaveChanges()
 
     _device->ClosePort();
     RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* rep)->void{
-        qDebug()<<rep->peek(rep->size());
         if(RemoteServer::GetInstance()->IsSuccess(rep))
         {
             ui->_save_changes_button->setVisible(false);
@@ -240,13 +265,11 @@ void DeviceWidget::SaveChanges()
 
 void DeviceWidget::WhenProblemDetected()
 {
-    qDebug()<<"DeviceWidget::WhenProblemDetected";
     _device->GetProblemSolver()->SolveProblem();
 }
 
 void DeviceWidget::WhenSolveProblemFinished()
 {
-    qDebug()<<"DeviceWidget::WhenSolveProblemFinished";
 }
 
 void DeviceWidget::CreateDevice()
@@ -258,12 +281,10 @@ void DeviceWidget::CreateDevice()
     di.SetNozzleDiameter(ui->_nozzle->text().toFloat());
     di.SetFilamentMaterial(ui->_material->currentText().toUtf8());
     RemoteServer::GetInstance()->SendInsertQuery([this](QNetworkReply* rep)->void{
-        qDebug()<<rep->peek(rep->size());
         if(RemoteServer::GetInstance()->IsSuccess(rep))
         {
             DeviceInfo* device=new DeviceInfo(ui->_name->text().toUtf8());
             device->FromJSON(RemoteServer::GetInstance()->GetJSONValue(rep).toArray()[0].toObject());
-            qDebug()<<device->ToJson();
             Devices::GetInstance()->AddDevice(device);
 
             ui->_create_button->setVisible(false);
@@ -279,7 +300,6 @@ void DeviceWidget::DeleteDevice()
 {
     ui->_delete_button->setEnabled(false);
     RemoteServer::GetInstance()->SendDeleteQuery([this](QNetworkReply* rep)->void{
-        qDebug()<<rep->peek(rep->size());
         if(RemoteServer::GetInstance()->IsSuccess(rep))
         {
             Devices::GetInstance()->RemoveDevice(_device->GetDeviceInfo());
@@ -293,8 +313,8 @@ void DeviceWidget::DeleteDevice()
 
 void DeviceWidget::DetectPort()
 {
-    this->_device->DetectDevicePort();
     ui->_detect_port_button->setVisible(false);
+    this->_device->DetectDevicePort();
 }
 
 void DeviceWidget::OpenPort()
@@ -329,6 +349,21 @@ void DeviceWidget::FilesWidgetClosed()
 void DeviceWidget::SerialWidgetClosed()
 {
     _serial_widget=nullptr;
+}
+
+void DeviceWidget::WhenMonitorUpdated()
+{
+    if(_device->GetDeviceMonitor()->IsPrinting()){
+        ui->_printing->show();
+        ui->_printing_label->show();
+        ui->_printing->setText(QString::number(_device->GetDeviceMonitor()->GetPrintProgress(),'f',2)+"%");
+    }
+    else{
+        ui->_printing->hide();
+        ui->_printing_label->hide();
+    }
+    ui->_bed_temperature->setText(QString::number(_device->GetDeviceMonitor()->GetBedTemperature()));
+    ui->_hotend_temperature_->setText(QString::number(_device->GetDeviceMonitor()->GetHotendTemperature()));
 }
 
 void DeviceWidget::on__files_action_triggered(bool checked)

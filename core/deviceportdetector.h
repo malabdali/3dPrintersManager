@@ -12,7 +12,7 @@ class DevicePortDetector : public QObject
     Q_OBJECT
 private://fields
     QByteArray _device_name;
-    size_t _baud_rate;
+    quint32 _baud_rate;
     QByteArray _port;
 
     QList<QSerialPort*> _lookfor_available_ports;
@@ -22,7 +22,7 @@ private://fields
     int _send_m115_counter;
     bool _wait_for_send_m115,_wait_for_send_m29;
 public:
-    explicit DevicePortDetector(QByteArray deviceName,size_t baudRate, QObject *parent = nullptr);
+    explicit DevicePortDetector(QByteArray deviceName,quint32 baudRate, QObject *parent = nullptr);
     void timerEvent(QTimerEvent *event) override;
     void StartDetect();
 

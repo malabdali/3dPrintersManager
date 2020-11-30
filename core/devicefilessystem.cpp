@@ -57,12 +57,10 @@ void DeviceFilesSystem::DeleteFile(const QByteArray &file)
 
 void DeviceFilesSystem::UploadFile(QByteArray fileName)
 {
-    qDebug()<<_sd_supported;
     if(!_sd_supported) return;
     _failed_uploads.removeAll(fileName);
     if(_wait_for_upload.empty())
     {
-        qDebug()<<"call update line number";
         UpdateLineNumber();
     }
     _wait_for_upload.append(fileName);
@@ -186,17 +184,22 @@ void DeviceFilesSystem::WhenStatsUpdated()
 
 void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
 {
-    qDebug()<<lineNumber->GetLineNumber();
     if(lineNumber->IsSuccess())
     {
         _line_number=lineNumber->GetLineNumber();
         emit LineNumberUpdated(true);
         if(_wait_for_upload.length()>0){
             QString filename=_wait_for_upload[0];
+            QByteArray filename2=QUrl(filename).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
+            if(_files.contains(FileInfo(filename2)))
+            {
+                DeleteLocaleFile("files/"+filename2);
+                _files.removeAll(FileInfo(filename2));
+                emit FileListUpdated();
+            }
             LoadFileFuture* lff=new LoadFileFuture(filename,[this,filename](QList<QByteArray> array)->void{
                 QByteArray filename2=QUrl(filename).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
-                GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,[](bool)->void{},filename2,array,
-                _line_number);
+                GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,filename2,array,_line_number);
                 this->_uploading_file=gcode;
                 _device->AddGCodeCommand(gcode);
                 emit FileListUpdated();
@@ -261,7 +264,6 @@ void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
 {
     auto list=fs->GetFilesList();
     QStringList sl=this->GetLocaleFiles("files","."+QByteArray(UPLOAD_SUFFIX));
-    qDebug()<<sl;
     for(int i=0;i<list.size();i++)
     {
         if(_files.contains(FileInfo(list.keys()[i])))
@@ -296,9 +298,7 @@ void DeviceFilesSystem::UpdateLineNumber()
 
 void DeviceFilesSystem::SaveLocaleFile(const QString &path, const QByteArray &data, std::function<void (bool)> callback)
 {
-    qDebug()<<"DeviceFilesSystem::SaveLocaleFile";
     QString path2=QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()+"/"+path;
-    qDebug()<<path2;
     QFuture<bool> _future=QtConcurrent::run([data,path=path2]()->bool{
         QFile file(path);
         if(file.open(QIODevice::WriteOnly))
