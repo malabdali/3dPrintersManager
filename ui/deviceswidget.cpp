@@ -51,7 +51,7 @@ void DevicesWidget::OnDeviccesLoaded(bool b)
                 this->AddDeviceWidget(dev);
         }
 
-        //Devices::GetInstance()->DetectPortAndConnectForAllDevices();
+        Devices::GetInstance()->DetectPortAndConnectForAllDevices();
     }
 
 }

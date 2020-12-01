@@ -27,6 +27,7 @@ SOURCES += \
     core/devices.cpp \
     core/fileinfo.cpp \
     core/gcode/deletefile.cpp \
+    core/gcode/endstopsstates.cpp \
     core/gcode/fileslist.cpp \
     core/gcode/linenumber.cpp \
     core/gcode/powersupply.cpp \
@@ -56,6 +57,7 @@ HEADERS += \
     core/devices.h \
     core/fileinfo.h \
     core/gcode/deletefile.h \
+    core/gcode/endstopsstates.h \
     core/gcode/fileslist.h \
     core/gcode/linenumber.h \
     core/gcode/powersupply.h \

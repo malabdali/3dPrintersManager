@@ -16,6 +16,7 @@ private:
     bool _m24_sent,_file_selected;
 public:
     explicit StartPrinting(Device* _device,QByteArray fileName);
+    QByteArray GetFileName()const;
 
 signals:
 

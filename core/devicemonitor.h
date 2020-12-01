@@ -2,8 +2,9 @@
 #define DEVICEMONITOR_H
 
 #include <QObject>
-#include "./gcode/printingstats.h"
+#include "gcode/printingstats.h"
 #include "gcode/reporttemperature.h"
+#include "gcode/endstopsstates.h"
 #include <chrono>
 #include <QJsonDocument>
 
@@ -21,9 +22,15 @@ public:
     explicit DeviceMonitor(Device *dev);
     bool IsPrinting()const;
     bool IsBussy()const;
+    bool IsWasPrinting()const;
+    bool PrintingFinished()const;
+    bool GetFilamentState()const;
     double GetPrintProgress()const;
     double GetHotendTemperature()const;
     double GetBedTemperature()const;
+    QByteArray GetPrintingFile()const;
+
+    void Reset();
     void Update();
     QJsonDocument ToJson() const;
     void Save();
@@ -31,8 +38,9 @@ public:
 
 private:
     void timerEvent(QTimerEvent *event) override;
-    void ForceUpdate();
     void WhenDeviceStatsUpdated(GCodeCommand*);
+    bool ReadTemperatureStats(QByteArray& ba);
+    bool CommandReader(GCodeCommand*);
 private slots:
     void WhenCommandFinished(GCodeCommand* , bool);
 

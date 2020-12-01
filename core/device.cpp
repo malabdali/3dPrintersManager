@@ -33,6 +33,7 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _delay_command_state=false;
     _delay_command_timer=new QTimer(this);
     this->connect(_delay_command_timer,&QTimer::timeout,this,&Device::DelayCommandCallback);
+    _device_monitor->Load();
 
     QObject::connect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
     QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);

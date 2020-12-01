@@ -9,6 +9,11 @@ GCode::StartPrinting::StartPrinting(Device *_device, QByteArray fileName):GCodeC
     _m24_sent=false;
 }
 
+QByteArray GCode::StartPrinting::GetFileName() const
+{
+    return _file_name;
+}
+
 
 void GCode::StartPrinting::InsideStart()
 {
@@ -21,7 +26,6 @@ void GCode::StartPrinting::InsideStop()
 
 void GCode::StartPrinting::OnAvailableData(const QByteArray &ba)
 {
-
     if(ba.toLower().startsWith("ok")){
         if(_command_error!=CommandError::NoError)
         {
@@ -42,11 +46,11 @@ void GCode::StartPrinting::OnAvailableData(const QByteArray &ba)
             }
         }
     }
-    if(ba.toLower().contains(QByteArray("open failed").toLower()))
+    else if(ba.toLower().startsWith(QByteArray("open failed")))
     {
         _file_selected=false;
     }
-    else if(ba.toLower().contains(QByteArray("File opened").toLower()) || ba.toLower().contains(QByteArray("File selected").toLower()))
+    else if(ba.toLower().startsWith(QByteArray("file opened")) || ba.toLower().startsWith(QByteArray("file selected")))
     {
         _file_selected=true;
     }

@@ -5,6 +5,7 @@
 #include <regex>
 #include <string>
 #include "devicefilessystem.h"
+#include "gcode/startprinting.h"
 DeviceMonitor::DeviceMonitor(Device *dev) : QObject(dev),_device(dev)
 {
     _printing_stats=nullptr;
@@ -19,16 +20,27 @@ DeviceMonitor::DeviceMonitor(Device *dev) : QObject(dev),_device(dev)
 
 bool DeviceMonitor::IsPrinting() const
 {
-    if(_data.contains("IS_PRINTING"))
-        return _data["IS_PRINTING"].toInt();
-    return false;
+    return _data.contains("IS_PRINTING")&&_data["IS_PRINTING"].toInt();
 }
 
 bool DeviceMonitor::IsBussy() const
 {
-    if(_data.contains("IS_BUSY"))
-        return _data["IS_BUSY"].toInt();
-    return false;
+    return _data.contains("IS_BUSY")&&_data["IS_BUSY"].toInt();
+}
+
+bool DeviceMonitor::IsWasPrinting() const
+{
+    return _data.contains("IS_WAS_PRINTING")&&_data["IS_WAS_PRINTING"].toInt();
+}
+
+bool DeviceMonitor::PrintingFinished() const
+{
+    return (_data.contains("IS_WAS_PRINTING")&&_data["IS_WAS_PRINTING"].toInt())&&(!_data.contains("IS_PRINTING")||!_data["IS_PRINTING"].toInt());
+}
+
+bool DeviceMonitor::GetFilamentState() const
+{
+
 }
 
 double DeviceMonitor::GetHotendTemperature() const
@@ -43,6 +55,19 @@ double DeviceMonitor::GetBedTemperature() const
     if(_data.contains("BED_TEMPERATURE"))
         return _data["BED_TEMPERATURE"].toDouble();
     return 0;
+}
+
+QByteArray DeviceMonitor::GetPrintingFile() const
+{
+    if(_data.contains("PRINTING_FILE"))
+        return _data["PRINTING_FILE"];
+    return 0;
+}
+
+void DeviceMonitor::Reset()
+{
+    _data.clear();
+    Save();
 }
 
 double DeviceMonitor::GetPrintProgress() const
@@ -71,7 +96,6 @@ void DeviceMonitor::Update()
         else if(_report_temprature->IsStarted() && !_report_temprature->IsFinished())
             _report_temprature->Stop();
     }
-    Save();
 }
 
 void DeviceMonitor::Save()
@@ -83,25 +107,12 @@ void DeviceMonitor::Load()
 {
     _device->GetFileSystem()->ReadLocaleFile("DeviceMonitor.txt",[this](QByteArray ba)->void{
         QJsonDocument jd=QJsonDocument::fromJson(ba);
-        for(int i=0;i++;jd.object().toVariantMap().count()){
-            this->_data.insert(jd.object().toVariantMap().keys()[0].toUtf8(),jd.object().toVariantMap().values()[0].value<QByteArray>());
+        for(int i=0;i<jd.object().toVariantMap().count();i++){
+            this->_data.insert(jd.object().toVariantMap().keys()[i].toUtf8(),jd.object().toVariantMap().values()[i].value<QByteArray>());
         }
 
+        emit updated();
     });
-}
-
-void DeviceMonitor::ForceUpdate()
-{
-    if(_printing_stats==nullptr)
-    {
-        _printing_stats=new GCode::PrintingStats(_device);
-        _device->StartCommand(_printing_stats);
-    }
-    else if(_printing_stats!=nullptr){
-        _device->ClearCommand(_printing_stats);
-        _printing_stats=new GCode::PrintingStats(_device);
-        _device->StartCommand(_printing_stats);
-    }
 }
 
 void DeviceMonitor::WhenDeviceStatsUpdated(GCodeCommand *command)
@@ -110,10 +121,66 @@ void DeviceMonitor::WhenDeviceStatsUpdated(GCodeCommand *command)
     if(command->GetError()==GCodeCommand::Busy)
     {
         this->_data.insert("IS_BUSY","1");
+        this->_data.insert("IS_WAS_PRINTING","1");
         _last_update_during_busy=std::chrono::steady_clock::now();
     }
     else
+    {
         this->_data.insert("IS_BUSY","0");
+    }
+}
+
+bool DeviceMonitor::ReadTemperatureStats(QByteArray &ba)
+{
+    if(ba.startsWith("T:")){
+        std::match_results<QByteArray::iterator> matches;
+        std::regex_search(ba.begin(),ba.end(),matches,std::regex(R"((T:\d+\.\d+))"));
+        for(auto m:matches)
+        {
+            QList<QByteArray> list=QByteArray::fromStdString(m.str()).split(':');
+            this->_data.insert("HOTEND_TEMPERATURE",list[1]);
+        }
+        std::regex_search(ba.begin(),ba.end(),matches,std::regex(R"((B:\d+\.\d+))"));
+        for(auto m:matches)
+        {
+            QList<QByteArray> list=QByteArray::fromStdString(m.str()).split(':');
+            this->_data.insert("BED_TEMPERATURE",list[1]);
+        }
+        return true;
+    }
+    return false;
+}
+
+bool DeviceMonitor::CommandReader(GCodeCommand *command)
+{
+    qDebug()<<command->GetGCode();
+    bool updated=false;
+    if(_printing_stats && command==_printing_stats){
+        this->_data.insert("IS_PRINTING",QByteArray::number(_printing_stats->IsPrinting()));
+        this->_data.insert("PRINT_PERCENT",QByteArray::number(_printing_stats->GetPercent()));
+        this->_data.insert("IS_BUSY","0");
+        if(this->IsPrinting())
+        {
+            this->_data.insert("IS_WAS_PRINTING","1");
+        }
+        _printing_stats=nullptr;
+        return true;
+    }
+    else if(_report_temprature && command==_report_temprature){
+        this->_data.insert("BED_TEMPERATURE",QByteArray::number(_report_temprature->GetBedTemperature()));
+        this->_data.insert("HOTEND_TEMPERATURE",QByteArray::number(_report_temprature->GetHotendTemperature()));
+        this->_data.insert("IS_BUSY","0");
+        _report_temprature=nullptr;
+        return true;
+    }
+    else if(GCode::StartPrinting* sp=dynamic_cast<GCode::StartPrinting*>(command)){
+        this->_data.insert("IS_PRINTING","1");
+        this->_data.insert("PRINT_PERCENT","0");
+        this->_data.insert("IS_WAS_PRINTING","1");
+        this->_data.insert("PRINTING_FILE",sp->GetFileName());
+        return true;
+    }
+    return false;
 }
 
 void DeviceMonitor::timerEvent(QTimerEvent *event)
@@ -128,22 +195,7 @@ void DeviceMonitor::timerEvent(QTimerEvent *event)
             while(i<_device->GetDevicePort()->LinesCount())
             {
                 QByteArray ba=_device->GetDevicePort()->PeakLine(i);
-                if(ba.startsWith("T:")){
-                    std::match_results<QByteArray::iterator> matches;
-                    std::regex_search(ba.begin(),ba.end(),matches,std::regex(R"((T:\d+\.\d+))"));
-                    for(auto m:matches)
-                    {
-                        QList<QByteArray> list=QByteArray::fromStdString(m.str()).split(':');
-                        this->_data.insert("HOTEND_TEMPERATURE",list[1]);
-                    }
-                    std::regex_search(ba.begin(),ba.end(),matches,std::regex(R"((B:\d+\.\d+))"));
-                    for(auto m:matches)
-                    {
-                        QList<QByteArray> list=QByteArray::fromStdString(m.str()).split(':');
-                        this->_data.insert("BED_TEMPERATURE",list[1]);
-                    }
-                    _is_updated=true;
-                }
+                _is_updated=ReadTemperatureStats(ba);
                 i++;
             }
             if(_is_updated){
@@ -171,39 +223,31 @@ void DeviceMonitor::timerEvent(QTimerEvent *event)
     else{
         Update();
     }
+
+    Save();
 }
 
 void DeviceMonitor::WhenCommandFinished(GCodeCommand* command, bool success)
 {
-    if(_printing_stats && command==_printing_stats){
-        if(success)
-        {
-            this->_data.insert("IS_PRINTING",QByteArray::number(_printing_stats->IsPrinting()));
-            this->_data.insert("PRINT_PERCENT",QByteArray::number(_printing_stats->GetPercent()));
-            this->_data.insert("IS_BUSY","0");
-        }
-        _printing_stats=nullptr;
-        emit updated();
+
+    if(success){
+        if(CommandReader(command))
+            emit updated();
     }
-    else if(_report_temprature && command==_report_temprature){
-        if(success)
-        {
-            this->_data.insert("BED_TEMPERATURE",QByteArray::number(_report_temprature->GetBedTemperature()));
-            this->_data.insert("HOTEND_TEMPERATURE",QByteArray::number(_report_temprature->GetHotendTemperature()));
-            this->_data.insert("IS_BUSY","0");
-        }
-        _report_temprature=nullptr;
-        emit updated();
-    }
-    if(!success){
+    else{
         if(command->GetError()==GCodeCommand::Busy)
         {
             this->_data.insert("IS_BUSY","1");
             _last_update_during_busy=std::chrono::steady_clock::now();
+            this->_data.insert("IS_WAS_PRINTING","1");
         }
         else
             this->_data.insert("IS_BUSY","0");
     }
+    if(command==this->_printing_stats)
+        _printing_stats=nullptr;
+    if(command==this->_report_temprature)
+        _report_temprature=nullptr;
 
 }
 
