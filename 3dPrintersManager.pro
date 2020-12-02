@@ -30,6 +30,7 @@ SOURCES += \
     core/gcode/endstopsstates.cpp \
     core/gcode/fileslist.cpp \
     core/gcode/linenumber.cpp \
+    core/gcode/m600.cpp \
     core/gcode/powersupply.cpp \
     core/gcode/printingstats.cpp \
     core/gcode/reporttemperature.cpp \
@@ -60,6 +61,7 @@ HEADERS += \
     core/gcode/endstopsstates.h \
     core/gcode/fileslist.h \
     core/gcode/linenumber.h \
+    core/gcode/m600.h \
     core/gcode/powersupply.h \
     core/gcode/printingstats.h \
     core/gcode/reporttemperature.h \

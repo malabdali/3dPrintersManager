@@ -10,6 +10,7 @@ DeviceMonitor::DeviceMonitor(Device *dev) : QObject(dev),_device(dev)
 {
     _printing_stats=nullptr;
     _report_temprature=nullptr;
+    _end_stops=nullptr;
     _wait_device_stats=false;
     connect(_device,&Device::CommandFinished,this,&DeviceMonitor::WhenCommandFinished);
     connect(_device,&Device::DeviceStatsUpdated,this,&DeviceMonitor::WhenDeviceStatsUpdated);
@@ -40,7 +41,7 @@ bool DeviceMonitor::PrintingFinished() const
 
 bool DeviceMonitor::GetFilamentState() const
 {
-
+    return _data.contains("NO_FILAMENT")&&_data["NO_FILAMENT"].toInt();
 }
 
 double DeviceMonitor::GetHotendTemperature() const
@@ -79,6 +80,7 @@ double DeviceMonitor::GetPrintProgress() const
 
 void DeviceMonitor::Update()
 {
+    qDebug()<<_data;
     if(_device->IsReady())
     {
         if(_printing_stats==nullptr)
@@ -95,6 +97,13 @@ void DeviceMonitor::Update()
         }
         else if(_report_temprature->IsStarted() && !_report_temprature->IsFinished())
             _report_temprature->Stop();
+        if(_end_stops==nullptr)
+        {
+            _end_stops=new GCode::EndstopsStates(_device);
+            _device->AddGCodeCommand(_end_stops);
+        }
+        else if(_end_stops->IsStarted() && !_end_stops->IsFinished())
+            _end_stops->Stop();
     }
 }
 
@@ -153,7 +162,6 @@ bool DeviceMonitor::ReadTemperatureStats(QByteArray &ba)
 
 bool DeviceMonitor::CommandReader(GCodeCommand *command)
 {
-    qDebug()<<command->GetGCode();
     bool updated=false;
     if(_printing_stats && command==_printing_stats){
         this->_data.insert("IS_PRINTING",QByteArray::number(_printing_stats->IsPrinting()));
@@ -178,6 +186,12 @@ bool DeviceMonitor::CommandReader(GCodeCommand *command)
         this->_data.insert("PRINT_PERCENT","0");
         this->_data.insert("IS_WAS_PRINTING","1");
         this->_data.insert("PRINTING_FILE",sp->GetFileName());
+        this->_data.insert("IS_BUSY","0");
+        return true;
+    }
+    else if(GCode::EndstopsStates* sp=dynamic_cast<GCode::EndstopsStates*>(command)){
+        this->_data.insert("NO_FILAMENT",sp->FilamentExist()?"0":"1");
+        this->_data.insert("IS_BUSY","0");
         return true;
     }
     return false;
@@ -186,9 +200,13 @@ bool DeviceMonitor::CommandReader(GCodeCommand *command)
 void DeviceMonitor::timerEvent(QTimerEvent *event)
 {
     if(!_device->IsOpen() || _wait_device_stats)
+    {
+        qDebug()<<"DeviceMonitor::timerEvent"<<1;
         return;
+    }
     bool _is_updated=false;
     if(IsBussy()||!_device->IsReady()){
+        int64_t duration=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-_last_update_during_busy).count();
         if(_device->GetDevicePort()->IsThereAvailableLines())
         {
             uint32_t i=0;
@@ -205,9 +223,11 @@ void DeviceMonitor::timerEvent(QTimerEvent *event)
             }
             else if(!_device->IsReady())
                 _device->GetDevicePort()->ReadAllLines();
+            else if(duration>=BUSY_DURATION){
+                Update();
+            }
         }
         else{
-            int64_t duration=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-_last_update_during_busy).count();
             if(duration>=BUSY_DURATION)
             {
                 if(_device->GetStatus()==Device::DeviceStatus::Ready)
@@ -248,6 +268,8 @@ void DeviceMonitor::WhenCommandFinished(GCodeCommand* command, bool success)
         _printing_stats=nullptr;
     if(command==this->_report_temprature)
         _report_temprature=nullptr;
+    if(command==this->_end_stops)
+        _end_stops=nullptr;
 
 }
 

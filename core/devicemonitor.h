@@ -15,6 +15,7 @@ private://fields
     class Device* _device;
     class GCode::PrintingStats* _printing_stats;
     class GCode::ReportTemperature* _report_temprature;
+    class GCode::EndstopsStates* _end_stops;
     QMap<QByteArray,QByteArray> _data;
     bool _wait_device_stats;
     std::chrono::time_point<std::chrono::steady_clock> _last_update_during_busy;
