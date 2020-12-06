@@ -6,8 +6,8 @@
 #include <QSerialPortInfo>
 #include <QSignalMapper>
 #include "../config.h"
-
-class DevicePortDetector : public QObject
+#include "devicecomponent.h"
+class DevicePortDetector : public DeviceComponent
 {
     Q_OBJECT
 private://fields
@@ -22,7 +22,7 @@ private://fields
     int _send_m115_counter;
     bool _wait_for_send_m115,_wait_for_send_m29;
 public:
-    explicit DevicePortDetector(QByteArray deviceName,quint32 baudRate, QObject *parent = nullptr);
+    explicit DevicePortDetector(QByteArray deviceName,quint32 baudRate, class Device* device);
     void timerEvent(QTimerEvent *event) override;
     void StartDetect();
 
@@ -37,6 +37,10 @@ private slots:
 
 
 
+
+    // DeviceComponent interface
+public:
+    void Setup() override;
 };
 
 #endif // DEVICEPORTDETECTOR_H

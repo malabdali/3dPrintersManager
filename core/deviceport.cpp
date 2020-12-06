@@ -2,12 +2,13 @@
 #include "device.h"
 #include "../config.h"
 #include <QTimerEvent>
-DevicePort::DevicePort(QObject* object):QObject(object)
+DevicePort::DevicePort(Device* device):DeviceComponent(device)
 {
     _serial_port=new QSerialPort(this);
     _writing_data_size=0;
     _can_read=false;
     _writing_timer=-1;
+    _reconnect=false;
 
     QObject::connect(_serial_port,&QSerialPort::readyRead,this,&DevicePort::OnAvailableData);
     QObject::connect(_serial_port,&QSerialPort::errorOccurred,this,&DevicePort::OnErrorOccurred);
@@ -116,6 +117,30 @@ void DevicePort::Close()
     emit PortClosed();
 }
 
+void DevicePort::Reconnect()
+{
+    if(QThread::currentThread()!=this->thread())
+    {
+        CallFunction("Reconnect");
+        return;
+    }
+    _reconnect=true;
+    Clear();
+    if(IsOpen())
+    {
+        _serial_port->close();
+    }
+    _reconnect=false;
+    if(_serial_port->open(QIODevice::ReadWrite)){
+        _serial_port->setDataTerminalReady(true);
+        emit Reconnected(true);
+    }
+    else
+        emit Reconnected(false);
+
+
+}
+
 DevicePort::~DevicePort()
 {
 }
@@ -157,6 +182,7 @@ void DevicePort::OnAvailableData()
 
 void DevicePort::OnErrorOccurred(QSerialPort::SerialPortError error)
 {
+    qDebug()<<error;
     if(error!=QSerialPort::SerialPortError::NoError && error!=QSerialPort::SerialPortError::NotOpenError)
     {
         Clear();
@@ -238,4 +264,8 @@ void DevicePort::CallFunction(QByteArray function, QGenericArgument argument)
 void DevicePort::CallFunction(QByteArray function, QGenericArgument argument1, QGenericArgument argument2)
 {
     QMetaObject::invokeMethod(this,function,Qt::ConnectionType::AutoConnection,argument1,argument2);
+}
+
+void DevicePort::Setup(){
+
 }

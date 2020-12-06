@@ -15,15 +15,19 @@
 #include <QtConcurrent/QtConcurrent>
 
 
-DeviceFilesSystem::DeviceFilesSystem(Device *device, QObject *parent): QObject(parent),_device(device)
+DeviceFilesSystem::DeviceFilesSystem(Device *device): DeviceComponent(device)
 {
     _sd_supported=false;
     _line_number=0;
     _uploading_file=nullptr;
-    QObject::connect(device,&Device::ReadyFlagChanged,this,&DeviceFilesSystem::WhenDeviceReady);
-    QObject::connect(device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
-    QObject::connect(device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
-    QObject::connect(device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
+}
+
+void DeviceFilesSystem::Setup()
+{
+    QObject::connect(_device,&Device::StatusChanged,this,&DeviceFilesSystem::WhenDeviceReady);
+    QObject::connect(_device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
+    QObject::connect(_device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
+    QObject::connect(_device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
 }
 
 void DeviceFilesSystem::Initiate()
@@ -127,9 +131,9 @@ uint64_t DeviceFilesSystem::GetLineNumber()
     return _line_number;
 }
 
-void DeviceFilesSystem::WhenDeviceReady(bool b)
+void DeviceFilesSystem::WhenDeviceReady(Device::DeviceStatus status)
 {
-    if(b && _files.size()==0)
+    if(status==Device::DeviceStatus::Ready && _files.size()==0 )
     {
         UpdateFileList();
     }

@@ -8,16 +8,17 @@
 #include "gcodecommand.h"
 #include "deviceportdetector.h"
 #include "gcode/devicestats.h"
-#include "gcode/printingstats.h"
 #include "deviceport.h"
 #include "deviceproblemsolver.h"
 #include "deviceinfo.h"
 #include <QTimer>
 #include <QDir>
 #include "devicemonitor.h"
+#include "deviceactions.h"
 
 Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),_port_thread(new QThread()),
-    _fileSystem(new DeviceFilesSystem(this,this)),_device_port(new DevicePort()),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this)),_device_monitor(new DeviceMonitor(this))
+    _fileSystem(new DeviceFilesSystem(this)),_device_port(new DevicePort(this)),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this)),
+    _device_monitor(new DeviceMonitor(this)),_device_actions(new DeviceActions(this))
 {
     _port_detector=nullptr;
     qRegisterMetaType<Errors>();
@@ -27,17 +28,23 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _commands_paused=false;
     _current_command=nullptr;
     _port_thread->start();
+    _device_port->setParent(nullptr);
     _device_port->moveToThread(_port_thread);
     _last_command_time_finished=std::chrono::steady_clock::now();
     _fileSystem->Initiate();
     _delay_command_state=false;
     _delay_command_timer=new QTimer(this);
     this->connect(_delay_command_timer,&QTimer::timeout,this,&Device::DelayCommandCallback);
-    _device_monitor->Load();
+    _device_actions->Setup();
+    _device_monitor->Setup();
+    _fileSystem->Setup();
+    _device_port->Setup();
+    _problem_solver->Setup();
 
     QObject::connect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
     QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);
     QObject::connect(_device_port,&DevicePort::PortOpened,this,&Device::OnOpen);
+    QObject::connect(_device_port,&DevicePort::Reconnected,this,&Device::OnOpen);
 
 
 }
@@ -48,6 +55,7 @@ void Device::DetectDevicePort()
     _port_detector=new DevicePortDetector(_device_info->GetDeviceName(),_device_info->GetBaudRate(),this);
     QObject::connect(_port_detector,&DevicePortDetector::DetectPortFinished,this,&Device::OnDetectPort);
     _port_detector->StartDetect();
+    CalculateAndSetStatus();
 }
 
 QByteArray Device::GetPort(){
@@ -80,27 +88,24 @@ void Device::CalculateAndSetStatus()
     DeviceStatus ds=DeviceStatus::Non;
     if(_port_detector!=nullptr)
         ds=DeviceStatus::DetectDevicePort;
-    if(_device_port->IsOpen() && !_is_ready)
+    else if(_device_port->IsOpen() && !_is_ready && !_is_busy)
         ds=DeviceStatus::Connected;
-    if(!_port.isEmpty() && !_device_port->IsOpen())
+    else if(!_port.isEmpty() && !_device_port->IsOpen())
         ds=DeviceStatus::PortDetected;
-    if(_device_port->IsOpen() && _is_ready)
+    else if(_device_port->IsOpen() && _is_ready)
         ds=DeviceStatus::Ready;
-    if(_device_port->IsOpen() && _is_busy && !_is_ready)
+    else if(_device_port->IsOpen() && _is_busy)
         ds=DeviceStatus::Busy;
 
     SetStatus(ds);
 }
 
-void Device::SetReady(bool ready)
+void Device::SetFlags(bool ready, bool busy)
 {
-    bool old=_is_ready;
     _is_ready=ready;
+    _is_busy=busy;
     CalculateAndSetStatus();
-    if(old!=ready)
-        emit ReadyFlagChanged(ready);
-
-    if(_is_ready)
+    if(_is_ready && !_is_busy)
         StartNextCommand();
 }
 
@@ -151,10 +156,10 @@ void Device::Clear()
     CalculateAndSetStatus();
 }
 
-void Device::Write(QByteArray bytes)
+/*void Device::Write(QByteArray bytes)
 {
     _device_port->Write(bytes);
-}
+}*/
 
 
 void Device::AddGCodeCommand(GCodeCommand *command)
@@ -255,13 +260,13 @@ Device::~Device()
 
 void Device::OnErrorOccurred(int error)
 {
-    SetReady(false);
+    SetFlags(false,false);
     emit ErrorOccurred(error);
 }
 
 void Device::OnClosed()
 {
-    SetReady(false);
+    SetFlags(false,false);
     CalculateAndSetStatus();
     emit PortClosed();
 }
@@ -311,6 +316,7 @@ void Device::OnDetectPort(QByteArray port)
     this->SetPort(port);
      _port_detector->deleteLater();
     _port_detector=nullptr;
+    CalculateAndSetStatus();
     if(port.isEmpty()){
         emit DetectPortFailed();
     }
@@ -326,24 +332,20 @@ void Device::WhenStatsUpdated()
         GCode::DeviceStats* stats=qobject_cast<GCode::DeviceStats*>(this->sender());
         this->_device_stats=stats->GetStats();
         emit DeviceStatsUpdated(stats);
-        _is_busy=false;
-        this->SetReady(true);
+        SetFlags(true,false);
     }
     else
     {
         if(command->GetError()==GCodeCommand::Busy)
         {
-            _is_busy=true;
+            SetFlags(false,true);
         }
-        this->SetReady(false);
+        else{
+            SetFlags(false,false);
+        }
         emit DeviceStatsUpdateFailed(command);
     }
     this->sender()->deleteLater();
-}
-
-bool Device::IsReady()
-{
-    return _is_ready && _device_port->IsOpen();
 }
 
 QMap<QByteArray, QByteArray> Device::GetStats() const
@@ -351,14 +353,7 @@ QMap<QByteArray, QByteArray> Device::GetStats() const
     return _device_stats;
 }
 
-QJsonDocument Device::GetStatsAsJSONObject() const
-{
-    QVariantHash vh;
-    for(auto& [k,v]:_device_stats.toStdMap()){
-        vh.insert(k,v);
-    }
-    return QJsonDocument(QJsonObject::fromVariantHash(vh));
-}
+
 
 DevicePort *Device::GetDevicePort(){
     return _device_port;
@@ -372,4 +367,38 @@ DeviceProblemSolver *Device::GetProblemSolver() const
 DeviceMonitor *Device::GetDeviceMonitor()
 {
     return _device_monitor;
+}
+
+void Device::Load()
+{
+    _fileSystem->ReadLocaleFile("device.json", [this](QByteArray data)->void{
+        _device_data.fromJson(data);
+        emit this->DeviceDataLoaded();
+    });
+}
+
+void Device::Save()
+{
+    emit this->BeforeSaveDeviceData();
+
+    _fileSystem->SaveLocaleFile("device.json",this->_device_data.toJson(),[this](bool success)->void{
+        emit DataSaved();
+    });
+}
+
+void Device::AddData(QByteArray name, QJsonObject data)
+{
+    qDebug()<<"Device::AddData";
+    QJsonObject jo=this->_device_data.object();
+    jo.insert(name,data);
+    this->_device_data.setObject(jo);
+    qDebug()<<"Device::AddData"<<data<<_device_data;
+}
+
+QJsonObject Device::GetData(QByteArray name)
+{
+    if(_device_data.object().contains(name))
+        return _device_data.object()[name].toObject();
+    else
+        return QJsonObject();
 }

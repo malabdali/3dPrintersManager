@@ -5,8 +5,9 @@
 #include <QSerialPort>
 #include <QMutex>
 #include <QMutexLocker>
+#include "devicecomponent.h"
 
-class DevicePort : public QObject
+class DevicePort : public DeviceComponent
 {
     Q_OBJECT
 private://fields
@@ -17,8 +18,10 @@ private://fields
     QMutex _mutex;
     quint64 _writing_data_size;
     int _writing_timer;
+    bool _reconnect;
 public:
-    explicit DevicePort(QObject* object=nullptr);
+    explicit DevicePort(class Device* device);
+    void Setup()override;
     Q_INVOKABLE void Write(QByteArray bytes);
     Q_INVOKABLE void Open(QByteArray port,quint64 baud_rate);
     QByteArray ReadLine();
@@ -29,6 +32,7 @@ public:
     void Clear();
     bool IsOpen();
     Q_INVOKABLE void Close();
+    Q_INVOKABLE void Reconnect();
     ~DevicePort();
 
 
@@ -38,6 +42,7 @@ signals:
     void ErrorOccurred(int);
     void PortOpened(bool);
     void PortClosed();
+    void Reconnected(bool);
 private slots:
     void OnAvailableData();
     void OnErrorOccurred(QSerialPort::SerialPortError);

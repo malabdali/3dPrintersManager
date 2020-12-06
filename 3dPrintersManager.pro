@@ -18,6 +18,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     config.h \
     core/device.cpp \
+    core/deviceactions.cpp \
+    core/devicecomponent.cpp \
     core/devicefilessystem.cpp \
     core/deviceinfo.cpp \
     core/devicemonitor.cpp \
@@ -49,6 +51,8 @@ SOURCES += \
 
 HEADERS += \
     core/device.h \
+    core/deviceactions.h \
+    core/devicecomponent.h \
     core/devicefilessystem.h \
     core/deviceinfo.h \
     core/devicemonitor.h \

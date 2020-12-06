@@ -95,7 +95,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
     }
     else if(ba.contains("ok") && _open_success && !_upload_stage && _counter==0){
         _upload_stage=true;
-        this->_device->Write(_data[0]);
+        this->_device->GetDevicePort()->Write(_data[0]);
     }
     else if((uint32_t)_data.length()<=(_counter+1) && ba.contains("ok") && _upload_stage)
     {
@@ -126,7 +126,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
         }
         else
             _counter=ln-1;
-        this->_device->Write(_data[_counter]);
+        this->_device->GetDevicePort()->Write(_data[_counter]);
     }
     else if(ba.contains("ok")&& _open_failed){
         Finish(false);

@@ -10,6 +10,7 @@
 #include "../core/deviceproblemsolver.h"
 #include "../core/gcode/printingstats.h"
 #include "../core/devicemonitor.h"
+#include "../core/deviceport.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -29,7 +30,7 @@ void DeviceWidget::Update()
         ui->_uploading->setText("");
         ui->_uploading->setVisible(false);
         ui->_uploading_label->setVisible(false);
-        if(_device->GetFileSystem()->IsStillUploading() && _device->IsReady())
+        if(_device->GetFileSystem()->IsStillUploading() && _device->GetStatus()==Device::DeviceStatus::Ready)
         {
             ui->_uploading->setVisible(true);
             ui->_uploading_label->setVisible(true);
@@ -101,9 +102,6 @@ void DeviceWidget::Setup()
         QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnPortConnected);
         QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnPortDisconnected);
         QObject::connect(this->_device,&Device::ErrorOccurred,this,&DeviceWidget::OnErrorOccured);
-        QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::ProblemDetected,this,&DeviceWidget::WhenProblemDetected);
-        QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceWidget::WhenSolveProblemFinished);
-
     }
     else {
         ui->_status->setVisible(false);
@@ -263,15 +261,6 @@ void DeviceWidget::SaveChanges()
     },"Printers",*_device->GetDeviceInfo(),_device->GetDeviceInfo()->GetID());
 }
 
-void DeviceWidget::WhenProblemDetected()
-{
-    _device->GetProblemSolver()->SolveProblem();
-}
-
-void DeviceWidget::WhenSolveProblemFinished()
-{
-}
-
 void DeviceWidget::CreateDevice()
 {
     DeviceInfo di(ui->_name->text().toUtf8());
@@ -319,8 +308,11 @@ void DeviceWidget::DetectPort()
 
 void DeviceWidget::OpenPort()
 {
-    this->_device->OpenPort();
-        ui->_open_port_button->setVisible(false);
+    if(!_device->IsOpen())
+        this->_device->OpenPort();
+    else
+        this->_device->GetDevicePort()->Reconnect();
+    ui->_open_port_button->setVisible(false);
 
 }
 
@@ -362,6 +354,12 @@ void DeviceWidget::WhenMonitorUpdated()
         ui->_printing->hide();
         ui->_printing_label->hide();
     }
+    if(_device->GetDeviceMonitor()->IsPaused()){
+        ui->_reset_button->show();
+    }
+    else{
+        ui->_reset_button->hide();
+    }
     ui->_bed_temperature->setText(QString::number(_device->GetDeviceMonitor()->GetBedTemperature()));
     ui->_hotend_temperature_->setText(QString::number(_device->GetDeviceMonitor()->GetHotendTemperature()));
 }
@@ -400,4 +398,9 @@ void DeviceWidget::on__test_action_triggered()
     _serial_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _serial_widget->show();
     QObject::connect(_serial_widget,&QWidget::destroyed,this,&DeviceWidget::SerialWidgetClosed);
+}
+
+void DeviceWidget::on__reset_button_clicked()
+{
+    _device->GetDeviceMonitor()->Reset();
 }

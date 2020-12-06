@@ -2,23 +2,55 @@
 #include "device.h"
 #include "deviceport.h"
 #include "gcodecommand.h"
-
-DeviceProblemSolver::DeviceProblemSolver(Device *device):_device(device)
+#include <QVariantHash>
+DeviceProblemSolver::DeviceProblemSolver(Device *device):DeviceComponent(device)
 {
-    this->setParent(device);
+    _last_command_error=GCodeCommand::NoError;
+    _last_device_error=Device::Errors::NoError;
+
+}
+
+DeviceProblemSolver::SolvingType DeviceProblemSolver::GetSolvingType()const
+{
+    if(_last_command_error!=GCodeCommand::NoError){
+        return SolvingType::GCode;
+    }
+    else if(_last_device_error!=Device::Errors::NoError)
+    {
+        return SolvingType::OpenPort;
+    }
+}
+
+void DeviceProblemSolver::Setup()
+{
     QObject::connect(_device,&Device::CommandFinished,this,&DeviceProblemSolver::WhenCommandFinished);
     QObject::connect(_device,&Device::CommandStarted,this,&DeviceProblemSolver::WhenCommandStarted);
     QObject::connect(_device,&Device::PortClosed,this,&DeviceProblemSolver::WhenPortClosed);
     QObject::connect(_device,&Device::PortOpened,this,&DeviceProblemSolver::WhenPortOpened);
     QObject::connect(_device,&Device::DeviceStatsUpdateFailed,this,&DeviceProblemSolver::WhenStatsUpdateFailed);
     QObject::connect(_device,&Device::ErrorOccurred,this,&DeviceProblemSolver::WhenErrorOccured);
-    _last_command_error=GCodeCommand::NoError;
-    _last_device_error=Device::Errors::NoError;
-
+    QObject::connect(_device,&Device::BeforeSaveDeviceData,this,&DeviceProblemSolver::Save);
 }
 
 bool DeviceProblemSolver::IsThereProblem(){
     return _last_command_error!=GCodeCommand::NoError || _last_device_error!=Device::Errors::NoError;
+
+}
+
+QJsonDocument DeviceProblemSolver::ToJson()
+{
+    QVariantHash vh;
+    if(GetSolvingType()==SolvingType::GCode)
+        vh.insert("ERROR","GCode");
+    else if(GetSolvingType()==SolvingType::OpenPort)
+        vh.insert("ERROR","OpenPort");
+
+    return QJsonDocument(QJsonObject::fromVariantHash(vh));
+
+}
+
+void DeviceProblemSolver::FromJson(QJsonDocument *json)
+{
 
 }
 
@@ -50,7 +82,7 @@ void DeviceProblemSolver::WhenPortClosed()
 
 void DeviceProblemSolver::WhenPortOpened()
 {
-    //WhenProblemSolved();
+    WhenProblemSolved();
 }
 
 void DeviceProblemSolver::WhenCommandStarted(GCodeCommand *command)
@@ -72,17 +104,14 @@ void DeviceProblemSolver::SolveProblem()
 {
     if(_last_command_error!=GCodeCommand::NoError){
         switch (_last_command_error) {
-            case GCodeCommand::NoChecksum:
+        case GCodeCommand::NoChecksum:
             SolveNoChecksumProblem();
             break;
         }
     }
     else if(_last_device_error!=Device::Errors::NoError)
     {
-
-        switch (_last_device_error) {
-
-        }
+        _device->GetDevicePort()->Reconnect();
     }
 }
 
@@ -114,4 +143,16 @@ void DeviceProblemSolver::WhenProblemSolved()
     QObject::disconnect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&DeviceProblemSolver::WhenLinesAvailable);
     emit SolveFinished();
 }
+
+void DeviceProblemSolver::Save()
+{
+    _device->AddData("Errors",ToJson().object());
+}
+
+void DeviceProblemSolver::Load()
+{
+
+}
+
+
 

@@ -13,7 +13,7 @@
 #include <QMap>
 #include <chrono>
 #include <QJsonObject>
-#include <QJsonObject>
+#include <QJsonDocument>
 class Device : public QObject
 {
     Q_OBJECT
@@ -48,6 +48,7 @@ private://fields
     bool _commands_paused,_delay_command_state;
     std::chrono::time_point<std::chrono::steady_clock> _last_command_time_finished;
     QTimer* _delay_command_timer;
+    QJsonDocument _device_data;
     //end gcode commands
     class DeviceFilesSystem* _fileSystem;
     class DevicePortDetector* _port_detector;
@@ -55,6 +56,7 @@ private://fields
     class DeviceInfo* _device_info;
     class DeviceProblemSolver* _problem_solver;
     class DeviceMonitor* _device_monitor;
+    class DeviceActions* _device_actions;
 
 
 public:
@@ -69,14 +71,17 @@ public:
     void ClosePort();
     void UpdateDeviceStats();
     void Clear();
-    void Write(QByteArray bytes);
+    //void Write(QByteArray bytes);
     DeviceFilesSystem *GetFileSystem()const;
-    bool IsReady();
     QMap<QByteArray,QByteArray> GetStats()const;
-    QJsonDocument GetStatsAsJSONObject()const;
     DevicePort* GetDevicePort();
     DeviceProblemSolver *GetProblemSolver()const;
     DeviceMonitor *GetDeviceMonitor();
+    //json data
+    void Load();
+    void Save();
+    void AddData(QByteArray name,QJsonObject);
+    QJsonObject GetData(QByteArray name);
     //commands
     void AddGCodeCommand(GCodeCommand* command);
     void ClearCommands();
@@ -91,13 +96,18 @@ public:
 
     ~Device();
 
+signals:
+    void DeviceDataLoaded();
+    void BeforeSaveDeviceData();
+    void DataSaved();
+
 
 private://methods
     explicit Device(DeviceInfo* device_info,QObject *parent = nullptr);
     void SetStatus(DeviceStatus status);
     void CalculateAndSetStatus();
     void SerialInputFilter(QByteArrayList& list);
-    void SetReady(bool ready);
+    void SetFlags(bool ready=true,bool busy=false);
     void DelayCommandCallback();
 
 private slots:
@@ -123,7 +133,6 @@ signals:
     void CommandStarted(GCodeCommand*);
     void CommandAdded(GCodeCommand*);
     void CommandRemoved(GCodeCommand*);
-    void ReadyFlagChanged(bool);
     void DeviceStatsUpdated(GCodeCommand*);
     void DeviceStatsUpdateFailed(GCodeCommand*);
 

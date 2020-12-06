@@ -2,19 +2,26 @@
 #define DEVICEPROBLEMSOLVER_H
 
 #include <QObject>
+#include "devicecomponent.h"
+#include <QJsonDocument>
 
-class DeviceProblemSolver : public QObject
+class DeviceProblemSolver : public DeviceComponent
 {
     Q_OBJECT
 private://fields
-    class Device* _device;
     int _last_command_error,_last_device_error;
     bool _commands_was_played;
+public: //nested types
+    enum SolvingType{
+        OpenPort,
+        GCode
+    };
 public:
     explicit DeviceProblemSolver(class Device *device = nullptr);
-
+    SolvingType GetSolvingType()const;
     bool IsThereProblem();
-
+    QJsonDocument ToJson();
+    void FromJson(QJsonDocument* json);
 
 signals:
     void ProblemDetected();
@@ -35,7 +42,13 @@ public slots:
 private://methods
     void SolveNoChecksumProblem();
     void WhenProblemSolved();
+    void Save();
+    void Load();
 
+
+    // DeviceComponent interface
+public:
+    void Setup() override;
 };
 
 #endif // DEVICEPROBLEMSOLVER_H

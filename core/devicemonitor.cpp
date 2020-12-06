@@ -6,19 +6,26 @@
 #include <string>
 #include "devicefilessystem.h"
 #include "gcode/startprinting.h"
-DeviceMonitor::DeviceMonitor(Device *dev) : QObject(dev),_device(dev)
+#include "gcode/m600.h"
+DeviceMonitor::DeviceMonitor(Device *dev) : DeviceComponent(dev)
 {
     _printing_stats=nullptr;
     _report_temprature=nullptr;
     _end_stops=nullptr;
     _wait_device_stats=false;
+    this->setObjectName("Monitor");
+}
+
+void DeviceMonitor::Setup(){
     connect(_device,&Device::CommandFinished,this,&DeviceMonitor::WhenCommandFinished);
     connect(_device,&Device::DeviceStatsUpdated,this,&DeviceMonitor::WhenDeviceStatsUpdated);
     connect(_device,&Device::DeviceStatsUpdateFailed,this,&DeviceMonitor::WhenDeviceStatsUpdated);
+    connect(_device,&Device::BeforeSaveDeviceData,this,&DeviceMonitor::Save);
+    connect(_device,&Device::DeviceDataLoaded,this,&DeviceMonitor::Load);
+
     _last_update_during_busy=std::chrono::steady_clock::now();
     this->startTimer(DEVICE_MONITOR_TIMER);
 }
-
 bool DeviceMonitor::IsPrinting() const
 {
     return _data.contains("IS_PRINTING")&&_data["IS_PRINTING"].toInt();
@@ -34,12 +41,17 @@ bool DeviceMonitor::IsWasPrinting() const
     return _data.contains("IS_WAS_PRINTING")&&_data["IS_WAS_PRINTING"].toInt();
 }
 
+bool DeviceMonitor::IsPaused() const
+{
+    return _data.contains("IS_PAUSED")&&_data["IS_PAUSED"].toInt();
+}
+
 bool DeviceMonitor::PrintingFinished() const
 {
     return (_data.contains("IS_WAS_PRINTING")&&_data["IS_WAS_PRINTING"].toInt())&&(!_data.contains("IS_PRINTING")||!_data["IS_PRINTING"].toInt());
 }
 
-bool DeviceMonitor::GetFilamentState() const
+bool DeviceMonitor::IsFilamentRunout() const
 {
     return _data.contains("NO_FILAMENT")&&_data["NO_FILAMENT"].toInt();
 }
@@ -81,7 +93,7 @@ double DeviceMonitor::GetPrintProgress() const
 void DeviceMonitor::Update()
 {
     qDebug()<<_data;
-    if(_device->IsReady())
+    if(_device->GetStatus()==Device::DeviceStatus::Ready)
     {
         if(_printing_stats==nullptr)
         {
@@ -109,19 +121,26 @@ void DeviceMonitor::Update()
 
 void DeviceMonitor::Save()
 {
-    _device->GetFileSystem()->SaveLocaleFile("DeviceMonitor.txt",this->ToJson().toJson(),[](bool success)->void{});
+    _device->AddData("Monitor",this->ToJson().object());
 }
 
 void DeviceMonitor::Load()
 {
-    _device->GetFileSystem()->ReadLocaleFile("DeviceMonitor.txt",[this](QByteArray ba)->void{
-        QJsonDocument jd=QJsonDocument::fromJson(ba);
-        for(int i=0;i<jd.object().toVariantMap().count();i++){
-            this->_data.insert(jd.object().toVariantMap().keys()[i].toUtf8(),jd.object().toVariantMap().values()[i].value<QByteArray>());
-        }
+    this->FromJson(QJsonDocument(_device->GetData("Monitor")));
+}
 
-        emit updated();
-    });
+void DeviceMonitor::Pause()
+{
+    this->_data.insert("IS_PAUSED","1");
+    emit updated();
+    qDebug()<<_data;
+}
+
+void DeviceMonitor::Play()
+{
+    this->_data.insert("IS_PAUSED","0");
+    emit updated();
+    qDebug()<<_data;
 }
 
 void DeviceMonitor::WhenDeviceStatsUpdated(GCodeCommand *command)
@@ -199,13 +218,14 @@ bool DeviceMonitor::CommandReader(GCodeCommand *command)
 
 void DeviceMonitor::timerEvent(QTimerEvent *event)
 {
-    if(!_device->IsOpen() || _wait_device_stats)
+    Q_UNUSED(event);
+    if(!_device->IsOpen() || _wait_device_stats || IsPaused())
     {
-        qDebug()<<"DeviceMonitor::timerEvent"<<1;
+        qDebug()<<"DeviceMonitor::timerEvent"<<"return";
         return;
     }
     bool _is_updated=false;
-    if(IsBussy()||!_device->IsReady()){
+    if(IsBussy()||_device->GetStatus()!=Device::DeviceStatus::Ready){
         int64_t duration=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-_last_update_during_busy).count();
         if(_device->GetDevicePort()->IsThereAvailableLines())
         {
@@ -221,7 +241,7 @@ void DeviceMonitor::timerEvent(QTimerEvent *event)
                 _device->GetDevicePort()->ReadAllLines();
                 emit updated();
             }
-            else if(!_device->IsReady())
+            else if(_device->GetStatus()!=Device::DeviceStatus::Ready)
                 _device->GetDevicePort()->ReadAllLines();
             else if(duration>=BUSY_DURATION){
                 Update();
@@ -280,4 +300,14 @@ QJsonDocument DeviceMonitor::ToJson() const
         vh.insert(k,v);
     }
     return QJsonDocument(QJsonObject::fromVariantHash(vh));
+}
+
+void DeviceMonitor::FromJson(QJsonDocument json)
+{
+
+    for(int i=0;i<json.object().toVariantMap().count();i++){
+        this->_data.insert(json.object().toVariantMap().keys()[i].toUtf8(),json.object().toVariantMap().values()[i].value<QByteArray>());
+    }
+
+    emit updated();
 }

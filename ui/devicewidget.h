@@ -35,8 +35,6 @@ private slots:
     void OnDetectPort();
     void WhenEditValues();
     void SaveChanges();
-    void WhenProblemDetected();
-    void WhenSolveProblemFinished();
     void CreateDevice();
     void DeleteDevice();
     void DetectPort();
@@ -48,6 +46,7 @@ private slots:
     void WhenMonitorUpdated();
     void on__files_action_triggered(bool checked);
     void on__test_action_triggered();
+    void on__reset_button_clicked();
 };
 
 #endif // DEVICEWIDGET_H

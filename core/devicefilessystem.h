@@ -10,20 +10,20 @@
 #include "gcode/deletefile.h"
 #include "gcode/linenumber.h"
 #include "./fileinfo.h"
-
-class DeviceFilesSystem : public QObject
+#include "./device.h"
+#include "./devicecomponent.h"
+class DeviceFilesSystem : public DeviceComponent
 {
     Q_OBJECT
     friend class Device;
 private:
-    class Device* _device;
     QList<FileInfo> _files;
     GCode::UploadFile* _uploading_file;
     quint64 _line_number;
     QList<QByteArray> _uploaded_files,_failed_uploads,_wait_for_upload;
     bool _sd_supported;
 public:
-    explicit DeviceFilesSystem(class Device*,QObject *parent = nullptr);
+    explicit DeviceFilesSystem(class Device*);
     void Initiate();
     bool SdSupported()const;
     void UpdateFileList();
@@ -45,6 +45,7 @@ public:
     void ReadLocaleFile(const QByteArray& path,std::function<void(QByteArray)> callback);
     void CopyLocaleFile(const QByteArray& fpath,const QByteArray& tpath,std::function<void (bool)> callback);
     QStringList GetLocaleFiles(const QByteArray& path , const QByteArray& suffix);
+    void Setup()override;
 
 
 signals:
@@ -55,7 +56,7 @@ signals:
     void LineNumberUpdated(bool);
 
 private slots:
-    void WhenDeviceReady(bool b);
+    void WhenDeviceReady(Device::DeviceStatus b);
     void WhenPortClosed();
     void WhenCommandFinished(GCodeCommand* command,bool);
     void WhenStatsUpdated();

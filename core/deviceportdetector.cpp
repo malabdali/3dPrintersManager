@@ -2,7 +2,7 @@
 #include <QDebug>
 #include "devices.h"
 
-DevicePortDetector::DevicePortDetector(QByteArray deviceName, quint32 baudRate, QObject *parent):QObject(parent),
+DevicePortDetector::DevicePortDetector(QByteArray deviceName, quint32 baudRate, Device *device):DeviceComponent(device),
     _device_name(deviceName),_baud_rate(baudRate)
 {
 
@@ -12,6 +12,10 @@ DevicePortDetector::DevicePortDetector(QByteArray deviceName, quint32 baudRate, 
     _port="";
     _send_m115_counter=0;
 
+}
+
+void DevicePortDetector::Setup()
+{
 }
 
 void DevicePortDetector::timerEvent(QTimerEvent *event)
@@ -103,5 +107,6 @@ void DevicePortDetector::OnChecPortsDataAvailableMapped(int sid)
     _lookfor_available_ports_data[sid].append(ba);
     DetectPortProcessing();
 }
+
 
 
