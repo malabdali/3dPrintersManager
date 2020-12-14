@@ -20,12 +20,54 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <property name="icon">
+     <iconset resource="../resources/images.qrc">
+      <normaloff>:/icon/images/tools.png</normaloff>:/icon/images/tools.png</iconset>
+    </property>
+    <addaction name="_network_action"/>
+    <addaction name="_refresh_devices_action"/>
+    <addaction name="separator"/>
+    <addaction name="_task_manager_action"/>
+   </widget>
+   <addaction name="menuTools"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="_network_action">
+   <property name="icon">
+    <iconset resource="../resources/images.qrc">
+     <normaloff>:/icon/images/tools.png</normaloff>:/icon/images/tools.png</iconset>
+   </property>
+   <property name="text">
+    <string>network info</string>
+   </property>
+  </action>
+  <action name="_refresh_devices_action">
+   <property name="icon">
+    <iconset resource="../resources/images.qrc">
+     <normaloff>:/icon/images/tools.png</normaloff>:/icon/images/tools.png</iconset>
+   </property>
+   <property name="text">
+    <string>refresh devices</string>
+   </property>
+  </action>
+  <action name="_task_manager_action">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>task manager</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../resources/images.qrc"/>
+ </resources>
  <connections/>
 </ui>

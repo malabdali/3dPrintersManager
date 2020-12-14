@@ -8,5 +8,7 @@
         <file>images/temperature.png</file>
         <file>images/bed.png</file>
         <file>images/hotend.png</file>
+        <file>images/tools.png</file>
+        <file>images/tasks.png</file>
     </qresource>
 </RCC>

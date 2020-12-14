@@ -17,17 +17,21 @@ private://fields
     QList<Device*> _detect_ports_wait_list;
     QList<Device*> _devices;
     static Devices* _INSTANCE;
-
+    QByteArray _network_id;
 
 public:
     Device* AddDevice(DeviceInfo* dev);
     void RemoveDevice(const DeviceInfo *name);
     Device *GetDevice(const DeviceInfo *name)const;
+    Device *GetDevice(const QByteArray &name)const;
     Device *GetDeviceByPort(const QByteArray& port)const;
     void DetectPortAndConnectForAllDevices(bool=false);
     void LoadDevicesFromRemoteServer();
     QList<Device *> GetAllDevices();
     QList<QByteArray> GetAllDevicesPort();
+    QByteArray GetNetworkID()const;
+    void SetNetworkID(const QByteArray&);
+    void Clear();
 private:
     explicit Devices(QObject *parent = nullptr);
     void WhenEndDevicesPortDetection();

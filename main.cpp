@@ -2,11 +2,15 @@
 
 #include <QApplication>
 #include <core/devices.h>
+#include "core/tasks/tasksmanager.h"
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    QCoreApplication::setOrganizationName("malabdali");
+    QCoreApplication::setOrganizationDomain("malabdali.com");
+    QCoreApplication::setApplicationName("3D Printers Manager");
     MainWindow mw;
-    qDebug()<<021;
     mw.show();
     return a.exec();
 }

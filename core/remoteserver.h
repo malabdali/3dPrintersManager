@@ -25,13 +25,15 @@ private://non static fiels
     QMap<QNetworkReply*,std::function<void(QNetworkReply*)>> _callbacks;
 public:
     explicit RemoteServer(QObject *parent = nullptr);
-    QNetworkReply* SendSelectQuery(std::function<void(QNetworkReply*)> callback,QString table,QString fileds="*",QString where="1=1",QString orderColumn="id",QString orderBy="ASC");
-    QNetworkReply *SendUpdateQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data,int id);
+    QNetworkReply* SendSelectQuery(std::function<void (QNetworkReply *)> callback, QString table, QString where="{}");
+    QNetworkReply *SendUpdateQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data,QByteArray id);
     QNetworkReply* SendInsertQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data);
-    QNetworkReply *SendDeleteQuery(std::function<void(QNetworkReply*)> callback,QString table,int id);
+    QNetworkReply *SendDeleteQuery(std::function<void(QNetworkReply*)> callback,QString table,QByteArray id);
+    QNetworkReply *Download(std::function<void(QNetworkReply*)> callback,QString path);
     bool IsSuccess(QNetworkReply* reply);
     QJsonValue GetJSONValue(QNetworkReply* reply);
 
+    bool DownloadIsSuccess(QNetworkReply *reply);
 private://methods
     QNetworkReply* SendRequest(QUrlQuery,QUrl,std::function<void(QNetworkReply*)>);
 private slots:

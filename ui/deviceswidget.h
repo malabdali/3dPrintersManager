@@ -24,7 +24,9 @@ public:
     DeviceWidget *AddDeviceWidget(Device* device);
     DeviceWidget *GetDeviceWidget(Device* device);
     void RemoveDeviceWidget(Device* device);
+    void RemoveAllDevices();
     void Update();
+    void LoadDevices();
 protected:
 private://methods
     void timerEvent(QTimerEvent *event)override;

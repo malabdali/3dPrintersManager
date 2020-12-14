@@ -37,6 +37,11 @@ void DeviceInfo::SetFilamentMaterial(QByteArray material)
     _filament_material=material;
 }
 
+void DeviceInfo::SetNetworkID(QByteArray network)
+{
+    _network_id=network;
+}
+
 uint32_t DeviceInfo::GetX() const{
     return _x;
 }
@@ -76,10 +81,11 @@ DeviceInfo::operator QVariantMap() const
     vmap.insert("baudrate",this->_baud_rate);
     vmap.insert("material",this->_filament_material);
     vmap.insert("nozzle",this->_nozzle);
+    vmap.insert("network",this->_network_id);
     return vmap;
 }
 
-uint32_t DeviceInfo::GetID()const{
+QByteArray DeviceInfo::GetID()const{
     return _id;
 }
 
@@ -93,16 +99,22 @@ QByteArray DeviceInfo::GetFilamentMaterial()
     return _filament_material;
 }
 
+QByteArray DeviceInfo::GetNetworkID()
+{
+    return _network_id;
+}
+
 void DeviceInfo::FromJSON(const QJsonObject &json)
 {
     this->_name=json["name"].toString().toUtf8();
     this->_filament_material=json["material"].toString().toUtf8();
-    this->_nozzle=json["nozzle"].toString().toFloat();
-    this->_x=json["x"].toString().toUInt();
-    this->_y=json["y"].toString().toUInt();
-    this->_z=json["z"].toString().toUInt();
-    this->_id=json["id"].toString().toUInt();
-    this->_baud_rate=json["baudrate"].toString().toUInt();
+    this->_nozzle=json["nozzle"].toDouble();
+    this->_x=json["x"].toInt();
+    this->_y=json["y"].toInt();
+    this->_z=json["z"].toInt();
+    this->_id=json["_id"].toString().toUtf8();
+    this->_baud_rate=json["baudrate"].toInt();
+    this->_network_id=json["network"].toString().toUtf8();
 
 }
 

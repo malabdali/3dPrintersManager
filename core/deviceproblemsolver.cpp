@@ -19,6 +19,8 @@ DeviceProblemSolver::SolvingType DeviceProblemSolver::GetSolvingType()const
     {
         return SolvingType::OpenPort;
     }
+    else
+        return SolvingType::NON;
 }
 
 void DeviceProblemSolver::Setup()
@@ -40,11 +42,7 @@ bool DeviceProblemSolver::IsThereProblem(){
 QJsonDocument DeviceProblemSolver::ToJson()
 {
     QVariantHash vh;
-    if(GetSolvingType()==SolvingType::GCode)
-        vh.insert("ERROR","GCode");
-    else if(GetSolvingType()==SolvingType::OpenPort)
-        vh.insert("ERROR","OpenPort");
-
+    vh.insert("ERROR",ErrorToText());
     return QJsonDocument(QJsonObject::fromVariantHash(vh));
 
 }
@@ -98,6 +96,43 @@ void DeviceProblemSolver::WhenCommandFinished(GCodeCommand *command, bool succes
 void DeviceProblemSolver::WhenStatsUpdateFailed(GCodeCommand *command)
 {
     CheckCommandError(command);
+}
+
+QByteArray DeviceProblemSolver::ErrorToText()
+{
+    QByteArray error="";
+    if(_last_command_error!=GCodeCommand::NoError){
+        switch (_last_command_error) {
+        case GCodeCommand::Busy:
+            error="device is busy";
+            break;
+
+        case GCodeCommand::CommandError::NoChecksum:
+            error="check sum error";
+            break;
+
+        case GCodeCommand::CommandError::TimeOut:
+            error="time out error";
+            break;
+
+        case GCodeCommand::CommandError::UnknownError:
+            error="unknown error";
+            break;
+
+        case GCodeCommand::CommandError::WriteError:
+            error="write error";
+            break;
+
+        default:
+            error="";
+            break;
+
+        }
+    }
+    else if(_last_device_error!=Device::Errors::NoError){
+        error="device open port error";
+    }
+    return error;
 }
 
 void DeviceProblemSolver::SolveProblem()

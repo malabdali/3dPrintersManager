@@ -35,8 +35,8 @@ void DeviceFilesSystem::Initiate()
     QDir dir;
     if(!dir.exists(QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()))
     {
-        dir.mkpath(QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName());
-        dir.mkpath(QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()+"/files");
+        dir.mkpath(GetLocaleDirectory());
+        dir.mkpath(GetLocaleDirectory(LOCALE_GCODE_PATH));
     }
 }
 
@@ -236,7 +236,7 @@ void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
             if(success)
             {
                 _uploaded_files.append(fileName);FileInfo fi(fileName);
-                fi.SetLocalePath(GetLocaleDirectory("files/"+fileName));
+                fi.SetLocalePath(GetLocaleDirectory(LOCALE_GCODE_PATH+fileName));
                 fi.SetSourcePath(*res);
                 _files.removeAll(fi);
                 _files.append(fi);
@@ -267,7 +267,7 @@ void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
 void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
 {
     auto list=fs->GetFilesList();
-    QStringList sl=this->GetLocaleFiles("files","."+QByteArray(UPLOAD_SUFFIX));
+    QStringList sl=this->GetLocaleFiles(LOCALE_GCODE_PATH,"."+QByteArray(UPLOAD_SUFFIX));
     for(int i=0;i<list.size();i++)
     {
         if(_files.contains(FileInfo(list.keys()[i])))
@@ -276,7 +276,7 @@ void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
         fi.SetIsUploaded(true);
         fi.SetUploadPercent(100.0);
         if(sl.filter(fi.GetFileName(),Qt::CaseInsensitive).length()>0){
-            fi.SetLocalePath(GetLocaleDirectory("files/"+sl.filter(fi.GetFileName(),Qt::CaseInsensitive)[0].toUtf8()));
+            fi.SetLocalePath(GetLocaleDirectory(LOCALE_GCODE_PATH+sl.filter(fi.GetFileName(),Qt::CaseInsensitive)[0].toUtf8()));
         }
         _files.append(fi);
     }
@@ -302,7 +302,12 @@ void DeviceFilesSystem::UpdateLineNumber()
 
 void DeviceFilesSystem::SaveLocaleFile(const QString &path, const QByteArray &data, std::function<void (bool)> callback)
 {
-    QString path2=QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()+"/"+path;
+    QString path2=GetLocaleDirectory(path.toUtf8());
+    QDir dir(path2.mid(0,path2.lastIndexOf("/")));
+    if(!dir.exists())
+    {
+        dir.mkpath(".");
+    }
     QFuture<bool> _future=QtConcurrent::run([data,path=path2]()->bool{
         QFile file(path);
         if(file.open(QIODevice::WriteOnly))

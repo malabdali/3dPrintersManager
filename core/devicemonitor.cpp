@@ -22,6 +22,7 @@ void DeviceMonitor::Setup(){
     connect(_device,&Device::DeviceStatsUpdateFailed,this,&DeviceMonitor::WhenDeviceStatsUpdated);
     connect(_device,&Device::BeforeSaveDeviceData,this,&DeviceMonitor::Save);
     connect(_device,&Device::DeviceDataLoaded,this,&DeviceMonitor::Load);
+    Load();
 
     _last_update_during_busy=std::chrono::steady_clock::now();
     this->startTimer(DEVICE_MONITOR_TIMER);
@@ -92,7 +93,6 @@ double DeviceMonitor::GetPrintProgress() const
 
 void DeviceMonitor::Update()
 {
-    qDebug()<<_data;
     if(_device->GetStatus()==Device::DeviceStatus::Ready)
     {
         if(_printing_stats==nullptr)
@@ -126,6 +126,7 @@ void DeviceMonitor::Save()
 
 void DeviceMonitor::Load()
 {
+    qDebug()<<_device->GetData("Monitor");
     this->FromJson(QJsonDocument(_device->GetData("Monitor")));
 }
 
@@ -133,14 +134,12 @@ void DeviceMonitor::Pause()
 {
     this->_data.insert("IS_PAUSED","1");
     emit updated();
-    qDebug()<<_data;
 }
 
 void DeviceMonitor::Play()
 {
     this->_data.insert("IS_PAUSED","0");
     emit updated();
-    qDebug()<<_data;
 }
 
 void DeviceMonitor::WhenDeviceStatsUpdated(GCodeCommand *command)
@@ -221,7 +220,6 @@ void DeviceMonitor::timerEvent(QTimerEvent *event)
     Q_UNUSED(event);
     if(!_device->IsOpen() || _wait_device_stats || IsPaused())
     {
-        qDebug()<<"DeviceMonitor::timerEvent"<<"return";
         return;
     }
     bool _is_updated=false;

@@ -96,11 +96,6 @@ public:
 
     ~Device();
 
-signals:
-    void DeviceDataLoaded();
-    void BeforeSaveDeviceData();
-    void DataSaved();
-
 
 private://methods
     explicit Device(DeviceInfo* device_info,QObject *parent = nullptr);
@@ -135,6 +130,9 @@ signals:
     void CommandRemoved(GCodeCommand*);
     void DeviceStatsUpdated(GCodeCommand*);
     void DeviceStatsUpdateFailed(GCodeCommand*);
+    void DeviceDataLoaded();
+    void BeforeSaveDeviceData();
+    void DataSaved();
 
 
 };

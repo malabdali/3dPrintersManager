@@ -264,6 +264,7 @@ void DeviceWidget::SaveChanges()
 void DeviceWidget::CreateDevice()
 {
     DeviceInfo di(ui->_name->text().toUtf8());
+    di.SetNetworkID(Devices::GetInstance()->GetNetworkID());
     ui->_create_button->setEnabled(false);
     di.SetDimensions(ui->_x->text().toUInt(),ui->_y->text().toUInt(),ui->_z->text().toUInt());
     di.SetBaudRate(ui->_baud_rate->text().toUInt());
@@ -273,7 +274,7 @@ void DeviceWidget::CreateDevice()
         if(RemoteServer::GetInstance()->IsSuccess(rep))
         {
             DeviceInfo* device=new DeviceInfo(ui->_name->text().toUtf8());
-            device->FromJSON(RemoteServer::GetInstance()->GetJSONValue(rep).toArray()[0].toObject());
+            device->FromJSON(RemoteServer::GetInstance()->GetJSONValue(rep).toObject()["ops"].toArray()[0].toObject());
             Devices::GetInstance()->AddDevice(device);
 
             ui->_create_button->setVisible(false);
@@ -282,7 +283,7 @@ void DeviceWidget::CreateDevice()
             ui->_create_button->setVisible(true);
 
         rep->deleteLater();
-    },"Printers",di);
+    },DEVICES_TABLE,di);
 }
 
 void DeviceWidget::DeleteDevice()
@@ -297,7 +298,7 @@ void DeviceWidget::DeleteDevice()
             ui->_delete_button->setVisible(true);
 
         rep->deleteLater();
-    },"Printers",_device->GetDeviceInfo()->GetID());
+    },DEVICES_TABLE,_device->GetDeviceInfo()->GetID());
 }
 
 void DeviceWidget::DetectPort()
@@ -354,7 +355,7 @@ void DeviceWidget::WhenMonitorUpdated()
         ui->_printing->hide();
         ui->_printing_label->hide();
     }
-    if(_device->GetDeviceMonitor()->IsPaused()){
+    if(_device->GetDeviceMonitor()->IsPaused() || (!_device->GetDeviceMonitor()->IsPrinting() && _device->GetDeviceMonitor()->IsWasPrinting())){
         ui->_reset_button->show();
     }
     else{
@@ -402,5 +403,6 @@ void DeviceWidget::on__test_action_triggered()
 
 void DeviceWidget::on__reset_button_clicked()
 {
+    ui->_reset_button->hide();
     _device->GetDeviceMonitor()->Reset();
 }

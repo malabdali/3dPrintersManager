@@ -2,10 +2,14 @@
 #include <QtDebug>
 #include "deviceinfo.h"
 #include <QDir>
+#include <QSettings>
 Devices* Devices::_INSTANCE=nullptr;
 
 Devices::Devices(QObject *parent) : QObject(parent)
 {
+
+    QSettings settings;
+    _network_id=settings.value("network").toString().toUtf8();
 }
 
 void Devices::WhenEndDevicesPortDetection()
@@ -62,6 +66,12 @@ Device *Devices::GetDevice(const DeviceInfo* name)const{
     return *res;
 }
 
+Device *Devices::GetDevice(const QByteArray &name) const
+{
+    DeviceInfo dev(name);
+    return GetDevice(&dev);
+}
+
 void Devices::DetectPortAndConnectForAllDevices(bool force_detect_all_ports)
 {
     _detect_ports_wait_list.clear();
@@ -86,7 +96,6 @@ void Devices::LoadDevicesFromRemoteServer(){
         if(RemoteServer::GetInstance()->IsSuccess(reply))
         {
             QJsonArray jarray=RemoteServer::GetInstance()->GetJSONValue(reply).toArray();
-            qDebug()<<"devices count : "<<jarray.size();
             for(QJsonValue value:jarray){
                 DeviceInfo *di=new DeviceInfo("",nullptr);
                 di->FromJSON(value.toObject());
@@ -98,7 +107,7 @@ void Devices::LoadDevicesFromRemoteServer(){
             emit DevicesLoaded(false);
         }
     };
-    RemoteServer::GetInstance()->SendSelectQuery(rf,"Printers");
+    RemoteServer::GetInstance()->SendSelectQuery(rf,DEVICES_TABLE,QString("{\"network\":\"%1\"}").arg(QString(_network_id)));
 }
 
 QList<Device *> Devices::GetAllDevices()
@@ -114,6 +123,26 @@ QList<QByteArray> Devices::GetAllDevicesPort()
         ports.append(dev->GetPort());
     }
     return ports;
+}
+
+QByteArray Devices::GetNetworkID() const
+{
+    return _network_id;
+}
+
+void Devices::SetNetworkID(const QByteArray & id)
+{
+    this->_network_id=id;
+    QSettings settings;
+    settings.setValue("network",id);
+
+}
+
+void Devices::Clear()
+{
+    for(Device* di:_devices.toVector())
+        RemoveDevice(di->GetDeviceInfo());
+
 }
 
 

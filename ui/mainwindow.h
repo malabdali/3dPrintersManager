@@ -18,7 +18,9 @@ private:// fields
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
+private slots:
+    void WhenNetworkInfoActionClicked();
+    void WhenTaskManagerChanged();
 private:
     Ui::MainWindow *ui;
 };

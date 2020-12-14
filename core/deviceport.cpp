@@ -182,7 +182,6 @@ void DevicePort::OnAvailableData()
 
 void DevicePort::OnErrorOccurred(QSerialPort::SerialPortError error)
 {
-    qDebug()<<error;
     if(error!=QSerialPort::SerialPortError::NoError && error!=QSerialPort::SerialPortError::NotOpenError)
     {
         Clear();

@@ -15,6 +15,7 @@
 #include <QDir>
 #include "devicemonitor.h"
 #include "deviceactions.h"
+#include "remoteserver.h"
 
 Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),_port_thread(new QThread()),
     _fileSystem(new DeviceFilesSystem(this)),_device_port(new DevicePort(this)),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this)),
@@ -371,28 +372,30 @@ DeviceMonitor *Device::GetDeviceMonitor()
 
 void Device::Load()
 {
-    _fileSystem->ReadLocaleFile("device.json", [this](QByteArray data)->void{
-        _device_data.fromJson(data);
+    _fileSystem->ReadLocaleFile(DEVICE_DATA_FILE, [this](QByteArray data)->void{
+        _device_data=QJsonDocument::fromJson(data);
         emit this->DeviceDataLoaded();
     });
 }
 
 void Device::Save()
 {
+    QJsonObject jo=this->_device_data.object();
+    jo.insert("status",(int)this->_current_status);
+    this->_device_data.setObject(jo);
     emit this->BeforeSaveDeviceData();
-
-    _fileSystem->SaveLocaleFile("device.json",this->_device_data.toJson(),[this](bool success)->void{
+    _fileSystem->SaveLocaleFile(DEVICE_DATA_FILE,this->_device_data.toJson(),[this](bool success)->void{
+        RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
+        },DEVICES_TABLE,this->_device_data.object().toVariantMap(),this->_device_info->GetID());
         emit DataSaved();
     });
 }
 
 void Device::AddData(QByteArray name, QJsonObject data)
 {
-    qDebug()<<"Device::AddData";
     QJsonObject jo=this->_device_data.object();
     jo.insert(name,data);
     this->_device_data.setObject(jo);
-    qDebug()<<"Device::AddData"<<data<<_device_data;
 }
 
 QJsonObject Device::GetData(QByteArray name)

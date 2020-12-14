@@ -18,6 +18,7 @@ GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArra
 
 void GCode::UploadFile::InsideStart()
 {
+    qDebug()<<"GCode::UploadFile::InsideStart()";
     _end_timer=new QTimer();
     _end_timer->moveToThread(this->thread());
     QObject::connect(_end_timer,&QTimer::timeout,this,&UploadFile::Send29);
@@ -100,12 +101,12 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
     else if((uint32_t)_data.length()<=(_counter+1) && ba.contains("ok") && _upload_stage)
     {
         _end_timer->stop();
-        _end_timer->start(500);
+        _end_timer->start(1000);
     }
     else if(ba.contains("Done saving file")){
         _file_saved=true;
     }
-    else if(_open_success && !_upload_stage && ba.contains("ok")){
+    else if(_open_success && !_upload_stage && _file_saved && ba.contains("ok")){
         Finish(true);
     }
     else if(ba.contains("Resend: ")){
@@ -122,7 +123,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
         if(ln>=_counter)
         {
             _end_timer->stop();
-            _end_timer->start(500);
+            _end_timer->start(1000);
         }
         else
             _counter=ln-1;

@@ -4,6 +4,7 @@
 #include <QObject>
 #include "devicecomponent.h"
 #include <QJsonDocument>
+#include "gcodecommand.h"
 
 class DeviceProblemSolver : public DeviceComponent
 {
@@ -12,9 +13,10 @@ private://fields
     int _last_command_error,_last_device_error;
     bool _commands_was_played;
 public: //nested types
-    enum SolvingType{
-        OpenPort,
-        GCode
+    enum SolvingType:int{
+        NON=0,
+        OpenPort=1,
+        GCode=2
     };
 public:
     explicit DeviceProblemSolver(class Device *device = nullptr);
@@ -35,6 +37,7 @@ private slots:
     void WhenCommandStarted(class GCodeCommand* command);
     void WhenCommandFinished(class GCodeCommand* command,bool success);
     void WhenStatsUpdateFailed(class GCodeCommand* command);
+    QByteArray ErrorToText();
 public slots:
     void SolveProblem();
     void CheckCommandError(GCodeCommand* command);

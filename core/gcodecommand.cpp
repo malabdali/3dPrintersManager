@@ -31,6 +31,7 @@ void GCodeCommand::Start()
     }
     if(_no_response_time_out){
         _no_response_timer=new QTimer(this);
+        _no_response_timer->setSingleShot(true);
         QObject::connect(_no_response_timer,&QTimer::timeout,this,&GCodeCommand::WhenTimeOut);
     }
     QObject::connect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&GCodeCommand::WhenLineAvailable);

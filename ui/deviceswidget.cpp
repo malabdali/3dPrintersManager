@@ -9,7 +9,6 @@ DevicesWidget::DevicesWidget(QWidget *parent) :
     QObject::connect(Devices::GetInstance(),&Devices::DevicesLoaded,this,&DevicesWidget::OnDeviccesLoaded);
     QObject::connect(Devices::GetInstance(),&Devices::DeviceAdded,this,&DevicesWidget::OnDeviceAdded);
     QObject::connect(Devices::GetInstance(),&Devices::DeviceRemoved,this,&DevicesWidget::OnDeviceRemoved);
-    Devices::GetInstance()->LoadDevicesFromRemoteServer();
     QObject::connect(ui->_add_printer_button,&QPushButton::clicked,this,&DevicesWidget::OnAddDeviceButtonClicked);
 }
 
@@ -31,11 +30,26 @@ void DevicesWidget::RemoveDeviceWidget(Device *device)
     _devices_widgets.remove(device);
 }
 
+void DevicesWidget::RemoveAllDevices()
+{
+    for(Device* dw: _devices_widgets.keys())
+        RemoveDeviceWidget(dw);
+}
+
 void DevicesWidget::Update()
 {
     for(DeviceWidget* dw:_devices_widgets.values()){
         dw->Update();
     }
+}
+
+void DevicesWidget::LoadDevices()
+{
+
+    this->RemoveAllDevices();
+    Devices::GetInstance()->Clear();
+    Devices::GetInstance()->LoadDevicesFromRemoteServer();
+
 }
 
 void DevicesWidget::timerEvent(QTimerEvent *event){

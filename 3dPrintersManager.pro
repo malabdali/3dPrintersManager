@@ -40,6 +40,9 @@ SOURCES += \
     core/gcode/uploadfile.cpp \
     core/gcodecommand.cpp \
     core/remoteserver.cpp \
+    core/tasks/printtask.cpp \
+    core/tasks/task.cpp \
+    core/tasks/tasksmanager.cpp \
     core/utilities/loadfilefuture.cpp \
     main.cpp \
     ui/deviceswidget.cpp \
@@ -73,6 +76,9 @@ HEADERS += \
     core/gcode/uploadfile.h \
     core/gcodecommand.h \
     core/remoteserver.h \
+    core/tasks/printtask.h \
+    core/tasks/task.h \
+    core/tasks/tasksmanager.h \
     core/utilities/loadfilefuture.h \
     ui/deviceswidget.h \
     ui/devicewidget.h \
