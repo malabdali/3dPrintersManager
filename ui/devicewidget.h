@@ -17,6 +17,7 @@ private://fields
     Ui::DeviceWidget *ui;
     FilesSystemWidget *_files_widget;
     class SerialWidget *_serial_widget;
+    class PrinterControl *_printer_control_widget;
 public:
     explicit DeviceWidget(Device* device,QWidget *parent = nullptr);
     void Update();
@@ -45,8 +46,9 @@ private slots:
     void SerialWidgetClosed();
     void WhenMonitorUpdated();
     void on__files_action_triggered(bool checked);
-    void on__test_action_triggered();
     void on__reset_button_clicked();
+    void on__gcode_action_triggered();
+    void on__control_action_triggered();
 };
 
 #endif // DEVICEWIDGET_H

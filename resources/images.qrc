@@ -10,5 +10,8 @@
         <file>images/hotend.png</file>
         <file>images/tools.png</file>
         <file>images/tasks.png</file>
+        <file>images/played.png</file>
+        <file>images/wait.png</file>
+        <file>images/done.png</file>
     </qresource>
 </RCC>

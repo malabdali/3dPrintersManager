@@ -91,6 +91,9 @@ void DeviceProblemSolver::WhenCommandFinished(GCodeCommand *command, bool succes
 {
     if(!success)
         CheckCommandError(command);
+    else{
+        _last_command_error=GCodeCommand::NoError;
+    }
 }
 
 void DeviceProblemSolver::WhenStatsUpdateFailed(GCodeCommand *command)

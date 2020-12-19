@@ -5,6 +5,7 @@
 
 GCode::EndstopsStates::EndstopsStates(Device *device):GCodeCommand(device,"M119")
 {
+    _data_sent=false;
 }
 
 bool GCode::EndstopsStates::FilamentExist() const
@@ -31,6 +32,11 @@ void GCode::EndstopsStates::OnAvailableData(const QByteArray &ba)
             Finish(false);
             return;
         }
+        else if(!_data_sent){
+            SetError(CommandError::UnknownError);
+            Finish(false);
+            return;
+        }
         else
             Finish(true);
     }
@@ -41,6 +47,7 @@ void GCode::EndstopsStates::OnAvailableData(const QByteArray &ba)
             ba.toLower().startsWith(QByteArray("filament"))){
         if(ba.toLower().startsWith(QByteArray("filament"))){
             auto res=ba.split(':');
+            _data_sent=true;
             if(res[1].contains("TRIGGERED")){
                 _filament_is_ok=true;
             }

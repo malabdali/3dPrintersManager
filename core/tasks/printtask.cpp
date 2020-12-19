@@ -3,6 +3,8 @@
 #include "../devicefilessystem.h"
 #include "../devicemonitor.h"
 #include"../gcode/startprinting.h"
+#include <QUrlQuery>
+#include <QJsonArray>
 PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
 {
     _file=data["file"].toString().toUtf8();
@@ -20,18 +22,38 @@ void PrintTask::DownloadFile()
         NextStep();
     }
     SetStatus(TaskStatus::Downloading);
-    RemoteServer::GetInstance()->Download([this](QNetworkReply *reply)->void{
-        if(RemoteServer::GetInstance()->DownloadIsSuccess(reply))
-        {
-            WhenDownloadFinished(reply->readAll());
+    QUrlQuery query;
+    query.addQueryItem("file",this->_file);
+    RemoteServer::GetInstance()->SendRequest(query,"Files/FileInfo",[this](QNetworkReply* nr){
+        if(RemoteServer::GetInstance()->IsSuccess(nr)){
+            QJsonArray array=RemoteServer::GetInstance()->GetJSONValue(nr).toArray();
+            if(array.size()>0){
+                _file_info=array[0].toObject();
+                RemoteServer::GetInstance()->Download([this](QNetworkReply *reply)->void{
+                    if(RemoteServer::GetInstance()->DownloadIsSuccess(reply))
+                    {
+                        WhenDownloadFinished(reply->readAll());
+                    }
+                    else
+                    {
+                        _wait=false;
+                        emit DownloadFileFailed();
+                        NextStep();
+                    }
+                },_file);
+            }
+            else{
+                _wait=false;
+                emit FileNotExist();
+                Finish();
+            }
         }
-        else
-        {
+        else{
             _wait=false;
             emit DownloadFileFailed();
             NextStep();
         }
-    },_file);
+    });
 }
 
 void PrintTask::UploadFile()
@@ -57,17 +79,19 @@ void PrintTask::UploadFile()
 
 void PrintTask::Print()
 {
-    qDebug()<<"PrintTask::Print()";
     DeviceMonitor* monitor=this->_device->GetDeviceMonitor();
     if(monitor->IsWasPrinting() || monitor->IsPrinting() || _device->GetStatus()!=Device::DeviceStatus::Ready || _device->GetFileSystem()->IsStillUploading() ||_printing_command){
 
         _wait=false;
         return;
     }
-    qDebug()<<"PrintTask::Print()"<<"2";
     this->_printing_command=new GCode::StartPrinting(_device,_file);
     _device->AddGCodeCommand(_printing_command);
     connect(_device,&Device::CommandFinished,this,&PrintTask::WhenCommandFinished);
+}
+
+QByteArray PrintTask::GetFile(){
+    return _file;
 }
 
 void PrintTask::WhenDownloadFinished(const QByteArray &data)
@@ -102,7 +126,7 @@ void PrintTask::NextStep()
         Print();
     }
     else if((GetStaus()==TaskStatus::Printing) && !_wait && !monitor->IsPrinting() && monitor->IsWasPrinting()){
-        Finish();
+        this->SetStatus(Task::Printed);
     }
     Task::NextStep();
 }
@@ -157,4 +181,25 @@ void PrintTask::Finish()
 
 void PrintTask::Continue()
 {
+    Task::Continue();
+}
+
+
+bool PrintTask::NextStepIsFinished()
+{
+    if(this->GetStaus()==TaskStatus::Printed)
+        return true;
+    return false;
+}
+
+void PrintTask::Cancel()
+{
+    Task::Cancel();
+}
+
+
+void PrintTask::Repeat()
+{
+    _printing_command=nullptr;
+    Task::Repeat();
 }

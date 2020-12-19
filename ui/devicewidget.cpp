@@ -11,6 +11,7 @@
 #include "../core/gcode/printingstats.h"
 #include "../core/devicemonitor.h"
 #include "../core/deviceport.h"
+#include "./printercontrol.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -18,6 +19,7 @@ DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     Setup();
     _serial_widget=nullptr;
     _files_widget=nullptr;
+    _printer_control_widget=nullptr;
     if(device){
         connect(device->GetDeviceMonitor(),&DeviceMonitor::updated,this,&DeviceWidget::WhenMonitorUpdated);
     }
@@ -329,8 +331,9 @@ void DeviceWidget::ShowContextMenu(const QPoint &pos)
     if(_device->IsOpen())
     {
         contextMenu.addAction(ui->_files_action);
+        contextMenu.addAction(ui->_gcode_action);
+        contextMenu.addAction(ui->_control_action);
     }
-    contextMenu.addAction(ui->_test_action);
     contextMenu.exec(mapToGlobal(pos));
 }
 
@@ -383,9 +386,14 @@ void DeviceWidget::on__files_action_triggered(bool checked)
     QObject::connect(_files_widget,&QWidget::destroyed,this,&DeviceWidget::FilesWidgetClosed);
 }
 
-void DeviceWidget::on__test_action_triggered()
+void DeviceWidget::on__reset_button_clicked()
 {
-    //_device->AddGCodeCommand(new GCode::PrintingStatus(_device,[](bool b)->void{}));
+    ui->_reset_button->hide();
+    _device->GetDeviceMonitor()->Reset();
+}
+
+void DeviceWidget::on__gcode_action_triggered()
+{
 
     if(_serial_widget){
         _serial_widget->show();
@@ -401,8 +409,19 @@ void DeviceWidget::on__test_action_triggered()
     QObject::connect(_serial_widget,&QWidget::destroyed,this,&DeviceWidget::SerialWidgetClosed);
 }
 
-void DeviceWidget::on__reset_button_clicked()
+void DeviceWidget::on__control_action_triggered()
 {
-    ui->_reset_button->hide();
-    _device->GetDeviceMonitor()->Reset();
+
+    if(_files_widget){
+        _printer_control_widget->show();
+        _printer_control_widget->raise();
+        return;
+    }
+    _printer_control_widget=new PrinterControl(this->_device);
+    _printer_control_widget->setParent(this->window(),Qt::WindowType::Window);
+    _printer_control_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " controller");
+    _printer_control_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
+    _printer_control_widget->setWindowModality(Qt::WindowModality::WindowModal);
+    _printer_control_widget->show();
+    QObject::connect(_files_widget,&QWidget::destroyed,this,[this]{_printer_control_widget=nullptr;});
 }

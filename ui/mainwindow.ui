@@ -35,6 +35,7 @@
     <addaction name="_refresh_devices_action"/>
     <addaction name="separator"/>
     <addaction name="_task_manager_action"/>
+    <addaction name="_show_tasks_window_action"/>
    </widget>
    <addaction name="menuTools"/>
   </widget>
@@ -62,7 +63,16 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>task manager</string>
+    <string>enable task manager</string>
+   </property>
+  </action>
+  <action name="_show_tasks_window_action">
+   <property name="icon">
+    <iconset resource="../resources/images.qrc">
+     <normaloff>:/icon/images/tasks.png</normaloff>:/icon/images/tasks.png</iconset>
+   </property>
+   <property name="text">
+    <string>show tasks window</string>
    </property>
   </action>
  </widget>

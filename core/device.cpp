@@ -382,6 +382,7 @@ void Device::Save()
 {
     QJsonObject jo=this->_device_data.object();
     jo.insert("status",(int)this->_current_status);
+    jo.insert("time","time("+QDateTime::currentDateTimeUtc().toString(Qt::DateFormat::ISODateWithMs)+")");
     this->_device_data.setObject(jo);
     emit this->BeforeSaveDeviceData();
     _fileSystem->SaveLocaleFile(DEVICE_DATA_FILE,this->_device_data.toJson(),[this](bool success)->void{

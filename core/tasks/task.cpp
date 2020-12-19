@@ -1,6 +1,7 @@
 #include "task.h"
 #include "../devices.h"
 #include "../remoteserver.h"
+#include "./tasksmanager.h"
 Task::Task(QJsonObject data, QObject *parent) : QObject(parent)
 {
     _data=data;
@@ -48,7 +49,9 @@ void Task::UpdateStatus()
     vmap.insert("status",_status);
     RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
         if(RemoteServer::GetInstance()->IsSuccess(reply))
+        {
             _status_updated=true;
+        }
     },TASKS_TABLE,vmap,_id);
 }
 
@@ -68,14 +71,25 @@ bool Task::IsFinished(){
 void Task::Start(){
     _is_started=true;
     SetStatus(Started);
-    qDebug()<<"start task";
     emit OnStarted();
 }
 
 void Task::Finish(){
-    qDebug()<<"task finished";
     SetStatus(Done);
     UpdateStatus();
+}
+
+void Task::Cancel()
+{
+    SetStatus(Canceled);
+    _is_finished=true;
+    if(TasksManager::GetInstance()->TaskIsExistsInLastTasks(this))
+        UpdateStatus();
+    else
+    {
+        _status_updated=true;
+    }
+    emit OnFinished();
 }
 
 void Task::Continue()
@@ -85,12 +99,20 @@ void Task::Continue()
 
 void Task::NextStep()
 {
-    if(_status_updated && _status==TaskStatus::Done){
+    if(_status_updated && (_status==TaskStatus::Done || _status==TaskStatus::Canceled)){
         _is_finished=true;
         emit OnFinished();
     }
     else if(!_status_updated)
         UpdateStatus();
+}
+
+void Task::Repeat()
+{
+    this->SetStatus(Task::Wait);
+    _is_started=false;
+    _is_finished=false;
+    UpdateStatus();
 }
 
 void Task::SetStatus(Task::TaskStatus status){

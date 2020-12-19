@@ -6,7 +6,6 @@
 #include <string>
 #include "devicefilessystem.h"
 #include "gcode/startprinting.h"
-#include "gcode/m600.h"
 DeviceMonitor::DeviceMonitor(Device *dev) : DeviceComponent(dev)
 {
     _printing_stats=nullptr;
@@ -126,7 +125,6 @@ void DeviceMonitor::Save()
 
 void DeviceMonitor::Load()
 {
-    qDebug()<<_device->GetData("Monitor");
     this->FromJson(QJsonDocument(_device->GetData("Monitor")));
 }
 

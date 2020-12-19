@@ -9,9 +9,9 @@ RemoteServer::RemoteServer(QObject *parent) : QObject(parent)
     connect(_network,SIGNAL(finished(QNetworkReply*)),this,SLOT(OnFinish(QNetworkReply*)));
 }
 
-QNetworkReply *RemoteServer::SendRequest(QUrlQuery query, QUrl url,std::function<void(QNetworkReply*)> callback)
+QNetworkReply *RemoteServer::SendRequest(QUrlQuery query, QString url,std::function<void(QNetworkReply*)> callback)
 {
-    QNetworkRequest request(url);
+    QNetworkRequest request(QStringLiteral(REMOTE_SERVER_URL)+url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
     request.setRawHeader("user",REMOTE_SERVER_ADMIN_NAME);
     request.setRawHeader("pass",REMOTE_SERVER_ADMIN_PASS);
@@ -32,7 +32,7 @@ QNetworkReply *RemoteServer::SendSelectQuery(std::function<void (QNetworkReply *
     QUrlQuery query;
     query.addQueryItem("table",table);
     query.addQueryItem("search",where);
-    return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"DB/Find",callback);
+    return SendRequest(query,"DB/Find",callback);
 }
 
 QNetworkReply *RemoteServer::SendUpdateQuery(std::function<void (QNetworkReply *)> callback, QString table, QVariantMap data, QByteArray id)
@@ -41,7 +41,7 @@ QNetworkReply *RemoteServer::SendUpdateQuery(std::function<void (QNetworkReply *
     query.addQueryItem("table",table);
     query.addQueryItem("search",QString("{\"_id\":\"objectid(%1)\"}").arg(QString(id)));
     query.addQueryItem("data",QJsonDocument(QJsonObject::fromVariantMap(data)).toJson());
-    return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"DB/Update",callback);
+    return SendRequest(query,"DB/Update",callback);
 }
 
 QNetworkReply *RemoteServer::SendInsertQuery(std::function<void (QNetworkReply *)> callback, QString table, QVariantMap data)
@@ -49,7 +49,7 @@ QNetworkReply *RemoteServer::SendInsertQuery(std::function<void (QNetworkReply *
     QUrlQuery query;
     query.addQueryItem("table",table);
     query.addQueryItem("data",QJsonDocument(QJsonObject::fromVariantMap(data)).toJson());
-    return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"DB/Insert",callback);
+    return SendRequest(query,"DB/Insert",callback);
 }
 
 QNetworkReply *RemoteServer::SendDeleteQuery(std::function<void (QNetworkReply *)> callback, QString table, QByteArray id)
@@ -59,12 +59,12 @@ QNetworkReply *RemoteServer::SendDeleteQuery(std::function<void (QNetworkReply *
     query.addQueryItem("search",QString("{\"_id\":\"objectid(%1)\"}").arg(QString(id)));
     query.addQueryItem("admin_pass",REMOTE_SERVER_ADMIN_PASS);
     query.addQueryItem("admin_name",REMOTE_SERVER_ADMIN_NAME);
-    return SendRequest(query,QStringLiteral(REMOTE_SERVER_URL)+"DB/Delete",callback);
+    return SendRequest(query,"DB/Delete",callback);
 }
 
 QNetworkReply *RemoteServer::Download(std::function<void (QNetworkReply *)> callback, QString file)
 {
-    QNetworkRequest request(QStringLiteral(REMOTE_SERVER_URL)+"Files/Download/"+file);
+    QNetworkRequest request("Files/Download/"+file);
     request.setRawHeader("user",REMOTE_SERVER_ADMIN_NAME);
     request.setRawHeader("pass",REMOTE_SERVER_ADMIN_PASS);
     QNetworkReply* reply= _network->get(request);

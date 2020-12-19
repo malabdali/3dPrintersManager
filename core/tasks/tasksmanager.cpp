@@ -59,32 +59,38 @@ QList<Task *> TasksManager::GetStartedTasksOfDevice(Device *dev)
 {
     QList<Task*> tasks;
     for(Task* t:_started_tasks)
-        if(t->GetDevice()==dev && t->GetStaus()!=Task::Done)
+        if(t->GetDevice()==dev && !t->IsFinished())
             tasks.append(t);
     return tasks;
 }
 
+QList<Task *> TasksManager::GetAllTasks()
+{
+    return _tasks;
+}
+
 void TasksManager::AddTask(Task *task)
 {
-    qDebug()<<"TasksManager::AddTask";
     if(!_tasks.contains(task))
     {
         _tasks.append(task);
         if(task->GetStaus()!=Task::Wait){
             _started_tasks.append(task);
         }
+        emit OnTaskAdded(task);
     }
     connect(task,&Task::OnFinished,this,&TasksManager::WhenTaskFinished);
     connect(task,&Task::OnStarted,this,&TasksManager::WhenTaskStatrted);
+    connect(task,&Task::OnStatusUpdated,this,&TasksManager::WhenTaskStatusChanged);
 }
 
 void TasksManager::RemoveTask(Task *task)
 {
     if(_tasks.contains(task))
     {
-        qDebug()<<"TasksManager::RemoveTask "<<task;
         _tasks.removeAll(task);
-        delete task;
+        emit OnTaskRemoved(task);
+        task->deleteLater();
     }
 }
 
@@ -95,13 +101,17 @@ void TasksManager::UpdateTasks()
     for(Device* dev:Devices::GetInstance()->GetAllDevices())
         ja.append(QString(dev->GetDeviceInfo()->GetDeviceName()));
     $in.insert("$in",ja);
-    $ne.insert("$ne",-1);
+    $ne.insert("$gt",-1);
     obj.insert("printer",$in);
     obj.insert("status",$ne);
     QJsonDocument jd;
     jd.setObject(obj);
 
-    RemoteServer::GetInstance()->SendSelectQuery([this](QNetworkReply* reply)->void{WhenTasksUpdated(RemoteServer::GetInstance()->GetJSONValue(reply).toArray());},TASKS_TABLE,jd.toJson());
+    RemoteServer::GetInstance()->SendSelectQuery([this](QNetworkReply* reply)->void{
+        if(RemoteServer::GetInstance()->IsSuccess(reply)){
+            WhenTasksUpdated(RemoteServer::GetInstance()->GetJSONValue(reply).toArray());
+        }
+    },TASKS_TABLE,jd.toJson());
 }
 
 void TasksManager::CallNextStepForTasks()
@@ -126,6 +136,11 @@ bool TasksManager::CheckTaskDeviceIsExist(Task* task)
     return Devices::GetInstance()->GetAllDevices().contains(task->GetDevice());
 }
 
+bool TasksManager::TaskIsExistsInLastTasks(Task *t)
+{
+    return _last_tasks.contains(t);
+}
+
 
 void TasksManager::timerEvent(QTimerEvent *ev)
 {
@@ -136,19 +151,29 @@ void TasksManager::timerEvent(QTimerEvent *ev)
 
 void TasksManager::WhenTasksUpdated(QJsonArray ja)
 {
+    _last_tasks.clear();
     for(QJsonValue jv:ja){
         Task* task=GetTaskByID(jv.toObject()["_id"].toString().toUtf8());
         if(!task){
-            AddTask(CreateTask(jv.toObject()));
+            Task* ct=CreateTask(jv.toObject());
+            _last_tasks.append(ct);
+            AddTask(ct);
+        }
+        else{
+            _last_tasks.append(task);
         }
     }
+    for(Task* t :_tasks)
+        if(!_last_tasks.contains(t) && !t->IsFinished()){
+            t->Cancel();
+
+        }
 
 }
 
 void TasksManager::WhenDeviceRemoved(Device *dev)
 {
     QList<Task*> tasks=GetTasksOfDevice(dev);
-    qDebug()<<" call TasksManager::WhenDeviceRemoved "<<tasks;
     for(Task* &t:tasks.toVector())
         RemoveTask(t);
 }
@@ -165,13 +190,11 @@ Task *TasksManager::GetTaskByID(QByteArray id)
 Task *TasksManager::GetTheOldestTaskOfDevice(Device *dev, Task::TaskStatus ts)
 {
     QList<Task*> tasks=GetTasksOfDevice(dev,ts);
-    qDebug()<<tasks;
     if(tasks.length()==0)
         return nullptr;
     auto iterator=std::min_element(tasks.begin(),tasks.end(),[](const Task* f ,const Task* s)->bool{return f->GetCreateTime()<s->GetCreateTime();});
     if(iterator==tasks.end())
         return nullptr;
-    qDebug()<<"found it and sent";
     return *iterator;
 }
 
@@ -188,6 +211,13 @@ void TasksManager::Pause()
     _timer_id=-1;
 }
 
+void TasksManager::RepeatTask(Task *t)
+{
+    _started_tasks.removeAll(t);
+    _finished_tasks.removeAll(t);
+    t->Repeat();
+}
+
 void TasksManager::WhenTaskFinished()
 {
     Task* t=dynamic_cast<Task*>(sender());
@@ -197,11 +227,17 @@ void TasksManager::WhenTaskFinished()
 
 void TasksManager::WhenTaskStatrted()
 {
-    qDebug()<<"when task started";
     Task* t=dynamic_cast<Task*>(sender());
     if(!_started_tasks.contains(t))
         this->_started_tasks.append(t);
 
+}
+
+void TasksManager::WhenTaskStatusChanged()
+{
+    Task* t=dynamic_cast<Task*>(this->sender());
+    if(t)
+        emit OnTaskStatusChanged(t);
 }
 
 TasksManager::~TasksManager()

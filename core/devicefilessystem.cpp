@@ -84,11 +84,6 @@ double DeviceFilesSystem::GetUploadProgress()
     return 0;
 }
 
-QList<QByteArray> DeviceFilesSystem::GetUploadedFiles()
-{
-    return _uploaded_files;
-}
-
 QList<QByteArray> DeviceFilesSystem::GetFailedUploads()
 {
     return _failed_uploads;
@@ -235,9 +230,11 @@ void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
         CopyLocaleFile(*res,"files/"+uploadFile->GetFileName(),[fileName=uploadFile->GetFileName(),this,res](bool success){
             if(success)
             {
-                _uploaded_files.append(fileName);FileInfo fi(fileName);
+                //uploaded_files.append(fileName);
+                FileInfo fi(fileName);
                 fi.SetLocalePath(GetLocaleDirectory(LOCALE_GCODE_PATH+fileName));
                 fi.SetSourcePath(*res);
+                fi.SetIsUploaded(true);
                 _files.removeAll(fi);
                 _files.append(fi);
                 emit FileUploaded(fileName);

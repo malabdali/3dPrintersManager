@@ -7,8 +7,10 @@ class Task : public QObject
 {
     Q_OBJECT
 
+    friend class TasksManager;
 public: //nested types
     enum TaskStatus:int{
+        Canceled=-2,
         Done=-1,
         Wait=0,
         Started=1,
@@ -16,7 +18,8 @@ public: //nested types
         Downloaded=3,
         Uploading=4,
         Uploaded=5,
-        Printing=6
+        Printing=6,
+        Printed=7
     };
 
 protected:
@@ -44,13 +47,16 @@ public:
     void FinishTask();
     bool IsStarted();
     bool IsFinished();
+    virtual bool NextStepIsFinished()=0;
     virtual void Start();
     virtual void Finish();
+    virtual void Cancel();
     virtual void Continue();
     virtual void NextStep();
 
 protected://methods
     void SetStatus(TaskStatus status);
+    virtual void Repeat();
 signals:
     void OnStatusUpdated();
     void OnStarted();

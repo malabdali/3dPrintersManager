@@ -4,7 +4,7 @@
 #include "../deviceport.h"
 #include "../device.h"
 GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine):
-    GCodeCommand(device,"M28",0),_file_name(fileName),_file_size(0),_data(data),_first_line(firstLine)
+    GCodeCommand(device,"M28"),_file_name(fileName),_file_size(0),_data(data),_first_line(firstLine)
 {
     _resend_tries=RESEND_TRIES;
     _resend=false;
@@ -18,7 +18,6 @@ GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArra
 
 void GCode::UploadFile::InsideStart()
 {
-    qDebug()<<"GCode::UploadFile::InsideStart()";
     _end_timer=new QTimer();
     _end_timer->moveToThread(this->thread());
     QObject::connect(_end_timer,&QTimer::timeout,this,&UploadFile::Send29);
@@ -69,6 +68,10 @@ void GCode::UploadFile::Resend()
 
 void GCode::UploadFile::Send()
 {
+    if((uint32_t)_data.length()<=(_counter+1)){
+        this->_device->GetDevicePort()->Write(_data[_data.length()-1]);
+        return;
+    }
     _progress=((double)this->_counter/(double)this->_data.length())*100.0;
     this->_device->GetDevicePort()->Write(_data[++_counter]);
 }
@@ -100,14 +103,16 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
     }
     else if((uint32_t)_data.length()<=(_counter+1) && ba.contains("ok") && _upload_stage)
     {
-        _end_timer->stop();
-        _end_timer->start(1000);
+        Send();
     }
     else if(ba.contains("Done saving file")){
         _file_saved=true;
     }
     else if(_open_success && !_upload_stage && _file_saved && ba.contains("ok")){
         Finish(true);
+    }
+    else if(_open_success && !_upload_stage && !_file_saved && ba.contains("ok")){
+        return;
     }
     else if(ba.contains("Resend: ")){
         if(RESEND_TRIES>0){
@@ -125,9 +130,14 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
             _end_timer->stop();
             _end_timer->start(1000);
         }
-        else
+        else{
+            if(!_upload_stage){
+                _upload_stage=true;
+            }
             _counter=ln-1;
-        this->_device->GetDevicePort()->Write(_data[_counter]);
+        }
+        OnAllDataWritten(true);
+        //this->_device->GetDevicePort()->Write(_data[_counter]);
     }
     else if(ba.contains("ok")&& _open_failed){
         Finish(false);

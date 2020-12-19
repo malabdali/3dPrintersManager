@@ -839,9 +839,14 @@
     <string>Files</string>
    </property>
   </action>
-  <action name="_test_action">
+  <action name="_gcode_action">
    <property name="text">
-    <string>test</string>
+    <string>GCode</string>
+   </property>
+  </action>
+  <action name="_control_action">
+   <property name="text">
+    <string>printer control</string>
    </property>
   </action>
  </widget>

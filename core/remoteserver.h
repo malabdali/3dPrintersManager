@@ -25,6 +25,7 @@ private://non static fiels
     QMap<QNetworkReply*,std::function<void(QNetworkReply*)>> _callbacks;
 public:
     explicit RemoteServer(QObject *parent = nullptr);
+    QNetworkReply* SendRequest(QUrlQuery,QString,std::function<void(QNetworkReply*)>);
     QNetworkReply* SendSelectQuery(std::function<void (QNetworkReply *)> callback, QString table, QString where="{}");
     QNetworkReply *SendUpdateQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data,QByteArray id);
     QNetworkReply* SendInsertQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data);
@@ -35,7 +36,6 @@ public:
 
     bool DownloadIsSuccess(QNetworkReply *reply);
 private://methods
-    QNetworkReply* SendRequest(QUrlQuery,QUrl,std::function<void(QNetworkReply*)>);
 private slots:
     void OnFinish(QNetworkReply *rep);
 

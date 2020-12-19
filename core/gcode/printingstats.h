@@ -10,8 +10,9 @@ class GCode::PrintingStats : public GCodeCommand
 {
     Q_OBJECT
 private://fields
-    bool _is_printing;
+    bool _is_printing,_printin_stats_updated;
     double _percent;
+
 public:
     explicit PrintingStats(Device* _device);
     double GetPercent();

@@ -7,6 +7,7 @@ GCode::PrintingStats::PrintingStats(Device *device):GCodeCommand(device,"M27")
 {
     _is_printing=false;
     _percent=0;
+    _printin_stats_updated=false;
 }
 
 double GCode::PrintingStats::GetPercent()
@@ -33,14 +34,16 @@ void GCode::PrintingStats::InsideStop()
 
 void GCode::PrintingStats::OnAvailableData(const QByteArray &ba)
 {
-    if(ba.toLower().startsWith("ok")){
+    if(ba.toLower().startsWith("ok") && _printin_stats_updated){
         Finish(true);
     }
     else if(ba.toLower().contains(QByteArray("Not SD printing").toLower()))
     {
+        _printin_stats_updated=true;
         _is_printing=false;
     }
     else if(ba.toLower().contains(QByteArray("SD printing byte").toLower())){
+        _printin_stats_updated=true;
         _is_printing=true;
         std::regex rgx(R"(\d+/\d+)");
         std::match_results<QByteArray::ConstIterator> matches;

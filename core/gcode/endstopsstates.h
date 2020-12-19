@@ -10,7 +10,7 @@ class GCode::EndstopsStates : public GCodeCommand
 {
     Q_OBJECT
 private://fields
-    bool _filament_is_ok;
+    bool _filament_is_ok,_data_sent;
 public:
     explicit EndstopsStates(Device* _device);
     bool FilamentExist()const;

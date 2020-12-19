@@ -20,7 +20,7 @@ private:
     QList<FileInfo> _files;
     GCode::UploadFile* _uploading_file;
     quint64 _line_number;
-    QList<QByteArray> _uploaded_files,_failed_uploads,_wait_for_upload;
+    QList<QByteArray> _failed_uploads,_wait_for_upload;
     bool _sd_supported;
 public:
     explicit DeviceFilesSystem(class Device*);
@@ -32,7 +32,6 @@ public:
     void Print();
     bool IsStillUploading();
     double GetUploadProgress();
-    QList<QByteArray> GetUploadedFiles();
     QList<QByteArray> GetFailedUploads();
     QList<FileInfo>& GetFileList();
     void StopUpload(QByteArray ba);

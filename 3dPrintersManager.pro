@@ -49,8 +49,10 @@ SOURCES += \
     ui/devicewidget.cpp \
     ui/filessystemwidget.cpp \
     ui/mainwindow.cpp \
+    ui/printercontrol.cpp \
     ui/serialwidget.cpp\
-    core/gcode/devicestats.cpp
+    core/gcode/devicestats.cpp \
+    ui/taskswidget.cpp
 
 HEADERS += \
     core/device.h \
@@ -84,15 +86,19 @@ HEADERS += \
     ui/devicewidget.h \
     ui/filessystemwidget.h \
     ui/mainwindow.h \
+    ui/printercontrol.h \
     ui/serialwidget.h\
-    core/gcode/devicestats.h
+    core/gcode/devicestats.h \
+    ui/taskswidget.h
 
 FORMS += \
     ui/deviceswidget.ui \
     ui/devicewidget.ui \
     ui/filessystemwidget.ui \
     ui/mainwindow.ui \
-    ui/serialwidget.ui
+    ui/printercontrol.ui \
+    ui/serialwidget.ui \
+    ui/taskswidget.ui
 
 TRANSLATIONS += \
     resources/3dPrintersManager_en_US.ts
