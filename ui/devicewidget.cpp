@@ -119,6 +119,9 @@ void DeviceWidget::Setup()
         ui->_close_port_button->setVisible(false);
         ui->_error_label->setVisible(false);
         ui->_error->setVisible(false);
+        ui->_hotend_temperature_->setVisible(false);
+        ui->_hotend_temperature_label->setVisible(false);
+        ui->_reset_button->setVisible(false);
 
     }
 

@@ -166,6 +166,8 @@ void TasksWidget::ShowContextMenu(const QPoint &pos)
     QList<QListWidgetItem*> items=this->ui->_tasks_list->selectedItems();
     if(items.length()>0)
     {
+        QPoint p=pos;
+        p.setX(p.x()+20);
         QListWidgetItem* i=items[0];
         Task* t=GetTaskByItem(i);
         if(t){
@@ -181,7 +183,7 @@ void TasksWidget::ShowContextMenu(const QPoint &pos)
             else{
                 menu.addAction(this->ui->_cancel_action);
             }
-            menu.exec(this->mapToGlobal(pos));
+            menu.exec(this->mapToGlobal(p));
         }
     }
 }

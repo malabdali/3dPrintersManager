@@ -64,7 +64,7 @@ QNetworkReply *RemoteServer::SendDeleteQuery(std::function<void (QNetworkReply *
 
 QNetworkReply *RemoteServer::Download(std::function<void (QNetworkReply *)> callback, QString file)
 {
-    QNetworkRequest request("Files/Download/"+file);
+    QNetworkRequest request(QStringLiteral(REMOTE_SERVER_URL)+"Files/Download/"+file);
     request.setRawHeader("user",REMOTE_SERVER_ADMIN_NAME);
     request.setRawHeader("pass",REMOTE_SERVER_ADMIN_PASS);
     QNetworkReply* reply= _network->get(request);

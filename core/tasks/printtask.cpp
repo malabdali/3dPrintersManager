@@ -20,6 +20,7 @@ void PrintTask::DownloadFile()
         emit DownloadFileSuccess();
         _wait=false;
         NextStep();
+        return;
     }
     SetStatus(TaskStatus::Downloading);
     QUrlQuery query;
@@ -68,6 +69,7 @@ void PrintTask::UploadFile()
     {
         SetStatus(TaskStatus::Uploaded);
         _wait=false;
+        NextStep();
         return;
     }
     connect(_device->GetFileSystem(),&DeviceFilesSystem::FileUploaded,this,&PrintTask::WhenFileUploadSuccess,Qt::ConnectionType::UniqueConnection);
