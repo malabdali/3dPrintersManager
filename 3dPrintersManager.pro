@@ -37,6 +37,7 @@ SOURCES += \
     core/gcode/printingstats.cpp \
     core/gcode/reporttemperature.cpp \
     core/gcode/startprinting.cpp \
+    core/gcode/stopsdprint.cpp \
     core/gcode/uploadfile.cpp \
     core/gcodecommand.cpp \
     core/remoteserver.cpp \
@@ -75,6 +76,7 @@ HEADERS += \
     core/gcode/printingstats.h \
     core/gcode/reporttemperature.h \
     core/gcode/startprinting.h \
+    core/gcode/stopsdprint.h \
     core/gcode/uploadfile.h \
     core/gcodecommand.h \
     core/remoteserver.h \
@@ -110,3 +112,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     resources/images.qrc
+
+RC_FILE = resources/myapp.rc
