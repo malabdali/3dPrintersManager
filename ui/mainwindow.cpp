@@ -9,12 +9,14 @@
 #include <QMainWindow>
 #include <QDockWidget>
 #include <QHBoxLayout>
+#include "../core/system.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow),_devices_widget(new DevicesWidget()),_tasks_widget(nullptr)
 {
     ui->setupUi(this);
+
     this->setCentralWidget(_devices_widget);
     connect(this->ui->_network_action,&QAction::triggered,this,&MainWindow::WhenNetworkInfoActionClicked);
     connect(this->ui->_refresh_devices_action,&QAction::triggered,_devices_widget,&DevicesWidget::LoadDevices);

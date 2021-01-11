@@ -41,6 +41,7 @@ SOURCES += \
     core/gcode/uploadfile.cpp \
     core/gcodecommand.cpp \
     core/remoteserver.cpp \
+    core/system.cpp \
     core/tasks/printtask.cpp \
     core/tasks/task.cpp \
     core/tasks/tasksmanager.cpp \
@@ -80,6 +81,7 @@ HEADERS += \
     core/gcode/uploadfile.h \
     core/gcodecommand.h \
     core/remoteserver.h \
+    core/system.h \
     core/tasks/printtask.h \
     core/tasks/task.h \
     core/tasks/tasksmanager.h \
