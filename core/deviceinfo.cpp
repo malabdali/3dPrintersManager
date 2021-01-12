@@ -1,5 +1,6 @@
 #include "deviceinfo.h"
 #include <QString>
+#include <QVariantMap>
 
 DeviceInfo::DeviceInfo(QByteArray name,QObject* parent):_name(name),QObject(parent)
 {

@@ -7,6 +7,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include "../../config.h"
+#include <QTimer>
 
 namespace GCode {
     class UploadFile;

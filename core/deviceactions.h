@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include "devicecomponent.h"
+#include <QTimer>
 
 class DeviceActions : public DeviceComponent
 {

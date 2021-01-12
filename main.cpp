@@ -4,7 +4,6 @@
 #include <core/devices.h>
 #include "core/tasks/tasksmanager.h"
 
-
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -12,6 +11,6 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain("malabdali.com");
     QCoreApplication::setApplicationName("3D Printers Manager");
     MainWindow mw;
-    mw.show();
+    mw.showFullScreen();
     return a.exec();
 }

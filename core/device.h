@@ -14,6 +14,7 @@
 #include <chrono>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QTimer>
 class Device : public QObject
 {
     Q_OBJECT

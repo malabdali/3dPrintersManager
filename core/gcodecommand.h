@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QMutex>
 #include "config.h"
+#include <QTimer>
 class GCodeCommand : public QObject
 {
     Q_OBJECT
