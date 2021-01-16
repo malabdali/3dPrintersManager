@@ -92,10 +92,20 @@ DeviceWidget* DevicesWidget::AddDeviceWidget(Device *device)
 {
     if(_devices_widgets.contains(device))
         return GetDeviceWidget(device);
+
+    QVBoxLayout* layout=(QVBoxLayout*)this->ui->_devices_list->layout();
     DeviceWidget* widget=new DeviceWidget(device,this);
-    this->ui->_devices_list->layout()->addWidget(widget);
+    layout->insertWidget(0,widget);
     this->ui->_devices_list->layout()->setAlignment(widget,Qt::AlignTop);
     this->_devices_widgets.insert(device,widget);
+    /*QSpacerItem* oldSpacer=layout->spacerItem();
+    if(oldSpacer!=nullptr)
+    {
+        layout->removeItem(oldSpacer);
+        delete oldSpacer;
+    }
+    QSpacerItem *spacer=new QSpacerItem(0,200,QSizePolicy::Minimum,QSizePolicy::Expanding);
+    layout->addSpacerItem(spacer);*/
     return widget;
 }
 

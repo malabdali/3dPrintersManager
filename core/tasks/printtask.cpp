@@ -5,11 +5,16 @@
 #include"../gcode/startprinting.h"
 #include <QUrlQuery>
 #include <QJsonArray>
+#include "../gcode/stopsdprint.h"
+#include <QJsonObject>
 PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
 {
     _file=data["file"].toString().toUtf8();
     _wait=false;
     _printing_command=nullptr;
+    _stop_printing_command=nullptr;
+    _want_to_cancel=false;
+    _want_to_cancel_finished=false;
     NextStep();
 }
 
@@ -59,7 +64,7 @@ void PrintTask::DownloadFile()
 
 void PrintTask::UploadFile()
 {
-    if(_device->GetDeviceMonitor()->IsPrinting() || !_device->IsOpen() || _device->GetDeviceMonitor()->IsBussy() || _device->GetDeviceMonitor()->IsPaused() ||
+    if(_device->GetDeviceMonitor()->IsPrinting() || !_device->IsOpen() || _device->GetDeviceMonitor()->IsBusy() || _device->GetDeviceMonitor()->IsPaused() ||
             _device->GetFileSystem()->GetWaitUploadingList().contains(_file)|| _device->GetStatus()!=Device::DeviceStatus::Ready)
     {
         _wait=false;
@@ -111,26 +116,98 @@ void PrintTask::WhenDownloadFinished(const QByteArray &data)
     });
 }
 
+void PrintTask::TryToCancel()
+{
+    if(this->IsStarted())
+    {
+        qDebug()<<"is started";
+        switch (GetStaus()) {
+        case Task::Started:
+            _want_to_cancel_finished=true;
+            Cancel();
+            break;
+        case Task::Canceled:
+            _want_to_cancel=false;
+            break;
+        case Task::Done:
+            _want_to_cancel=false;
+            break;
+        case Task::Wait:
+            _want_to_cancel_finished=true;
+            Cancel();
+            break;
+        case Task::Downloaded:
+            _want_to_cancel_finished=true;
+            Cancel();
+            break;
+        case Task::Uploading:
+            _device->GetFileSystem()->StopUpload(this->_file);
+            _want_to_cancel_finished=true;
+            Cancel();
+            break;
+        case Task::Uploaded:
+            _want_to_cancel_finished=true;
+            Cancel();
+            break;
+        case Task::Printing:
+            this->StopPrinting();
+            break;
+        case Task::Printed:
+            _want_to_cancel=false;
+            break;
+
+        }
+    }
+    else{
+        Cancel();
+    }
+}
+
+void PrintTask::StopPrinting()
+{
+
+    DeviceMonitor* monitor=this->_device->GetDeviceMonitor();
+    if(!monitor->IsBusy() && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready){
+        if(_stop_printing_command)
+            return;
+        if(monitor->IsPrinting()){
+            _stop_printing_command=new GCode::StopSDPrint(_device);
+            _device->AddGCodeCommand(_stop_printing_command);
+        }
+        else{
+            _want_to_cancel_finished=true;
+            _printing_command=nullptr;
+            Cancel();
+        }
+    }
+}
+
 
 void PrintTask::NextStep()
 {
     DeviceMonitor* monitor=this->_device->GetDeviceMonitor();
-    if((GetStaus()==TaskStatus::Downloading || GetStaus()==TaskStatus::Started)  && !_wait){
-        _wait=true;
-        DownloadFile();
+    if(!_want_to_cancel){
+        if((GetStaus()==TaskStatus::Downloading || GetStaus()==TaskStatus::Started)  && !_wait){
+            _wait=true;
+            DownloadFile();
+        }
+        else if((GetStaus()==TaskStatus::Downloaded || GetStaus()==TaskStatus::Uploading) && !_wait){
+            _wait=true;
+            UploadFile();
+        }
+        else if((GetStaus()==TaskStatus::Uploaded) && !_wait){
+            _wait=true;
+            Print();
+        }
+        else if((GetStaus()==TaskStatus::Printing) && !_wait && !monitor->IsPrinting() && monitor->IsWasPrinting()){
+            this->SetStatus(Task::Printed);
+        }
+        Task::NextStep();
     }
-    else if((GetStaus()==TaskStatus::Downloaded || GetStaus()==TaskStatus::Uploading) && !_wait){
-        _wait=true;
-        UploadFile();
+    else{
+        TryToCancel();
+        Task::NextStep();
     }
-    else if((GetStaus()==TaskStatus::Uploaded) && !_wait){
-        _wait=true;
-        Print();
-    }
-    else if((GetStaus()==TaskStatus::Printing) && !_wait && !monitor->IsPrinting() && monitor->IsWasPrinting()){
-        this->SetStatus(Task::Printed);
-    }
-    Task::NextStep();
 }
 
 void PrintTask::WhenFileUploadSuccess(QByteArray ba)
@@ -161,8 +238,16 @@ void PrintTask::WhenCommandFinished(GCodeCommand *command, bool success)
             SetStatus(Printing);
         else
             _printing_command=nullptr;
-        _wait=false;
     }
+    else if(command==_stop_printing_command){
+        if(success)
+        {
+            _stop_printing_command=nullptr;
+        }
+        else
+            _stop_printing_command=nullptr;
+    }
+    _wait=false;
 }
 
 PrintTask::~PrintTask()
@@ -196,6 +281,14 @@ bool PrintTask::NextStepIsFinished()
 
 void PrintTask::Cancel()
 {
+    if(!_want_to_cancel)
+    {
+        WantToCancel();
+        return;
+    }
+    else if(_want_to_cancel && !_want_to_cancel_finished){
+        return;
+    }
     Task::Cancel();
 }
 
@@ -203,5 +296,24 @@ void PrintTask::Cancel()
 void PrintTask::Repeat()
 {
     _printing_command=nullptr;
+    _want_to_cancel=false;
+    _want_to_cancel_finished=false;
+    _stop_printing_command=nullptr;
     Task::Repeat();
+}
+
+void PrintTask::WantToCancel()
+{
+    _want_to_cancel=true;
+    this->NextStep();
+}
+
+
+void PrintTask::SetData(QJsonObject data)
+{
+    if(!_want_to_cancel && data["cancel"].toBool()){
+        WantToCancel();
+    }
+
+    Task::SetData(data);
 }

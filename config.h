@@ -13,7 +13,7 @@
 #define WAIT_BEFORE_M600 20000
 
 //general configs
-#define REMOTE_SERVER_URL "http://185.247.117.33:8081/"//"http://185.247.117.33:8081/"
+#define REMOTE_SERVER_URL "http://localhost:8081/"//"http://185.247.117.33:8081/"
 #define REMOTE_SERVER_ADMIN_NAME "3dPrinters"
 #define REMOTE_SERVER_ADMIN_PASS "mM41634163Mm"
 #define DEVICES_TABLE "Printers"

@@ -23,7 +23,7 @@ public:
     explicit DeviceMonitor(Device *dev);
     void Setup() override;
     bool IsPrinting()const;
-    bool IsBussy()const;
+    bool IsBusy()const;
     bool IsWasPrinting()const;
     bool IsPaused()const;
     bool PrintingFinished()const;

@@ -12,6 +12,10 @@
 #include "../core/devicemonitor.h"
 #include "../core/deviceport.h"
 #include "./printercontrol.h"
+#include "../core/gcode/stopsdprint.h"
+#include <QSpacerItem>
+#include <QVBoxLayout>
+#include "../core/system.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -32,6 +36,13 @@ void DeviceWidget::Update()
         ui->_uploading->setText("");
         ui->_uploading->setVisible(false);
         ui->_uploading_label->setVisible(false);
+        if(_device->GetDeviceMonitor()->IsPrinting() && _device->IsOpen() && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
+              !_device->GetDeviceMonitor()->IsBusy()  )
+        {
+            ui->_stop_print_button->setVisible(true);
+        }
+        else
+            ui->_stop_print_button->setVisible(false);
         if(_device->GetFileSystem()->IsStillUploading() && _device->GetStatus()==Device::DeviceStatus::Ready)
         {
             ui->_uploading->setVisible(true);
@@ -39,13 +50,6 @@ void DeviceWidget::Update()
             ui->_status->setText("Uploading Files");
             ui->_uploading->setText(QString::number(_device->GetFileSystem()->GetUploadProgress(),'f',2)+"%");
         }
-        /*else if(_device->IsReady())
-        {
-        }
-        else if(!_device->IsReady() && _device->IsOpen() && !_device->GetProblemSolver()->IsThereProblem())
-        {
-            ui->_status->setText("port is open not ready");
-        }*/
         else
         {
             auto status=_device->GetStatus();
@@ -94,6 +98,7 @@ void DeviceWidget::Setup()
         ui->_close_port_button->setVisible(false);
         ui->_error_label->setVisible(false);
         ui->_error->setVisible(false);
+        ui->_stop_print_button->setVisible(false);
 
         // device events
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged);
@@ -269,7 +274,7 @@ void DeviceWidget::SaveChanges()
 void DeviceWidget::CreateDevice()
 {
     DeviceInfo di(ui->_name->text().toUtf8());
-    di.SetNetworkID(Devices::GetInstance()->GetNetworkID());
+    di.SetNetworkID(System::GetInstance()->GetNetworkID());
     ui->_create_button->setEnabled(false);
     di.SetDimensions(ui->_x->text().toUInt(),ui->_y->text().toUInt(),ui->_z->text().toUInt());
     di.SetBaudRate(ui->_baud_rate->text().toUInt());
@@ -427,4 +432,11 @@ void DeviceWidget::on__control_action_triggered()
     _printer_control_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _printer_control_widget->show();
     QObject::connect(_files_widget,&QWidget::destroyed,this,[this]{_printer_control_widget=nullptr;});
+}
+
+void DeviceWidget::on__stop_print_button_clicked()
+{
+    GCode::StopSDPrint* stopPrint=new GCode::StopSDPrint(_device);
+    _device->AddGCodeCommand(stopPrint);
+    this->ui->_stop_print_button->setVisible(false);
 }

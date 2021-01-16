@@ -4,6 +4,7 @@
 #include "task.h"
 #include <QObject>
 #include"../gcode/startprinting.h"
+#include"../gcode/stopsdprint.h"
 #include<QJsonObject>
 
 class PrintTask : public Task
@@ -11,7 +12,8 @@ class PrintTask : public Task
     Q_OBJECT
     QByteArray _file;
     QJsonObject _file_info;
-    bool _wait;
+    bool _wait,_want_to_cancel,_want_to_cancel_finished;
+    GCode::StopSDPrint* _stop_printing_command;
     GCode::StartPrinting* _printing_command;
 public:
     PrintTask(QJsonObject data, QObject *parent=nullptr);
@@ -22,6 +24,8 @@ public:
 private:
     void WhenDownloadFinished(const QByteArray& data);
     void WhenUploadFinished();
+    void TryToCancel();
+    void StopPrinting();
 signals:
     void DownloadFileSuccess();
     void DownloadFileFailed();
@@ -46,6 +50,8 @@ public:
     bool NextStepIsFinished() override;
     void Cancel() override;
     void Repeat() override;
+    void WantToCancel();
+    void SetData(QJsonObject data) override;
 };
 
 #endif // PRINTTASK_H

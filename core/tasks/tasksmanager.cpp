@@ -96,14 +96,17 @@ void TasksManager::RemoveTask(Task *task)
 
 void TasksManager::UpdateTasks()
 {
-    QJsonObject obj,$in,$ne;
+    QJsonObject obj,$in,$gt,$ne;
     QJsonArray ja;
     for(Device* dev:Devices::GetInstance()->GetAllDevices())
         ja.append(QString(dev->GetDeviceInfo()->GetDeviceName()));
     $in.insert("$in",ja);
-    $ne.insert("$gt",-1);
+    $gt.insert("$gt",-1);
+    //$ne.insert("$ne",true);
+
     obj.insert("printer",$in);
-    obj.insert("status",$ne);
+    obj.insert("status",$gt);
+    //obj.insert("cancel",$ne);
     QJsonDocument jd;
     jd.setObject(obj);
 
@@ -161,6 +164,7 @@ void TasksManager::WhenTasksUpdated(QJsonArray ja)
         }
         else{
             _last_tasks.append(task);
+            task->SetData(jv.toObject());
         }
     }
     for(Task* t :_tasks)

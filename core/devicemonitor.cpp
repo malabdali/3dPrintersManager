@@ -31,7 +31,7 @@ bool DeviceMonitor::IsPrinting() const
     return _data.contains("IS_PRINTING")&&_data["IS_PRINTING"].toInt();
 }
 
-bool DeviceMonitor::IsBussy() const
+bool DeviceMonitor::IsBusy() const
 {
     return _data.contains("IS_BUSY")&&_data["IS_BUSY"].toInt();
 }
@@ -221,7 +221,7 @@ void DeviceMonitor::timerEvent(QTimerEvent *event)
         return;
     }
     bool _is_updated=false;
-    if(IsBussy()||_device->GetStatus()!=Device::DeviceStatus::Ready){
+    if(IsBusy()||_device->GetStatus()!=Device::DeviceStatus::Ready){
         int64_t duration=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-_last_update_during_busy).count();
         if(_device->GetDevicePort()->IsThereAvailableLines())
         {

@@ -10,10 +10,19 @@ private: //static
     static System* _Instance;
 public: //static
     static System *GetInstance();
-public:
+private:
     explicit System(QObject *parent = nullptr);
+private://fields
+    QByteArray _network_id;
 
+public://methods
+    void SetNetworkID(const QByteArray& id);
+    QByteArray GetNetworkID()const;
+    ~System();
 signals:
+
+private slots:
+    void onApplicationQuit();
 
 };
 

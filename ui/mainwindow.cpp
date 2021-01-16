@@ -10,7 +10,6 @@
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include "../core/system.h"
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow),_devices_widget(new DevicesWidget()),_tasks_widget(nullptr)
@@ -32,9 +31,9 @@ MainWindow::~MainWindow()
 void MainWindow::WhenNetworkInfoActionClicked()
 {
     bool ok;
-    QString net=QInputDialog::getText(this,"network id","set network id",QLineEdit::Normal,Devices::GetInstance()->GetNetworkID(),&ok);
+    QString net=QInputDialog::getText(this,"network id","set network id",QLineEdit::Normal,System::GetInstance()->GetNetworkID(),&ok);
     if(ok){
-        Devices::GetInstance()->SetNetworkID(net.toUtf8());
+        System::GetInstance()->SetNetworkID(net.toUtf8());
     }
 
 

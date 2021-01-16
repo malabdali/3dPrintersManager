@@ -107,6 +107,11 @@ void Task::NextStep()
         UpdateStatus();
 }
 
+void Task::SetData(QJsonObject data)
+{
+    _data=data;
+}
+
 void Task::Repeat()
 {
     this->SetStatus(Task::Wait);

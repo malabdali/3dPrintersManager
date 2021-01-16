@@ -3,13 +3,13 @@
 #include "deviceinfo.h"
 #include <QDir>
 #include <QSettings>
+#include "./system.h"
 Devices* Devices::_INSTANCE=nullptr;
 
 Devices::Devices(QObject *parent) : QObject(parent)
 {
 
     QSettings settings;
-    _network_id=settings.value("network").toString().toUtf8();
 }
 
 void Devices::WhenEndDevicesPortDetection()
@@ -107,7 +107,7 @@ void Devices::LoadDevicesFromRemoteServer(){
             emit DevicesLoaded(false);
         }
     };
-    RemoteServer::GetInstance()->SendSelectQuery(rf,DEVICES_TABLE,QString("{\"network\":\"%1\"}").arg(QString(_network_id)));
+    RemoteServer::GetInstance()->SendSelectQuery(rf,DEVICES_TABLE,QString("{\"network\":\"%1\"}").arg(QString(System::GetInstance()->GetNetworkID())));
 }
 
 QList<Device *> Devices::GetAllDevices()
@@ -125,18 +125,6 @@ QList<QByteArray> Devices::GetAllDevicesPort()
     return ports;
 }
 
-QByteArray Devices::GetNetworkID() const
-{
-    return _network_id;
-}
-
-void Devices::SetNetworkID(const QByteArray & id)
-{
-    this->_network_id=id;
-    QSettings settings;
-    settings.setValue("network",id);
-
-}
 
 void Devices::Clear()
 {

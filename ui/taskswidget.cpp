@@ -285,7 +285,9 @@ QString TasksWidget::StatusToIcon(Task::TaskStatus status)
 
 void TasksWidget::on__cancel_action_triggered()
 {
-    _selected_task->Cancel();
+    PrintTask* ptask=dynamic_cast<PrintTask*>(_selected_task);
+    if(ptask)
+        ptask->WantToCancel();
 }
 
 void TasksWidget::on__repeat_action_triggered()

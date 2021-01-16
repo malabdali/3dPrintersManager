@@ -11,6 +11,6 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain("malabdali.com");
     QCoreApplication::setApplicationName("3D Printers Manager");
     MainWindow mw;
-    mw.showFullScreen();
+    mw.show();
     return a.exec();
 }

@@ -54,6 +54,7 @@ public:
     virtual void Cancel();
     virtual void Continue();
     virtual void NextStep();
+    virtual void SetData(QJsonObject data);
 
 protected://methods
     void SetStatus(TaskStatus status);
