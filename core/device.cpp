@@ -26,6 +26,7 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     device_info->setParent(this);
     _is_ready=false;
     _is_busy=false;
+    _want_remove=false;
     _commands_paused=false;
     _current_command=nullptr;
     _port_thread->start();
@@ -46,6 +47,7 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);
     QObject::connect(_device_port,&DevicePort::PortOpened,this,&Device::OnOpen);
     QObject::connect(_device_port,&DevicePort::Reconnected,this,&Device::OnOpen);
+    QObject::connect(_port_thread,&QThread::finished,this,&Device::CompleteRemove);
 
 
 }
@@ -116,6 +118,22 @@ void Device::DelayCommandCallback()
     StartNextCommand();
 }
 
+void Device::CompleteRemove()
+{
+    if(_current_command==nullptr && !IsOpen()){
+        if(_port_thread->isRunning())
+        {
+            _port_thread->exit(0);
+        }
+        else{
+            delete _device_port;
+            _port_thread->deleteLater();
+            this->deleteLater();
+        }
+
+    }
+}
+
 
 Device::DeviceStatus Device::GetStatus() const{
     return _current_status;
@@ -165,6 +183,7 @@ void Device::Clear()
 
 void Device::AddGCodeCommand(GCodeCommand *command)
 {
+    command->setParent(this);
     _commands.append(command);
     emit CommandAdded(command);
     StartNextCommand();
@@ -175,16 +194,7 @@ void Device::ClearCommands()
 {
     if(_commands.length()>0){
         for(GCodeCommand* command :_commands){
-            if(command->IsStarted())
-            {
-                command->Stop();
-            }
-            else
-            {
-                _commands.removeAll(command);
-                emit CommandRemoved(command);
-                command->deleteLater();
-            }
+            ClearCommand(command);
         }
     }
 }
@@ -252,11 +262,6 @@ DeviceFilesSystem *Device::GetFileSystem() const
 
 Device::~Device()
 {
-    ClearCommands();
-    delete _device_port;
-    _port_thread->quit();
-    _port_thread->wait();
-    delete  _port_thread;
 }
 
 void Device::OnErrorOccurred(int error)
@@ -270,6 +275,8 @@ void Device::OnClosed()
     SetFlags(false,false);
     CalculateAndSetStatus();
     emit PortClosed();
+    if(_want_remove)
+        CompleteRemove();
 }
 
 void Device::OnOpen(bool b)
@@ -291,6 +298,11 @@ void Device::WhenCommandFinished(bool b)
     emit CommandRemoved(_current_command);
     _current_command->deleteLater();
     _current_command=nullptr;
+    if(_want_remove)
+    {
+        CompleteRemove();
+        return;
+    }
     StartNextCommand();
 }
 
@@ -368,6 +380,17 @@ DeviceProblemSolver *Device::GetProblemSolver() const
 DeviceMonitor *Device::GetDeviceMonitor()
 {
     return _device_monitor;
+}
+
+void Device::Remove()
+{
+    emit DeviceRemoved();
+    _want_remove=true;
+    ClosePort();
+    PauseCommands();
+    ClearCommands();
+    if(_current_command==nullptr)
+        CompleteRemove();
 }
 
 void Device::Load()

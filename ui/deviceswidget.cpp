@@ -73,7 +73,6 @@ void DevicesWidget::OnDeviccesLoaded(bool b)
 void DevicesWidget::OnAddDeviceButtonClicked()
 {
     this->AddDeviceWidget(nullptr);
-
 }
 
 void DevicesWidget::OnDeviceAdded(Device *dev)

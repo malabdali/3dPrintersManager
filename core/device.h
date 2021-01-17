@@ -37,11 +37,13 @@ public://nested types
 private://nested types
 
 private://fields
+
     QByteArray _port; 
     QThread* _port_thread;
     DeviceStatus _current_status;
     bool _is_ready;
     bool _is_busy;
+    bool _want_remove;
     QMap<QByteArray,QByteArray> _device_stats;
     //gcode commands
     QList<class GCodeCommand*> _commands;
@@ -105,6 +107,8 @@ private://methods
     void SerialInputFilter(QByteArrayList& list);
     void SetFlags(bool ready=true,bool busy=false);
     void DelayCommandCallback();
+    void Remove();
+    void CompleteRemove();
 
 private slots:
     void OnErrorOccurred(int i);
@@ -134,6 +138,7 @@ signals:
     void DeviceDataLoaded();
     void BeforeSaveDeviceData();
     void DataSaved();
+    void DeviceRemoved();
 
 
 };

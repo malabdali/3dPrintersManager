@@ -47,6 +47,7 @@ void Task::UpdateStatus()
 {
     QVariantMap vmap;
     vmap.insert("status",_status);
+    vmap.insert("lastUpdate","time("+QDateTime::currentDateTimeUtc().toString(Qt::DateFormat::ISODateWithMs)+")");
     RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
         if(RemoteServer::GetInstance()->IsSuccess(reply))
         {

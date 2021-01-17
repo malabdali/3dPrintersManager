@@ -20,6 +20,7 @@ DeviceFilesSystem::DeviceFilesSystem(Device *device): DeviceComponent(device)
     _sd_supported=false;
     _line_number=0;
     _uploading_file=nullptr;
+    _load_file=nullptr;
 }
 
 void DeviceFilesSystem::Setup()
@@ -28,6 +29,7 @@ void DeviceFilesSystem::Setup()
     QObject::connect(_device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
     QObject::connect(_device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
     QObject::connect(_device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
+    QObject::connect(_device,&Device::DeviceRemoved,this,&DeviceFilesSystem::WhenDeviceRemoved);
 }
 
 void DeviceFilesSystem::Initiate()
@@ -109,6 +111,12 @@ void DeviceFilesSystem::StopUpload(QByteArray ba)
             }
         }
     }
+}
+
+void DeviceFilesSystem::Stop()
+{
+    for(QByteArray ba :_wait_for_upload)
+        StopUpload(ba);
 }
 
 QList<QByteArray> DeviceFilesSystem::GetWaitUploadingList()
@@ -196,7 +204,8 @@ void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
                 _files.removeAll(FileInfo(filename2));
                 emit FileListUpdated();
             }
-            LoadFileFuture* lff=new LoadFileFuture(filename,[this,filename](QList<QByteArray> array)->void{
+            _load_file=new LoadFileFuture(filename,[this,filename](QList<QByteArray> array)->void{
+                _load_file=nullptr;
                 QByteArray filename2=QUrl(filename).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
                 GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,filename2,array,_line_number);
                 this->_uploading_file=gcode;
@@ -278,6 +287,13 @@ void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
         _files.append(fi);
     }
     emit FileListUpdated();
+}
+
+void DeviceFilesSystem::WhenDeviceRemoved()
+{
+    if(_load_file!=nullptr)
+        _load_file->Stop();
+    Stop();
 }
 
 void DeviceFilesSystem::SetSdSupported(bool b){

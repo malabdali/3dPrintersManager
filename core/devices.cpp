@@ -40,13 +40,16 @@ void Devices::RemoveDevice(const DeviceInfo *name)
     Device* dev=GetDevice(name);
     this->_devices.removeAll(dev);
     emit DeviceRemoved(dev);
-    dev->ClosePort();
+    /*dev->ClosePort();
     dev->setParent(nullptr);
-    /*QThread* thr=dev->thread();
+    dev->ClearCommands();
+    dev->PauseCommands();
+
+    QThread* thr=dev->thread();
     thr->quit();
     thr->wait();
     delete thr;*/
-    delete dev;
+    dev->Remove();
 }
 
 Device *Devices::GetDeviceByPort(const QByteArray &port) const

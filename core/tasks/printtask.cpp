@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include "../gcode/stopsdprint.h"
 #include <QJsonObject>
+#include "../devices.h"
 PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
 {
     _file=data["file"].toString().toUtf8();
@@ -120,7 +121,6 @@ void PrintTask::TryToCancel()
 {
     if(this->IsStarted())
     {
-        qDebug()<<"is started";
         switch (GetStaus()) {
         case Task::Started:
             _want_to_cancel_finished=true;
@@ -199,15 +199,14 @@ void PrintTask::NextStep()
             _wait=true;
             Print();
         }
-        else if((GetStaus()==TaskStatus::Printing) && !_wait && !monitor->IsPrinting() && monitor->IsWasPrinting()){
+        else if((GetStaus()==TaskStatus::Printing) && !_wait && !monitor->IsPrinting()){
             this->SetStatus(Task::Printed);
         }
-        Task::NextStep();
     }
     else{
         TryToCancel();
-        Task::NextStep();
     }
+    Task::NextStep();
 }
 
 void PrintTask::WhenFileUploadSuccess(QByteArray ba)

@@ -18,6 +18,7 @@ private:
     quint64 _offset;
 public:
     explicit LoadFileFuture(QString file,std::function<void(QList<QByteArray>)> callback,quint64 offset=1,QObject *parent = nullptr);
+    void Stop();
 private://methods
     QList<QByteArray> LoadFile();
 

@@ -94,6 +94,11 @@ void DevicePort::Clear()
     _available_lines.clear();
     _can_read=false;
     _writing_data_size=0;
+    if(_writing_timer!=-1)
+    {
+        killTimer(_writing_timer);
+        _writing_timer=-1;
+    }
 }
 
 bool DevicePort::IsOpen()
@@ -143,6 +148,8 @@ void DevicePort::Reconnect()
 
 DevicePort::~DevicePort()
 {
+    Clear();
+    _serial_port->close();
 }
 
 void DevicePort::OnAvailableData()

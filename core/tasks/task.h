@@ -59,6 +59,7 @@ public:
 protected://methods
     void SetStatus(TaskStatus status);
     virtual void Repeat();
+private slots:
 signals:
     void OnStatusUpdated();
     void OnStarted();

@@ -18,7 +18,7 @@ GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArra
 
 void GCode::UploadFile::InsideStart()
 {
-    _end_timer=new QTimer();
+    _end_timer=new QTimer(this);
     _end_timer->moveToThread(this->thread());
     QObject::connect(_end_timer,&QTimer::timeout,this,&UploadFile::Send29);
     for(QByteArray& ba :_data)

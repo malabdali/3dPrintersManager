@@ -9,6 +9,14 @@ LoadFileFuture::LoadFileFuture(QString file, std::function<void (QList<QByteArra
     _watcher.setFuture(_future);
 }
 
+void LoadFileFuture::Stop()
+{
+    QObject::disconnect(&_watcher,&QFutureWatcher<QList<QByteArray>>::finished,this,&LoadFileFuture::WhenFinished);
+    _future.cancel();
+    _callback(QList<QByteArray>());
+    this->deleteLater();
+}
+
 QList<QByteArray> LoadFileFuture::LoadFile()
 {
     QFile f(_file_name);

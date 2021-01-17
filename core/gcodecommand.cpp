@@ -16,7 +16,6 @@ GCodeCommand::GCodeCommand(Device *device, QByteArray gcode, uint32_t noResponse
 
 GCodeCommand::~GCodeCommand()
 {
-
 }
 
 void GCodeCommand::Start()
@@ -38,7 +37,6 @@ void GCodeCommand::Start()
     QObject::connect(_device->GetDevicePort(),&DevicePort::DataWritten,this,&GCodeCommand::WhenWriteFinished);
     QObject::connect(_device->GetDevicePort(),&DevicePort::ErrorOccurred,this,&GCodeCommand::WhenErrorOccured);
     QObject::connect(_device->GetDevicePort(),&DevicePort::PortClosed,this,&GCodeCommand::WhenPortClosed);
-
 
     InsideStart();
 }
@@ -80,12 +78,14 @@ GCodeCommand::CommandError GCodeCommand::GetError() const{
 
 void GCodeCommand::WhenLineAvailable(QByteArrayList list)
 {
+    if(_device==nullptr)return;
     while(_device->GetDevicePort()->IsThereAvailableLines())
         this->OnAvailableData(_device->GetDevicePort()->ReadLine());
 }
 
 void GCodeCommand::WhenWriteFinished(bool success)
 {
+    if(_device==nullptr)return;
     if(_no_response_time_out>0){
         _no_response_timer->stop();
         _no_response_timer->start(_no_response_time_out);
@@ -95,12 +95,14 @@ void GCodeCommand::WhenWriteFinished(bool success)
 
 void GCodeCommand::WhenErrorOccured(int error)
 {
+    if(_device==nullptr)return;
     SetError(PortError);
     Finish(false);
 }
 
 void GCodeCommand::WhenPortClosed()
 {
+    if(_device==nullptr)return;
     SetError(PortClosed);
     Finish(false);
 }
@@ -122,6 +124,7 @@ void GCodeCommand::Finish(bool b)
 
 void GCodeCommand::WhenTimeOut()
 {
+    if(_device==nullptr)return;
     this->_no_response_timer->stop();
     this->SetError(TimeOut);
     this->Stop();
