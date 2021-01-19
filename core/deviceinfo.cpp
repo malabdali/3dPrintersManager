@@ -1,6 +1,8 @@
 #include "deviceinfo.h"
 #include <QString>
 #include <QVariantMap>
+#include "remoteserver.h"
+
 
 DeviceInfo::DeviceInfo(QByteArray name,QObject* parent):_name(name),QObject(parent)
 {
@@ -12,7 +14,7 @@ uint32_t DeviceInfo::GetBaudRate() const
     return _baud_rate;
 }
 
-const QByteArray& DeviceInfo::GetDeviceName() const
+QByteArray DeviceInfo::GetDeviceName() const
 {
     return _name;
 }
@@ -103,6 +105,20 @@ QByteArray DeviceInfo::GetFilamentMaterial()
 QByteArray DeviceInfo::GetNetworkID()
 {
     return _network_id;
+}
+
+void DeviceInfo::SaveChanges()
+{
+    RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* rep)->void{
+        if(RemoteServer::GetInstance()->IsSuccess(rep))
+        {
+            emit Saved(true);
+        }
+        else
+            emit Saved(false);
+
+        rep->deleteLater();
+    },DEVICES_TABLE,*this,GetID());
 }
 
 void DeviceInfo::FromJSON(const QJsonObject &json)

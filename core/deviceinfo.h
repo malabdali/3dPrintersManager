@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMutexLocker>
+#include <QNetworkReply>
 
 class DeviceInfo:public QObject
 {
@@ -20,7 +21,7 @@ private://fields
 public:
     DeviceInfo(QByteArray name,QObject* parent=nullptr);
     uint32_t GetBaudRate()const;
-    const QByteArray& GetDeviceName()const;
+    QByteArray GetDeviceName()const;
     uint32_t GetX()const;
     uint32_t GetY()const;
     uint32_t GetZ()const;
@@ -28,6 +29,7 @@ public:
     float GetNozzleDiameter();
     QByteArray GetFilamentMaterial();
     QByteArray GetNetworkID();
+    void SaveChanges();
 
 
     void SetBaudRate(uint32_t br);
@@ -47,6 +49,7 @@ public:
 
 signals:
     void InfoChanged();
+    void Saved(bool);
 
 };
 

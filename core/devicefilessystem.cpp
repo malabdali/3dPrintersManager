@@ -63,7 +63,10 @@ void DeviceFilesSystem::DeleteFile(const QByteArray &file)
 
 void DeviceFilesSystem::UploadFile(QByteArray fileName)
 {
-    if(!_sd_supported) return;
+    if(!_sd_supported){
+        _failed_uploads.append(fileName);
+        emit UploadFileFailed(fileName);
+    }
     _failed_uploads.removeAll(fileName);
     if(_wait_for_upload.empty())
     {
@@ -182,7 +185,12 @@ void DeviceFilesSystem::WhenCommandFinished(GCodeCommand *command,bool b)
 void DeviceFilesSystem::WhenStatsUpdated()
 {
     if(_device->GetStats().contains("SDCARD")&&_device->GetStats()["SDCARD"]=="1"){
+        bool old=_sd_supported;
         SetSdSupported(true);
+        if(!old && _files.size()==0 )
+        {
+            UpdateFileList();
+        }
     }
     else{
         SetSdSupported(false);

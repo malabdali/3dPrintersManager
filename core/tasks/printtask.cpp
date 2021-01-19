@@ -16,6 +16,7 @@ PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
     _stop_printing_command=nullptr;
     _want_to_cancel=false;
     _want_to_cancel_finished=false;
+    _download=nullptr;
     NextStep();
 }
 
@@ -31,7 +32,7 @@ void PrintTask::DownloadFile()
     SetStatus(TaskStatus::Downloading);
     QUrlQuery query;
     query.addQueryItem("file",this->_file);
-    RemoteServer::GetInstance()->SendRequest(query,"Files/FileInfo",[this](QNetworkReply* nr){
+    _download=RemoteServer::GetInstance()->SendRequest(query,"Files/FileInfo",[this](QNetworkReply* nr){
         if(RemoteServer::GetInstance()->IsSuccess(nr)){
             QJsonArray array=RemoteServer::GetInstance()->GetJSONValue(nr).toArray();
             if(array.size()>0){
@@ -60,11 +61,18 @@ void PrintTask::DownloadFile()
             emit DownloadFileFailed();
             NextStep();
         }
+        _download=nullptr;
+        nr->deleteLater();
     });
 }
 
 void PrintTask::UploadFile()
 {
+    if(!_device->GetFileSystem()->SdSupported()){
+        _device->UpdateDeviceStats();
+        _wait=false;
+        return;
+    }
     if(_device->GetDeviceMonitor()->IsPrinting() || !_device->IsOpen() || _device->GetDeviceMonitor()->IsBusy() || _device->GetDeviceMonitor()->IsPaused() ||
             _device->GetFileSystem()->GetWaitUploadingList().contains(_file)|| _device->GetStatus()!=Device::DeviceStatus::Ready)
     {
@@ -251,6 +259,7 @@ void PrintTask::WhenCommandFinished(GCodeCommand *command, bool success)
 
 PrintTask::~PrintTask()
 {
+    RemoteServer::GetInstance()->RemoveRequest(_download);
 }
 
 

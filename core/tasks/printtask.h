@@ -15,12 +15,13 @@ class PrintTask : public Task
     bool _wait,_want_to_cancel,_want_to_cancel_finished;
     GCode::StopSDPrint* _stop_printing_command;
     GCode::StartPrinting* _printing_command;
+    QNetworkReply* _download;
 public:
     PrintTask(QJsonObject data, QObject *parent=nullptr);
     void DownloadFile();
     void UploadFile();
     void Print();
-    QByteArray GetFile();;
+    QByteArray GetFile();
 private:
     void WhenDownloadFinished(const QByteArray& data);
     void WhenUploadFinished();

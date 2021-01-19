@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QJsonObject>
 #include <QDateTime>
+#include <QNetworkReply>
 class Task : public QObject
 {
     Q_OBJECT
@@ -29,6 +30,7 @@ protected:
     QJsonObject _data;
     QDateTime _create_time;
     bool _status_updated , _is_started, _is_finished;
+    QNetworkReply* _network_reply;
 private://fields
     TaskStatus _status;
 

@@ -28,6 +28,8 @@ public:
     void LoadDevicesFromRemoteServer();
     QList<Device *> GetAllDevices();
     QList<QByteArray> GetAllDevicesPort();
+    void CreateDevice(const DeviceInfo& di);
+    void DeleteDevice(const DeviceInfo& di);
     void Clear();
 private:
     explicit Devices(QObject *parent = nullptr);
@@ -45,6 +47,8 @@ signals:
     void DevicesLoaded(bool);
     void DeviceAdded(Device*);
     void DeviceRemoved(Device*);
+    void DeviceCreated(Device*);
+    void DeviceDeleted(Device*);
 
 };
 

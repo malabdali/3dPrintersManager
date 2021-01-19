@@ -15,6 +15,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QTimer>
+#include <QNetworkReply>
 class Device : public QObject
 {
     Q_OBJECT
@@ -51,6 +52,7 @@ private://fields
     bool _commands_paused,_delay_command_state;
     std::chrono::time_point<std::chrono::steady_clock> _last_command_time_finished;
     QTimer* _delay_command_timer;
+    QNetworkReply* _network_reply;
     QJsonDocument _device_data;
     //end gcode commands
     class DeviceFilesSystem* _fileSystem;

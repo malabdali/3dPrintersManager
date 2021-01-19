@@ -98,6 +98,7 @@ void Devices::LoadDevicesFromRemoteServer(){
     auto rf=[this](QNetworkReply* reply)->void{
         if(RemoteServer::GetInstance()->IsSuccess(reply))
         {
+            reply->deleteLater();
             QJsonArray jarray=RemoteServer::GetInstance()->GetJSONValue(reply).toArray();
             for(QJsonValue value:jarray){
                 DeviceInfo *di=new DeviceInfo("",nullptr);
@@ -126,6 +127,41 @@ QList<QByteArray> Devices::GetAllDevicesPort()
         ports.append(dev->GetPort());
     }
     return ports;
+}
+
+void Devices::CreateDevice(const DeviceInfo &di)
+{
+    RemoteServer::GetInstance()->SendInsertQuery([this,name=di.GetDeviceName()](QNetworkReply* rep)->void{
+        if(RemoteServer::GetInstance()->IsSuccess(rep))
+        {
+
+            DeviceInfo* device=new DeviceInfo(name);
+            device->FromJSON(RemoteServer::GetInstance()->GetJSONValue(rep).toObject()["ops"].toArray()[0].toObject());
+            Device* dev=Devices::GetInstance()->AddDevice(device);
+            emit DeviceCreated(dev);
+        }
+        else
+            emit DeviceCreated(nullptr);
+
+        rep->deleteLater();
+    },DEVICES_TABLE,di);
+}
+
+void Devices::DeleteDevice(const DeviceInfo& di)
+{
+
+    RemoteServer::GetInstance()->SendDeleteQuery([this,name=di.GetDeviceName(),id=di.GetID()](QNetworkReply* rep)->void{
+        if(RemoteServer::GetInstance()->IsSuccess(rep))
+        {
+            Device* dev=GetDevice(name);
+            emit DeviceDeleted(dev);
+            Devices::GetInstance()->RemoveDevice(dev->GetDeviceInfo());
+        }
+        else
+            emit DeviceDeleted(nullptr);
+
+        rep->deleteLater();
+    },DEVICES_TABLE,di.GetID());
 }
 
 

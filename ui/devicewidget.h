@@ -30,6 +30,8 @@ private slots:
     void OnDeviceInfoChanged();
     void OnCommandFinished(const GCodeCommand* function,bool b);
     void OnCommandStarted(const GCodeCommand* function);
+    void WhenDeviceCreated(Device* dev);
+    void WhenDeviceDeleted(Device* dev);
     void OnErrorOccured(int);
     void OnPortConnected();
     void OnPortDisconnected();
@@ -41,6 +43,7 @@ private slots:
     void DetectPort();
     void OpenPort();
     void ClosePort();
+    void WhenDeviceInfoSaved(bool);
     void ShowContextMenu(const QPoint &pos);
     void FilesWidgetClosed();
     void SerialWidgetClosed();

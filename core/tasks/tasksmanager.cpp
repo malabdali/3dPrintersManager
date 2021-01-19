@@ -114,6 +114,7 @@ void TasksManager::UpdateTasks()
         if(RemoteServer::GetInstance()->IsSuccess(reply)){
             WhenTasksUpdated(RemoteServer::GetInstance()->GetJSONValue(reply).toArray());
         }
+        reply->deleteLater();
     },TASKS_TABLE,jd.toJson());
 }
 

@@ -109,6 +109,8 @@ void DeviceWidget::Setup()
         QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnPortConnected);
         QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnPortDisconnected);
         QObject::connect(this->_device,&Device::ErrorOccurred,this,&DeviceWidget::OnErrorOccured);
+        QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::Saved,this,&DeviceWidget::WhenDeviceInfoSaved);
+        QObject::connect(Devices::GetInstance(),&Devices::DeviceDeleted,this,&DeviceWidget::WhenDeviceDeleted);
     }
     else {
         ui->_status->setVisible(false);
@@ -127,6 +129,9 @@ void DeviceWidget::Setup()
         ui->_hotend_temperature_->setVisible(false);
         ui->_hotend_temperature_label->setVisible(false);
         ui->_reset_button->setVisible(false);
+        ui->_bed_temperature->setVisible(false);
+        ui->_bed_temperature_label->setVisible(false);
+        QObject::connect(Devices::GetInstance(),&Devices::DeviceCreated,this,&DeviceWidget::WhenDeviceCreated);
 
     }
 
@@ -182,6 +187,20 @@ void DeviceWidget::OnCommandFinished(const GCodeCommand *function, bool b)
 void DeviceWidget::OnCommandStarted(const GCodeCommand *function)
 {
 
+}
+
+void DeviceWidget::WhenDeviceCreated(Device *dev)
+{
+    if(dev){
+        ui->_create_button->setVisible(false);
+    }
+    else
+        ui->_create_button->setVisible(true);
+}
+
+void DeviceWidget::WhenDeviceDeleted(Device *dev)
+{
+    ui->_delete_button->setVisible(true);
 }
 
 void DeviceWidget::OnErrorOccured(int error)
@@ -258,17 +277,7 @@ void DeviceWidget::SaveChanges()
     _device->GetDeviceInfo()->SetFilamentMaterial(ui->_material->currentText().toUtf8());
 
     _device->ClosePort();
-    RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* rep)->void{
-        if(RemoteServer::GetInstance()->IsSuccess(rep))
-        {
-            ui->_save_changes_button->setVisible(false);
-            _device->OpenPort();
-        }
-        else
-            ui->_save_changes_button->setVisible(true);
-
-        rep->deleteLater();
-    },"Printers",*_device->GetDeviceInfo(),_device->GetDeviceInfo()->GetID());
+    _device->GetDeviceInfo()->SaveChanges();
 }
 
 void DeviceWidget::CreateDevice()
@@ -280,35 +289,13 @@ void DeviceWidget::CreateDevice()
     di.SetBaudRate(ui->_baud_rate->text().toUInt());
     di.SetNozzleDiameter(ui->_nozzle->text().toFloat());
     di.SetFilamentMaterial(ui->_material->currentText().toUtf8());
-    RemoteServer::GetInstance()->SendInsertQuery([this](QNetworkReply* rep)->void{
-        if(RemoteServer::GetInstance()->IsSuccess(rep))
-        {
-            DeviceInfo* device=new DeviceInfo(ui->_name->text().toUtf8());
-            device->FromJSON(RemoteServer::GetInstance()->GetJSONValue(rep).toObject()["ops"].toArray()[0].toObject());
-            Devices::GetInstance()->AddDevice(device);
-
-            ui->_create_button->setVisible(false);
-        }
-        else
-            ui->_create_button->setVisible(true);
-
-        rep->deleteLater();
-    },DEVICES_TABLE,di);
+    Devices::GetInstance()->CreateDevice(di);
 }
 
 void DeviceWidget::DeleteDevice()
 {
+    Devices::GetInstance()->DeleteDevice(*_device->GetDeviceInfo());
     ui->_delete_button->setEnabled(false);
-    RemoteServer::GetInstance()->SendDeleteQuery([this](QNetworkReply* rep)->void{
-        if(RemoteServer::GetInstance()->IsSuccess(rep))
-        {
-            Devices::GetInstance()->RemoveDevice(_device->GetDeviceInfo());
-        }
-        else
-            ui->_delete_button->setVisible(true);
-
-        rep->deleteLater();
-    },DEVICES_TABLE,_device->GetDeviceInfo()->GetID());
 }
 
 void DeviceWidget::DetectPort()
@@ -330,6 +317,17 @@ void DeviceWidget::OpenPort()
 void DeviceWidget::ClosePort()
 {
     this->_device->ClosePort();
+}
+
+void DeviceWidget::WhenDeviceInfoSaved(bool res)
+{
+    if(res)
+    {
+        ui->_save_changes_button->setVisible(false);
+        _device->OpenPort();
+    }
+    else
+        ui->_save_changes_button->setVisible(true);
 }
 
 void DeviceWidget::ShowContextMenu(const QPoint &pos)

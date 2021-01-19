@@ -13,6 +13,7 @@ Task::Task(QJsonObject data, QObject *parent) : QObject(parent)
     _is_started=false;
     _is_finished=false;
     _create_time=QDateTime::fromString(data["date"].toString().toUtf8(),Qt::DateFormat::ISODateWithMs);
+    _network_reply=nullptr;
 }
 
 QByteArray Task::GetID() const{
@@ -45,19 +46,29 @@ Device *Task::GetDevice() const
 
 void Task::UpdateStatus()
 {
+    if(_network_reply){
+        RemoteServer::GetInstance()->RemoveRequest(_network_reply);
+        _network_reply=nullptr;
+    }
     QVariantMap vmap;
     vmap.insert("status",_status);
     vmap.insert("lastUpdate","time("+QDateTime::currentDateTimeUtc().toString(Qt::DateFormat::ISODateWithMs)+")");
-    RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
+    _network_reply=RemoteServer::GetInstance()->SendUpdateQuery([this,stat=_status](QNetworkReply* reply)->void{
         if(RemoteServer::GetInstance()->IsSuccess(reply))
         {
-            _status_updated=true;
+            if(stat==this->_status)
+                _status_updated=true;
+            else
+                _status_updated=false;
         }
+        _network_reply=nullptr;
+        reply->deleteLater();
     },TASKS_TABLE,vmap,_id);
 }
 
 Task::~Task()
 {
+    RemoteServer::GetInstance()->RemoveRequest(_network_reply);
 }
 
 bool Task::IsStarted()

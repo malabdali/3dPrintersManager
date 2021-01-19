@@ -29,6 +29,7 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _want_remove=false;
     _commands_paused=false;
     _current_command=nullptr;
+    _network_reply=nullptr;
     _port_thread->start();
     _device_port->setParent(nullptr);
     _device_port->moveToThread(_port_thread);
@@ -262,6 +263,7 @@ DeviceFilesSystem *Device::GetFileSystem() const
 
 Device::~Device()
 {
+    RemoteServer::GetInstance()->RemoveRequest(_network_reply);
 }
 
 void Device::OnErrorOccurred(int error)
@@ -409,7 +411,9 @@ void Device::Save()
     this->_device_data.setObject(jo);
     emit this->BeforeSaveDeviceData();
     _fileSystem->SaveLocaleFile(DEVICE_DATA_FILE,this->_device_data.toJson(),[this](bool success)->void{
-        RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
+        _network_reply=RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
+                _network_reply=nullptr;
+                reply->deleteLater();
         },DEVICES_TABLE,this->_device_data.object().toVariantMap(),this->_device_info->GetID());
         emit DataSaved();
     });

@@ -33,7 +33,7 @@ public:
     QNetworkReply *Download(std::function<void(QNetworkReply*)> callback,QString path);
     bool IsSuccess(QNetworkReply* reply);
     QJsonValue GetJSONValue(QNetworkReply* reply);
-
+    void RemoveRequest(QNetworkReply* reply);
     bool DownloadIsSuccess(QNetworkReply *reply);
 private://methods
 private slots:
