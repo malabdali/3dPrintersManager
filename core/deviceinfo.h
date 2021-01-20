@@ -15,6 +15,7 @@ private://fields
     QByteArray _name,_filament_material;
     uint32_t _baud_rate,_x,_y,_z,_status;
     QByteArray _id,_network_id;
+    QNetworkReply* _save_changes_reply;
     float _nozzle;
 
 

@@ -6,7 +6,7 @@
 
 DeviceInfo::DeviceInfo(QByteArray name,QObject* parent):_name(name),QObject(parent)
 {
-
+    _save_changes_reply=nullptr;
 }
 
 uint32_t DeviceInfo::GetBaudRate() const
@@ -110,6 +110,7 @@ QByteArray DeviceInfo::GetNetworkID()
 void DeviceInfo::SaveChanges()
 {
     RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* rep)->void{
+        _save_changes_reply=nullptr;
         if(RemoteServer::GetInstance()->IsSuccess(rep))
         {
             emit Saved(true);
@@ -137,6 +138,7 @@ void DeviceInfo::FromJSON(const QJsonObject &json)
 
 DeviceInfo::~DeviceInfo()
 {
+    RemoteServer::GetInstance()->RemoveRequest(_save_changes_reply);
 }
 
 DeviceInfo::operator QByteArray()const

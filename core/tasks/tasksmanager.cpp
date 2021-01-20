@@ -74,7 +74,7 @@ void TasksManager::AddTask(Task *task)
     if(!_tasks.contains(task))
     {
         _tasks.append(task);
-        if(task->GetStaus()!=Task::Wait){
+        if(task->GetStaus()>Task::Wait ){
             _started_tasks.append(task);
         }
         emit OnTaskAdded(task);
@@ -89,6 +89,8 @@ void TasksManager::RemoveTask(Task *task)
     if(_tasks.contains(task))
     {
         _tasks.removeAll(task);
+        _started_tasks.removeAll(task);
+        _finished_tasks.removeAll(task);
         emit OnTaskRemoved(task);
         task->deleteLater();
     }
