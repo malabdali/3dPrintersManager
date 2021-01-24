@@ -369,10 +369,16 @@ void DeviceWidget::WhenMonitorUpdated()
     }
     if(_device->GetDeviceMonitor()->IsPaused() || (!_device->GetDeviceMonitor()->IsPrinting() && _device->GetDeviceMonitor()->IsWasPrinting())){
         ui->_reset_button->show();
-        ui->_continue_print_button->show();
     }
     else{
         ui->_reset_button->hide();
+    }
+    if(_device->GetPrintController()->CanContinuePrinting())
+    {
+        ui->_continue_print_button->show();
+    }
+    else{
+        ui->_continue_print_button->hide();
     }
     ui->_bed_temperature->setText(QString::number(_device->GetDeviceMonitor()->GetBedTemperature()));
     ui->_hotend_temperature_->setText(QString::number(_device->GetDeviceMonitor()->GetHotendTemperature()));
@@ -444,5 +450,5 @@ void DeviceWidget::on__stop_print_button_clicked()
 
 void DeviceWidget::on__continue_print_button_clicked()
 {
-
+    _device->GetPrintController()->ContinuePrint();
 }

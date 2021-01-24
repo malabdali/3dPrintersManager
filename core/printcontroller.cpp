@@ -12,6 +12,7 @@ PrintController::PrintController(Device *dev):DeviceComponent(dev)
     _set_temperatures_command=nullptr;
     _timer_id=-1;
     _wanted_status=Status::Nothing;
+    _continue_print=false;
 }
 
 void PrintController::Setup()
@@ -20,11 +21,6 @@ void PrintController::Setup()
     connect(_device,&Device::BeforeSaveDeviceData,this,&PrintController::Save);
     connect(_device,&Device::DeviceDataLoaded,this,&PrintController::Load);
     connect(_device,&Device::DeviceDataLoaded,this,&PrintController::AfterLoad);
-    connect(_device,&Device::PortClosed,this,&PrintController::WhenPortClosed);
-    connect(_device,&Device::PortOpened,this,&PrintController::WhenPortOpened);
-    connect(_device,&Device::CommandFinished,this,&PrintController::WhenCommandFinished);
-    connect(_device->GetDeviceMonitor(),&DeviceMonitor::updated,this,&PrintController::WhenMonitorUpdated);
-    _timer_id=this->startTimer(PRINT_CONTROLLER_TIMER);
 }
 
 void PrintController::StartPrint(QByteArray file)
@@ -34,7 +30,12 @@ void PrintController::StartPrint(QByteArray file)
     else
     {
         _device->GetFileSystem()->ReadLocaleFile(QByteArray("files/")+file,[this,file](const QByteArray& ba)->void{
-            _file_lines=QByteArrayList(ba.split('\n'));
+            _bed_temperature=0;
+            _hotend_temperature=0;
+            _continue_print=false;
+            _start_printing_time=QDateTime::currentDateTime();
+            _finished_printing_time=QDateTime();
+            _file_content=ba;
             _printed_bytes=0;
             _total_bytes=0;
             CalculateWantedTempratures(0);
@@ -48,6 +49,29 @@ void PrintController::StartPrint(QByteArray file)
 
 void PrintController::ContinuePrint()
 {
+    if(CanContinuePrinting()){
+        _continue_print=true;
+        _bed_temperature=0;
+        _hotend_temperature=0;
+        _finished_printing_time=QDateTime();
+        if(_file_content.isEmpty()){
+            _device->GetFileSystem()->ReadLocaleFile(QByteArray("files/")+_file,[this](const QByteArray& ba)->void{
+                _file_content=ba;
+                _printed_bytes=GetLastLayer(_printed_bytes);
+                CalculateWantedTempratures(_printed_bytes);
+                SetCurrentStatus(Status::SendHeatUpCommands);
+                _wanted_status=Printing;
+                emit WantedStatusChanged();
+            });
+        }
+        else{
+            _printed_bytes=GetLastLayer(_printed_bytes);
+            CalculateWantedTempratures(_printed_bytes);
+            SetCurrentStatus(Status::SendHeatUpCommands);
+            _wanted_status=Printing;
+            emit WantedStatusChanged();
+        }
+    }
 }
 
 void PrintController::StopPrint()
@@ -57,22 +81,25 @@ void PrintController::StopPrint()
     emit WantedStatusChanged();
 }
 
-void PrintController::CalculateWantedTempratures(int line)
+void PrintController::CalculateWantedTempratures(int bytes)
 {
     _wanted_bed_temprature=0;
     _wanted_hottend_temperature=0;
     QByteArray hotend="";
     QByteArray bed="";
-    if(line==0){
-        hotend=this->LookForFirstLine(0,_file_lines.length(),"M104");
-        bed=this->LookForFirstLine(0,_file_lines.length(),"M140");
+    qDebug()<<"CalculateWantedTempratures 1";
+    if(bytes==0){
+        hotend=this->LookForFirstLine(0,_file_content.size(),"M104");
+        bed=this->LookForFirstLine(0,_file_content.size(),"M140");
     }
     else{
-        hotend=this->LookForLastLine(0,line,"M104");
-        bed=this->LookForLastLine(0,line,"M140");
+        hotend=this->LookForLastLine(0,bytes,"M104");
+        bed=this->LookForLastLine(0,bytes,"M140");
     }
+    qDebug()<<"CalculateWantedTempratures 2";
     std::match_results<QByteArray::iterator> res;
     std::regex regex(R"(S\d+)");
+    qDebug()<<"CalculateWantedTempratures 3";
     if(!hotend.isEmpty())
     {
         std::regex_search(hotend.begin(),hotend.end(),res,regex);
@@ -120,9 +147,26 @@ uint PrintController::GetWantedHotendTemperature()
     return _wanted_hottend_temperature;
 }
 
+uint PrintController::GetLastLayer(int last)
+{
+    if((int)last>=_file_content.size())
+        return 0;
+    QByteArray ba=_file_content.left(last+1);
+    int zindex=ba.lastIndexOf('Z');
+    qDebug()<<"zindex "<<zindex;
+    int nindex=ba.left(zindex).lastIndexOf('\n');
+    qDebug()<<"nindex "<<nindex;
+    return nindex;
+}
+
+
 bool PrintController::CanContinuePrinting()
 {
-    return false;
+    DeviceMonitor* monitor=_device->GetDeviceMonitor();
+    if(_printed_bytes>0 && _total_bytes>0 && !_file.isEmpty() && _current_status!=Printing && _wanted_status!=Printing && monitor->IsWasPrinting())
+        return true;
+    else
+        return false;
 }
 
 bool PrintController::IsPrinting()
@@ -132,33 +176,37 @@ bool PrintController::IsPrinting()
 
 QByteArrayList PrintController::LookForLines(int from, int to, QByteArray command)
 {
+    QByteArrayList list=_file_content.mid(from,to-from+1).split('\n');
     if(command.isEmpty())
-        return _file_lines.mid(from,to-from+1);
-    QByteArrayList list;
-    for(int i=from;i<=to;i++) {
-        if(_file_lines[i].startsWith(command))
-            list.append(_file_lines[i]);
+        return list;
+    QByteArrayList list2;
+    for(int i=0;i<=list.length()-1;i++) {
+        if(!list[i].isEmpty()&&list[i].startsWith(command))
+            list2.append(list[i]);
     }
-    return list;
+    return list2;
 }
 
 QByteArray PrintController::LookForLastLine(int from, int to, QByteArray command)
 {
-    for(int i=to;i>=from;i--) {
-        if(_file_lines[i].startsWith(command))
-            return _file_lines[i];
+    QByteArrayList list=_file_content.mid(from,to-from+1).split('\n');
+    for(int i=list.length()-1;i>=0;i--) {
+        if(!list[i].isEmpty()&&list[i].startsWith(command))
+            return list[i];
     }
     return "";
 }
 
 QByteArray PrintController::LookForFirstLine(int from, int to, QByteArray command)
 {
+    QByteArrayList list=_file_content.mid(from,to-from+1).split('\n');
     for(int i=from;i<=to;i++) {
-        if(_file_lines[i].startsWith(command))
-            return _file_lines[i];
+        if(list[i].startsWith(command))
+            return list[i];
     }
     return "";
 }
+
 
 void PrintController::timerEvent(QTimerEvent *event)
 {
@@ -180,14 +228,14 @@ void PrintController::PrintUpdate()
     }
     else if(_current_status==Status::HeatUp){
         DeviceMonitor* monitor=_device->GetDeviceMonitor();
-        if(monitor->GetHotendTemperature()>_wanted_hottend_temperature*0.95 && monitor->GetBedTemperature()>_wanted_bed_temprature*0.95)
+        if(_hotend_temperature>_wanted_hottend_temperature*0.95 && _bed_temperature>_wanted_bed_temprature*0.95)
         {
             SetCurrentStatus(Status::SendPrintCommand);
         }
     }
     else if(_current_status==Status::SendPrintCommand){
         if(_start_printing_command==nullptr){
-            this->_start_printing_command= new GCode::StartPrinting(_device,_file);
+            this->_start_printing_command= new GCode::StartPrinting(_device,_file,_printed_bytes,0);
             this->_device->AddGCodeCommand(_start_printing_command);
         }
         else{
@@ -275,7 +323,8 @@ void PrintController::WhenCommandFinished(GCodeCommand *command, bool success)
     else if(command==_stop_printing_command){
         if(success)
         {
-            PrintStopped();
+            emit PrintStopped();
+            WhenPrintingFinished();
             SetCurrentStatus(SendHeatOffCommand);
         }
         _stop_printing_command=nullptr;
@@ -304,9 +353,15 @@ void PrintController::WhenCommandFinished(GCodeCommand *command, bool success)
 
 void PrintController::WhenMonitorUpdated()
 {
+    DeviceMonitor* monitor=_device->GetDeviceMonitor();
+    _bed_temperature=monitor->GetBedTemperature();
+    _hotend_temperature=monitor->GetHotendTemperature();
     if(_wanted_status==Stopped)
         return;
-    DeviceMonitor* monitor=_device->GetDeviceMonitor();
+    if(!monitor->IsPrinting()&&_current_status==Printing){
+        WhenPrintingFinished();
+    }
+
     if(monitor->IsPrinting()){
         _printed_bytes=monitor->GetPrintedBytes();
         _total_bytes=monitor->GetTotalBytes();
@@ -341,6 +396,12 @@ QJsonDocument PrintController::ToJson() const
     vh.insert("PrintedBytes",this->_printed_bytes);
     vh.insert("TotalBytes",this->_total_bytes);
     vh.insert("File",this->_file);
+    vh.insert("WantedBedTemp",this->_wanted_bed_temprature);
+    vh.insert("WantedHotendTemp",this->_wanted_hottend_temperature);
+    if(!_start_printing_time.isNull())
+        vh.insert("StartingTime",_start_printing_time.toString(Qt::DateFormat::ISODateWithMs));
+    if(!_start_printing_time.isNull())
+        vh.insert("FinishedTime",_finished_printing_time.toString(Qt::DateFormat::ISODateWithMs));
     return QJsonDocument(QJsonObject::fromVariantHash(vh));
 }
 
@@ -348,9 +409,9 @@ void PrintController::FromJson(QJsonDocument json)
 {
     QJsonObject jo=json.object();
 
-    /*if(jo.contains("WantedStatus")){
+    if(jo.contains("WantedStatus")){
         _wanted_status=(Status)jo["WantedStatus"].toInt();
-    }*/
+    }
     if(jo.contains("CurrentStatus")){
         SetCurrentStatus((Status)jo["CurrentStatus"].toInt());
     }
@@ -362,6 +423,18 @@ void PrintController::FromJson(QJsonDocument json)
     }
     if(jo.contains("File")){
         _file=jo["File"].toString().toUtf8();
+    }
+    if(jo.contains("WantedBedTemp")){
+        _wanted_bed_temprature=jo["WantedBedTemp"].toInt();
+    }
+    if(jo.contains("WantedHotendTemp")){
+        _wanted_hottend_temperature=jo["WantedHotendTemp"].toInt();
+    }
+    if(jo.contains("StartingTime")){
+        _start_printing_time=QDateTime::fromString(jo["StartingTime"].toString(),Qt::DateFormat::ISODateWithMs);
+    }
+    if(jo.contains("FinishedTime")){
+        _finished_printing_time=QDateTime::fromString(jo["FinishedTime"].toString(),Qt::DateFormat::ISODateWithMs);
     }
 }
 
@@ -377,6 +450,12 @@ void PrintController::Load()
 
 void PrintController::AfterLoad()
 {
+
+    connect(_device,&Device::PortClosed,this,&PrintController::WhenPortClosed);
+    connect(_device,&Device::PortOpened,this,&PrintController::WhenPortOpened);
+    connect(_device,&Device::CommandFinished,this,&PrintController::WhenCommandFinished);
+    connect(_device->GetDeviceMonitor(),&DeviceMonitor::updated,this,&PrintController::WhenMonitorUpdated);
+    _timer_id=this->startTimer(PRINT_CONTROLLER_TIMER);
     /*if(_wanted_status==Printing && _current_status!=Printing && !_file.isEmpty()){
         _wanted_status=Nothing;
         StartPrint(_file);
@@ -384,3 +463,11 @@ void PrintController::AfterLoad()
     else if(_wanted_status==Stopped)
         StopPrint();*/
 }
+
+void PrintController::WhenPrintingFinished()
+{
+    _finished_printing_time=QDateTime::currentDateTime();
+    SetCurrentStatus(Nothing);
+    emit PrintingFinished();
+}
+

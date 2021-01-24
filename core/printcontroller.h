@@ -7,6 +7,8 @@
 #include "./gcode/startprinting.h"
 #include "./gcode/stopsdprint.h"
 #include "./gcode/settemperatures.h"
+#include "chrono"
+#include <QDateTime>
 class PrintController:public DeviceComponent
 {
     Q_OBJECT
@@ -32,19 +34,22 @@ uint32_t _printed_bytes,_total_bytes;
 uint _wanted_bed_temprature,_wanted_hottend_temperature;
 Status _current_status,_wanted_status;
 int _current_line;
-QByteArrayList _file_lines;
+bool _continue_print;
+QByteArray _file_content;
 int _timer_id;
+QDateTime _start_printing_time,_finished_printing_time;
 
 public:
     explicit PrintController(class Device*);
     void StartPrint(QByteArray file);
     void ContinuePrint();
     void StopPrint();
-    void CalculateWantedTempratures(int line);
     Status GetWantedStatus();
     Status GetCurrentStatus();
     uint GetWantedBedTemperature();
     uint GetWantedHotendTemperature();
+    uint GetLastLayer(int index);
+    double _bed_temperature,_hotend_temperature;
     bool CanContinuePrinting();
     bool IsPrinting();
 public:
@@ -54,11 +59,13 @@ signals:
     void PrintStopped();
     void WantedStatusChanged();
     void StatusChanged();
+    void PrintingFinished();
 
 private://methods
     QByteArrayList LookForLines(int from,int to,QByteArray command="");
     QByteArray LookForLastLine(int from,int to,QByteArray command);
     QByteArray LookForFirstLine(int from,int to,QByteArray command);
+    void CalculateWantedTempratures(int line);
     void timerEvent(QTimerEvent* event)override;
     void PrintUpdate();
     void StopUpdate();
@@ -68,6 +75,7 @@ private://methods
     void Save();
     void Load();
     void AfterLoad();
+    void WhenPrintingFinished();
 private slots:
     void WhenCommandFinished(GCodeCommand* command,bool success);
     void WhenMonitorUpdated();

@@ -419,11 +419,13 @@ void Device::Save()
     this->_device_data.setObject(jo);
     emit this->BeforeSaveDeviceData();
     _fileSystem->SaveLocaleFile(DEVICE_DATA_FILE,this->_device_data.toJson(),[this](bool success)->void{
-        _network_reply=RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
-                _network_reply=nullptr;
-                reply->deleteLater();
-        },DEVICES_TABLE,this->_device_data.object().toVariantMap(),this->_device_info->GetID());
-        emit DataSaved();
+        if(success){
+            _network_reply=RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
+                    _network_reply=nullptr;
+                    reply->deleteLater();
+            },DEVICES_TABLE,this->_device_data.object().toVariantMap(),this->_device_info->GetID());
+            emit DataSaved();
+        }
     });
 }
 

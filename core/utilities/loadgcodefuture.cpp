@@ -39,7 +39,7 @@ QList<QByteArray> LoadGCodeFuture::LoadFile()
             continue;
         int index=line.indexOf(';');
         line.remove(index,line.length()-index);
-        _data.append(line+"\n");
+        _data.append(line+" \n");
         line.prepend(QByteArray("N")+QByteArray::number(i)+" ");
         uint8_t checksum=std::accumulate(line.begin(),line.end(),0,[](uint8_t v,char c){return c^v;});
         line.append(QByteArray("*")+QByteArray::number(checksum)+"\n");
