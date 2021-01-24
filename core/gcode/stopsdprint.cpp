@@ -4,7 +4,6 @@
 
 GCode::StopSDPrint::StopSDPrint(Device *device):GCodeCommand(device,"M524")
 {
-
 }
 
 void GCode::StopSDPrint::InsideStart()

@@ -16,10 +16,11 @@
 #include "devicemonitor.h"
 #include "deviceactions.h"
 #include "remoteserver.h"
+#include "printcontroller.h"
 
 Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),_port_thread(new QThread()),
     _fileSystem(new DeviceFilesSystem(this)),_device_port(new DevicePort(this)),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this)),
-    _device_monitor(new DeviceMonitor(this)),_device_actions(new DeviceActions(this))
+    _device_monitor(new DeviceMonitor(this)),_device_actions(new DeviceActions(this)),_print_controller(new PrintController(this))
 {
     _port_detector=nullptr;
     qRegisterMetaType<Errors>();
@@ -43,6 +44,7 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _fileSystem->Setup();
     _device_port->Setup();
     _problem_solver->Setup();
+    _print_controller->Setup();
 
     QObject::connect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
     QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);
@@ -384,6 +386,11 @@ DeviceMonitor *Device::GetDeviceMonitor()
     return _device_monitor;
 }
 
+PrintController *Device::GetPrintController()
+{
+    return _print_controller;
+}
+
 void Device::Remove()
 {
     emit DeviceRemoved();
@@ -400,6 +407,7 @@ void Device::Load()
     _fileSystem->ReadLocaleFile(DEVICE_DATA_FILE, [this](QByteArray data)->void{
         _device_data=QJsonDocument::fromJson(data);
         emit this->DeviceDataLoaded();
+        emit AfterDeviceDataLoaded();
     });
 }
 

@@ -4,7 +4,7 @@
 #include "gcode/uploadfile.h"
 #include "gcode/deletefile.h"
 #include "gcode/linenumber.h"
-#include "utilities/loadfilefuture.h"
+#include "utilities/loadgcodefuture.h"
 #include<algorithm>
 #include <QUrl>
 #include "../config.h"
@@ -212,8 +212,9 @@ void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
                 _files.removeAll(FileInfo(filename2));
                 emit FileListUpdated();
             }
-            _load_file=new LoadFileFuture(filename,[this,filename](QList<QByteArray> array)->void{
+            _load_file=new LoadGCodeFuture(filename,[this,filename](QList<QByteArray> array,QByteArray data)->void{
                 _load_file=nullptr;
+                _uploading_file_content=data;
                 QByteArray filename2=QUrl(filename).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
                 GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,filename2,array,_line_number);
                 this->_uploading_file=gcode;
@@ -237,20 +238,17 @@ void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
 
 void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
 {
-    auto res=std::find_if(_wait_for_upload.begin(),_wait_for_upload.end(),
-                          [uploadFile](QByteArray ba)->bool{
+    auto res=std::find_if(_wait_for_upload.begin(),_wait_for_upload.end(),[uploadFile](QByteArray ba)->bool{
             return ba.toLower().contains(uploadFile->GetFileName().mid(0,uploadFile->GetFileName().indexOf(".")).toLower());
-});
-
+    });
     if(uploadFile->IsSuccess()){
         DeleteLocaleFile("files/"+uploadFile->GetFileName());
-        CopyLocaleFile(*res,"files/"+uploadFile->GetFileName(),[fileName=uploadFile->GetFileName(),this,res](bool success){
+        SaveLocaleFile("files/"+uploadFile->GetFileName(),_uploading_file_content,[res,fileName=uploadFile->GetFileName(),this](bool success){
             if(success)
             {
                 //uploaded_files.append(fileName);
                 FileInfo fi(fileName);
                 fi.SetLocalePath(GetLocaleDirectory(LOCALE_GCODE_PATH+fileName));
-                fi.SetSourcePath(*res);
                 fi.SetIsUploaded(true);
                 _files.removeAll(fi);
                 _files.append(fi);
@@ -263,12 +261,14 @@ void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
 
             _wait_for_upload.erase(res);
             _uploading_file=nullptr;
+            _uploading_file_content.clear();
             emit this->FileListUpdated();
             UpdateLineNumber();
         });
     }
     else
     {
+        _uploading_file_content.clear();
         _failed_uploads.append(uploadFile->GetFileName());
         emit UploadFileFailed(uploadFile->GetFileName());
         _wait_for_upload.erase(res);
@@ -285,7 +285,7 @@ void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
     for(int i=0;i<list.size();i++)
     {
         if(_files.contains(FileInfo(list.keys()[i])))
-                continue;
+            continue;
         FileInfo fi=FileInfo(list.keys()[i]);
         fi.SetIsUploaded(true);
         fi.SetUploadPercent(100.0);

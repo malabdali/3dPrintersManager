@@ -13,7 +13,16 @@ GCode::PrintingStats::PrintingStats(Device *device):GCodeCommand(device,"M27")
 double GCode::PrintingStats::GetPercent()
 {
     return _percent;
+}
 
+uint32_t GCode::PrintingStats::GetPrintedBytes()
+{
+    return _printed_bytes;
+}
+
+uint32_t GCode::PrintingStats::GetTotalBytes()
+{
+    return _total_bytes;
 }
 
 bool GCode::PrintingStats::IsPrinting()
@@ -48,7 +57,9 @@ void GCode::PrintingStats::OnAvailableData(const QByteArray &ba)
         std::regex rgx(R"(\d+/\d+)");
         std::match_results<QByteArray::ConstIterator> matches;
         std::regex_search(ba.begin(),ba.end(), matches, rgx);
-        _percent=(double) QString(matches[0].first).split('/')[0].toUInt()/(double) QString(matches[0].first).split('/')[1].toUInt();
+        _printed_bytes=QString(matches[0].first).split('/')[0].toUInt();
+        _total_bytes=QString(matches[0].first).split('/')[1].toUInt();
+        _percent=(double) _printed_bytes/(double) _total_bytes;
         _percent*=100.0;
     }
     else{

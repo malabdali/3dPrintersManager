@@ -62,6 +62,7 @@ private://fields
     class DeviceProblemSolver* _problem_solver;
     class DeviceMonitor* _device_monitor;
     class DeviceActions* _device_actions;
+    class PrintController* _print_controller;
 
 
 public:
@@ -82,6 +83,7 @@ public:
     DevicePort* GetDevicePort();
     DeviceProblemSolver *GetProblemSolver()const;
     DeviceMonitor *GetDeviceMonitor();
+    PrintController *GetPrintController();
     //json data
     void Load();
     void Save();
@@ -138,6 +140,7 @@ signals:
     void DeviceStatsUpdated(GCodeCommand*);
     void DeviceStatsUpdateFailed(GCodeCommand*);
     void DeviceDataLoaded();
+    void AfterDeviceDataLoaded();
     void BeforeSaveDeviceData();
     void DataSaved();
     void DeviceRemoved();

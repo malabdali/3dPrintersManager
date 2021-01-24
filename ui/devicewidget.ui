@@ -831,6 +831,13 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QPushButton" name="_continue_print_button">
+              <property name="text">
+               <string>continue print</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>

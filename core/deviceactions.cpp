@@ -5,6 +5,7 @@
 #include "./deviceproblemsolver.h"
 #include <QTimer>
 #include "config.h"
+#include "printcontroller.h"
 DeviceActions::DeviceActions(Device *device) : DeviceComponent(device),_device(device),_reconnect_timer(new QTimer(this)),_save_device_data_timer(new QTimer(this)),
     _m600_timer(new QTimer(this))
 {
@@ -22,6 +23,7 @@ void DeviceActions::Setup(){
     connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::ProblemDetected,this,&DeviceActions::WhenProblemDetected);
     connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceActions::WhenSolveProblemFinished);
     connect(_device,&Device::DeviceDataLoaded,this,&DeviceActions::WhenDeviceLoaded);
+    connect(_device->GetPrintController(),&PrintController::StatusChanged,this,&DeviceActions::WhenPrintStatusChanged);
     _device->Load();
 }
 
@@ -105,4 +107,9 @@ void DeviceActions::SendM600()
         GCode::M600* m600=new GCode::M600(_device);
         _device->AddGCodeCommand(m600);
     }
+}
+
+void DeviceActions::WhenPrintStatusChanged()
+{
+    _device->Save();
 }

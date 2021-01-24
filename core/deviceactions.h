@@ -27,6 +27,7 @@ private slots:
     void SaveData();
     void WhenDeviceLoaded();
     void SendM600();
+    void WhenPrintStatusChanged();
 
 signals:
 

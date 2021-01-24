@@ -12,10 +12,13 @@ class GCode::PrintingStats : public GCodeCommand
 private://fields
     bool _is_printing,_printin_stats_updated;
     double _percent;
+    uint32_t _printed_bytes, _total_bytes;
 
 public:
     explicit PrintingStats(Device* _device);
     double GetPercent();
+    uint32_t GetPrintedBytes();
+    uint32_t GetTotalBytes();
     bool IsPrinting();
 
 protected:

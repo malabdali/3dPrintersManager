@@ -16,6 +16,7 @@
 #include <QSpacerItem>
 #include <QVBoxLayout>
 #include "../core/system.h"
+#include "../core/printcontroller.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -36,7 +37,8 @@ void DeviceWidget::Update()
         ui->_uploading->setText("");
         ui->_uploading->setVisible(false);
         ui->_uploading_label->setVisible(false);
-        if(_device->GetDeviceMonitor()->IsPrinting() && _device->IsOpen() && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
+        if((_device->GetPrintController()->GetCurrentStatus()==PrintController::HeatUp || _device->GetPrintController()->GetCurrentStatus()==PrintController::Printing)
+                && _device->IsOpen() && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
               !_device->GetDeviceMonitor()->IsBusy()  )
         {
             ui->_stop_print_button->setVisible(true);
@@ -99,6 +101,7 @@ void DeviceWidget::Setup()
         ui->_error_label->setVisible(false);
         ui->_error->setVisible(false);
         ui->_stop_print_button->setVisible(false);
+        ui->_continue_print_button->setVisible(false);
 
         // device events
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged);
@@ -366,6 +369,7 @@ void DeviceWidget::WhenMonitorUpdated()
     }
     if(_device->GetDeviceMonitor()->IsPaused() || (!_device->GetDeviceMonitor()->IsPrinting() && _device->GetDeviceMonitor()->IsWasPrinting())){
         ui->_reset_button->show();
+        ui->_continue_print_button->show();
     }
     else{
         ui->_reset_button->hide();
@@ -434,7 +438,11 @@ void DeviceWidget::on__control_action_triggered()
 
 void DeviceWidget::on__stop_print_button_clicked()
 {
-    GCode::StopSDPrint* stopPrint=new GCode::StopSDPrint(_device);
-    _device->AddGCodeCommand(stopPrint);
+    _device->GetPrintController()->StopPrint();
     this->ui->_stop_print_button->setVisible(false);
+}
+
+void DeviceWidget::on__continue_print_button_clicked()
+{
+
 }

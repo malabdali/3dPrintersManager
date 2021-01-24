@@ -12,7 +12,7 @@ class GCode::PowerSupply : public GCodeCommand
 {
     Q_OBJECT
 public:
-    explicit PowerSupply(Device* device,bool on,std::function<void(bool)> callback);
+    explicit PowerSupply(Device* device,bool on);
 
 
     // GCodeCommand interface

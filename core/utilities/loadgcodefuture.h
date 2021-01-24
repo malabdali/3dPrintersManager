@@ -7,17 +7,18 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include <functional>
 
-class LoadFileFuture : public QObject
+class LoadGCodeFuture : public QObject
 {
     Q_OBJECT
 private:
     QFuture<QList<QByteArray>> _future;
     QFutureWatcher<QList<QByteArray>> _watcher;
+    QByteArray _data;
     QString _file_name;
-    std::function<void(QList<QByteArray>)> _callback;
+    std::function<void(QList<QByteArray>,QByteArray)> _callback;
     quint64 _offset;
 public:
-    explicit LoadFileFuture(QString file,std::function<void(QList<QByteArray>)> callback,quint64 offset=1,QObject *parent = nullptr);
+    explicit LoadGCodeFuture(QString file,std::function<void(QList<QByteArray>,QByteArray)> callback,quint64 offset=1,QObject *parent = nullptr);
     void Stop();
 private://methods
     QList<QByteArray> LoadFile();

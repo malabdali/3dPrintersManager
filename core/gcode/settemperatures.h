@@ -1,17 +1,20 @@
-#ifndef M600_H
-#define M600_H
+#ifndef SETTEMPERATURES_H
+#define SETTEMPERATURES_H
+
 #include <QObject>
 #include "../gcodecommand.h"
-
 namespace GCode {
-    class M600;
+    class SetTemperatures;
 }
 
-class GCode::M600 : public GCodeCommand
+class GCode::SetTemperatures : public GCodeCommand
 {
     Q_OBJECT
+private:
+    int _bed,_hotend;
+    bool _hotend_sent,_bed_sent;
 public:
-    explicit M600(Device* device);
+    explicit SetTemperatures(Device* device,int bed=-1,int hotend=-1);
 
 
     // GCodeCommand interface
@@ -24,4 +27,5 @@ protected:
     void InsideStart() override;
     void InsideStop() override;
 };
-#endif // M600_H
+
+#endif // SETTEMPERATURES_H

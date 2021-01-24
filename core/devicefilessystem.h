@@ -19,10 +19,11 @@ class DeviceFilesSystem : public DeviceComponent
 private:
     QList<FileInfo> _files;
     GCode::UploadFile* _uploading_file;
+    QByteArray _uploading_file_content;
     quint64 _line_number;
     QList<QByteArray> _failed_uploads,_wait_for_upload;
     bool _sd_supported;
-    class LoadFileFuture* _load_file;
+    class LoadGCodeFuture* _load_file;
 public:
     explicit DeviceFilesSystem(class Device*);
     void Initiate();

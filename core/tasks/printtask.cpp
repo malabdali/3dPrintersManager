@@ -8,12 +8,11 @@
 #include "../gcode/stopsdprint.h"
 #include <QJsonObject>
 #include "../devices.h"
+#include "../printcontroller.h"
 PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
 {
     _file=data["file"].toString().toUtf8();
     _wait=false;
-    _printing_command=nullptr;
-    _stop_printing_command=nullptr;
     _want_to_cancel=false;
     _want_to_cancel_finished=false;
     _download=nullptr;
@@ -96,14 +95,14 @@ void PrintTask::UploadFile()
 void PrintTask::Print()
 {
     DeviceMonitor* monitor=this->_device->GetDeviceMonitor();
-    if(monitor->IsWasPrinting() || monitor->IsPrinting() || _device->GetStatus()!=Device::DeviceStatus::Ready || _device->GetFileSystem()->IsStillUploading() ||_printing_command){
+    if(monitor->IsWasPrinting() || monitor->IsPrinting() || _device->GetStatus()!=Device::DeviceStatus::Ready ||
+            _device->GetFileSystem()->IsStillUploading() || _device->GetPrintController()->GetWantedStatus()==PrintController::Printing){
 
         _wait=false;
         return;
     }
-    this->_printing_command=new GCode::StartPrinting(_device,_file);
-    _device->AddGCodeCommand(_printing_command);
-    connect(_device,&Device::CommandFinished,this,&PrintTask::WhenCommandFinished);
+    _device->GetPrintController()->StartPrint(_file);
+    connect(_device->GetPrintController(),&PrintController::WantedStatusChanged,this,&PrintTask::WhenPrintControllerWantedChanged);
 }
 
 QByteArray PrintTask::GetFile(){
@@ -175,18 +174,16 @@ void PrintTask::StopPrinting()
 {
 
     DeviceMonitor* monitor=this->_device->GetDeviceMonitor();
+    PrintController* pc=_device->GetPrintController();
     if(!monitor->IsBusy() && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready){
-        if(_stop_printing_command)
-            return;
-        if(monitor->IsPrinting()){
-            _stop_printing_command=new GCode::StopSDPrint(_device);
-            _device->AddGCodeCommand(_stop_printing_command);
-        }
-        else{
+        if(pc->GetCurrentStatus()==PrintController::Stopped || pc->GetCurrentStatus()==PrintController::Stopped ||
+                (pc->GetCurrentStatus()==PrintController::Nothing && !monitor->IsPrinting()))
+        {
             _want_to_cancel_finished=true;
-            _printing_command=nullptr;
             Cancel();
+            return;
         }
+        pc->StopPrint();
     }
 }
 
@@ -194,6 +191,7 @@ void PrintTask::StopPrinting()
 void PrintTask::NextStep()
 {
     DeviceMonitor* monitor=this->_device->GetDeviceMonitor();
+    PrintController* pc=this->_device->GetPrintController();
     if(!_want_to_cancel){
         if((GetStaus()==TaskStatus::Downloading || GetStaus()==TaskStatus::Started)  && !_wait){
             _wait=true;
@@ -207,7 +205,7 @@ void PrintTask::NextStep()
             _wait=true;
             Print();
         }
-        else if((GetStaus()==TaskStatus::Printing) && !_wait && !monitor->IsPrinting()){
+        else if((GetStaus()==TaskStatus::Printing) && !_wait && !monitor->IsPrinting()&&pc->GetWantedStatus()!=PrintController::Printing){
             this->SetStatus(Task::Printed);
         }
     }
@@ -240,20 +238,20 @@ void PrintTask::WhenFileUploadFailed(QByteArray ba)
 
 void PrintTask::WhenCommandFinished(GCodeCommand *command, bool success)
 {
-    if(command==_printing_command){
-        if(success)
+}
+
+void PrintTask::WhenPrintControllerWantedChanged()
+{
+    PrintController* pc=_device->GetPrintController();
+    if(pc->GetWantedStatus()==PrintController::Printing)
+    {
             SetStatus(Printing);
-        else
-            _printing_command=nullptr;
+            disconnect(_device->GetPrintController(),&PrintController::WantedStatusChanged,this,&PrintTask::WhenPrintControllerWantedChanged);
     }
-    else if(command==_stop_printing_command){
-        if(success)
-        {
-            _stop_printing_command=nullptr;
-        }
-        else
-            _stop_printing_command=nullptr;
+    else if(pc->GetWantedStatus()==PrintController::Stopped){
+
     }
+
     _wait=false;
 }
 
@@ -303,10 +301,8 @@ void PrintTask::Cancel()
 
 void PrintTask::Repeat()
 {
-    _printing_command=nullptr;
     _want_to_cancel=false;
     _want_to_cancel_finished=false;
-    _stop_printing_command=nullptr;
     Task::Repeat();
 }
 

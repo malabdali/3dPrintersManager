@@ -3,10 +3,12 @@
 #include "../deviceport.h"
 #include "../device.h"
 
-GCode::StartPrinting::StartPrinting(Device *_device, QByteArray fileName):GCodeCommand(_device,"M23"),
+GCode::StartPrinting::StartPrinting(Device *_device, QByteArray fileName, uint line, uint elapsedTime):GCodeCommand(_device,"M23"),
     _file_name(fileName)
 {
     _m24_sent=false;
+    _line_number=line;
+    _elapsed_time=elapsedTime;
 }
 
 QByteArray GCode::StartPrinting::GetFileName() const
@@ -38,7 +40,10 @@ void GCode::StartPrinting::OnAvailableData(const QByteArray &ba)
         else{
             if(_file_selected)
             {
-                _device->GetDevicePort()->Write(QByteArray("M24 ")+"\n");
+                if(_line_number==0)
+                    _device->GetDevicePort()->Write(QByteArray("M24 ")+"\n");
+                else
+                    _device->GetDevicePort()->Write(QByteArray("M24 ")+"S"+QByteArray::number(_line_number)+" T"+QByteArray::number(_elapsed_time)+" "+"\n");
                 _m24_sent=true;
             }
             else{

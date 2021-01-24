@@ -36,16 +36,18 @@ SOURCES += \
     core/gcode/powersupply.cpp \
     core/gcode/printingstats.cpp \
     core/gcode/reporttemperature.cpp \
+    core/gcode/settemperatures.cpp \
     core/gcode/startprinting.cpp \
     core/gcode/stopsdprint.cpp \
     core/gcode/uploadfile.cpp \
     core/gcodecommand.cpp \
+    core/printcontroller.cpp \
     core/remoteserver.cpp \
     core/system.cpp \
     core/tasks/printtask.cpp \
     core/tasks/task.cpp \
     core/tasks/tasksmanager.cpp \
-    core/utilities/loadfilefuture.cpp \
+    core/utilities/loadgcodefuture.cpp \
     main.cpp \
     ui/deviceswidget.cpp \
     ui/devicewidget.cpp \
@@ -76,16 +78,18 @@ HEADERS += \
     core/gcode/powersupply.h \
     core/gcode/printingstats.h \
     core/gcode/reporttemperature.h \
+    core/gcode/settemperatures.h \
     core/gcode/startprinting.h \
     core/gcode/stopsdprint.h \
     core/gcode/uploadfile.h \
     core/gcodecommand.h \
+    core/printcontroller.h \
     core/remoteserver.h \
     core/system.h \
     core/tasks/printtask.h \
     core/tasks/task.h \
     core/tasks/tasksmanager.h \
-    core/utilities/loadfilefuture.h \
+    core/utilities/loadgcodefuture.h \
     ui/deviceswidget.h \
     ui/devicewidget.h \
     ui/filessystemwidget.h \

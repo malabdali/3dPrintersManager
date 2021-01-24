@@ -18,6 +18,8 @@ private://fields
     class GCode::EndstopsStates* _end_stops;
     QMap<QByteArray,QByteArray> _data;
     bool _wait_device_stats;
+    int _printing_stat_timer,_temperatures_timer,_endstops_timer;
+    int _printing_stat_interval,_temperatures_interval,_endstops_interval;
     std::chrono::time_point<std::chrono::steady_clock> _last_update_during_busy;
 public:
     explicit DeviceMonitor(Device *dev);
@@ -31,8 +33,11 @@ public:
     double GetPrintProgress()const;
     double GetHotendTemperature()const;
     double GetBedTemperature()const;
+    uint GetPrintedBytes()const;
+    uint GetTotalBytes()const;
     QByteArray GetPrintingFile()const;
-
+    void SetUpdateIntervals(uint printingStats,uint temperatures,uint endStops);
+    void ResetIntervals();
     void Reset();
     void Update();
     QJsonDocument ToJson() const;

@@ -13,8 +13,6 @@ class PrintTask : public Task
     QByteArray _file;
     QJsonObject _file_info;
     bool _wait,_want_to_cancel,_want_to_cancel_finished;
-    GCode::StopSDPrint* _stop_printing_command;
-    GCode::StartPrinting* _printing_command;
     QNetworkReply* _download;
 public:
     PrintTask(QJsonObject data, QObject *parent=nullptr);
@@ -39,6 +37,7 @@ private slots:
     void WhenFileUploadSuccess(QByteArray ba);
     void WhenFileUploadFailed(QByteArray ba);
     void WhenCommandFinished(GCodeCommand* command,bool success);
+    void WhenPrintControllerWantedChanged();
 
 public:
     ~PrintTask();

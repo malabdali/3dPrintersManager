@@ -3,8 +3,9 @@
 #include <QFileDialog>
 #include <QPair>
 #include "../core/devicefilessystem.h"
-#include "../core/utilities/loadfilefuture.h"
+#include "../core/utilities/loadgcodefuture.h"
 #include "../core/gcode/startprinting.h"
+#include "../core/printcontroller.h"
 #include "../core/fileinfo.h"
 #include <QDateTime>
 FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
@@ -155,6 +156,7 @@ void FilesSystemWidget::on__print_button_clicked()
     ui->_print_button->setVisible(false);
     QListWidgetItem* item=ui->_files_list->selectedItems()[0];
     QString name=item->text().mid(0,item->text().indexOf(" "));
-    _device->AddGCodeCommand(new GCode::StartPrinting(_device,name.toUtf8()));
+    /*_device->AddGCodeCommand(new GCode::StartPrinting(_device,name.toUtf8()));*/
+    _device->GetPrintController()->StartPrint(name.toUtf8());
 
 }

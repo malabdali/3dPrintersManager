@@ -2,7 +2,7 @@
 #include "../deviceport.h"
 #include "../device.h"
 
-GCode::PowerSupply::PowerSupply(Device *device,bool on, std::function<void (bool)> callback):GCodeCommand(device,"80")
+GCode::PowerSupply::PowerSupply(Device *device,bool on):GCodeCommand(device,"80")
 {
 
 }

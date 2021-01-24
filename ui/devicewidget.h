@@ -53,6 +53,7 @@ private slots:
     void on__gcode_action_triggered();
     void on__control_action_triggered();
     void on__stop_print_button_clicked();
+    void on__continue_print_button_clicked();
 };
 
 #endif // DEVICEWIDGET_H

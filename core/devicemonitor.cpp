@@ -22,7 +22,12 @@ void DeviceMonitor::Setup(){
     connect(_device,&Device::BeforeSaveDeviceData,this,&DeviceMonitor::Save);
     connect(_device,&Device::DeviceDataLoaded,this,&DeviceMonitor::Load);
     Load();
-
+    _printing_stat_timer=DEVICE_MONITOR_PRINTING_STAT_TIMER;
+    _endstops_timer=DEVICE_MONITOR_END_STOPS_STAT_TIMER;
+    _temperatures_timer=DEVICE_MONITOR_TEMPERATURE_STAT_TIMER;
+    _printing_stat_interval=DEVICE_MONITOR_PRINTING_STAT_TIMER;
+    _endstops_interval=DEVICE_MONITOR_END_STOPS_STAT_TIMER;
+    _temperatures_interval=DEVICE_MONITOR_TEMPERATURE_STAT_TIMER;
     _last_update_during_busy=std::chrono::steady_clock::now();
     this->startTimer(DEVICE_MONITOR_TIMER);
 }
@@ -70,11 +75,45 @@ double DeviceMonitor::GetBedTemperature() const
     return 0;
 }
 
+uint DeviceMonitor::GetPrintedBytes() const
+{
+    if(_data.contains("PRINTED_BYTES"))
+        return _data["PRINTED_BYTES"].toUInt();
+    return 0;
+}
+
+uint DeviceMonitor::GetTotalBytes() const
+{
+    if(_data.contains("TOTAL_BYTES"))
+        return _data["TOTAL_BYTES"].toUInt();
+    return 0;
+}
+
 QByteArray DeviceMonitor::GetPrintingFile() const
 {
     if(_data.contains("PRINTING_FILE"))
         return _data["PRINTING_FILE"];
     return 0;
+}
+
+void DeviceMonitor::SetUpdateIntervals(uint printingStats, uint temperatures, uint endStops)
+{
+    _endstops_interval=endStops;
+    _printing_stat_interval=printingStats;
+    _temperatures_interval=temperatures;
+    _printing_stat_timer=printingStats;
+    _endstops_timer=endStops;
+    _temperatures_timer=temperatures;
+}
+
+void DeviceMonitor::ResetIntervals()
+{
+    _printing_stat_interval=DEVICE_MONITOR_PRINTING_STAT_TIMER;
+    _endstops_interval=DEVICE_MONITOR_END_STOPS_STAT_TIMER;
+    _temperatures_interval=DEVICE_MONITOR_TEMPERATURE_STAT_TIMER;
+    _printing_stat_timer=DEVICE_MONITOR_PRINTING_STAT_TIMER;
+    _endstops_timer=DEVICE_MONITOR_END_STOPS_STAT_TIMER;
+    _temperatures_timer=DEVICE_MONITOR_TEMPERATURE_STAT_TIMER;
 }
 
 void DeviceMonitor::Reset()
@@ -94,26 +133,33 @@ void DeviceMonitor::Update()
 {
     if(_device->GetStatus()==Device::DeviceStatus::Ready)
     {
-        if(_printing_stats==nullptr)
+        _printing_stat_timer-=DEVICE_MONITOR_TIMER;
+        _temperatures_timer-=DEVICE_MONITOR_TIMER;
+        _endstops_timer-=DEVICE_MONITOR_TIMER;
+
+        if(_printing_stats==nullptr && _printing_stat_timer<=0)
         {
+            _printing_stat_timer=_printing_stat_interval;
             _printing_stats=new GCode::PrintingStats(_device);
             _device->AddGCodeCommand(_printing_stats);
         }
-        else if(_printing_stats->IsStarted() && !_printing_stats->IsFinished())
+        else if(_printing_stats && _printing_stats->IsStarted() && !_printing_stats->IsFinished())
             _printing_stats->Stop();
-        if(_report_temprature==nullptr)
+        if(_report_temprature==nullptr && _temperatures_timer<=0)
         {
+            _temperatures_timer=_temperatures_interval;
             _report_temprature=new GCode::ReportTemperature(_device);
             _device->AddGCodeCommand(_report_temprature);
         }
-        else if(_report_temprature->IsStarted() && !_report_temprature->IsFinished())
+        else if(_report_temprature && _report_temprature->IsStarted() && !_report_temprature->IsFinished())
             _report_temprature->Stop();
-        if(_end_stops==nullptr)
+        if(_end_stops==nullptr && _endstops_timer<=0)
         {
+            _endstops_timer=_endstops_interval;
             _end_stops=new GCode::EndstopsStates(_device);
             _device->AddGCodeCommand(_end_stops);
         }
-        else if(_end_stops->IsStarted() && !_end_stops->IsFinished())
+        else if(_end_stops && _end_stops->IsStarted() && !_end_stops->IsFinished())
             _end_stops->Stop();
     }
 }
@@ -182,6 +228,8 @@ bool DeviceMonitor::CommandReader(GCodeCommand *command)
     if(_printing_stats && command==_printing_stats){
         this->_data.insert("IS_PRINTING",QByteArray::number(_printing_stats->IsPrinting()));
         this->_data.insert("PRINT_PERCENT",QByteArray::number(_printing_stats->GetPercent()));
+        this->_data.insert("PRINTED_BYTES",QByteArray::number(_printing_stats->GetPrintedBytes()));
+        this->_data.insert("TOTAL_BYTES",QByteArray::number(_printing_stats->GetTotalBytes()));
         this->_data.insert("IS_BUSY","0");
         if(this->IsPrinting())
         {
@@ -200,6 +248,8 @@ bool DeviceMonitor::CommandReader(GCodeCommand *command)
     else if(GCode::StartPrinting* sp=dynamic_cast<GCode::StartPrinting*>(command)){
         this->_data.insert("IS_PRINTING","1");
         this->_data.insert("PRINT_PERCENT","0");
+        this->_data.insert("PRINTED_BYTES","0");
+        this->_data.insert("TOTAL_BYTES","0");
         this->_data.insert("IS_WAS_PRINTING","1");
         this->_data.insert("PRINTING_FILE",sp->GetFileName());
         this->_data.insert("IS_BUSY","0");
