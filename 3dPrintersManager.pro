@@ -34,6 +34,7 @@ SOURCES += \
     core/gcode/linenumber.cpp \
     core/gcode/m600.cpp \
     core/gcode/powersupply.cpp \
+    core/gcode/preprint.cpp \
     core/gcode/printingstats.cpp \
     core/gcode/reporttemperature.cpp \
     core/gcode/settemperatures.cpp \
@@ -76,6 +77,7 @@ HEADERS += \
     core/gcode/linenumber.h \
     core/gcode/m600.h \
     core/gcode/powersupply.h \
+    core/gcode/preprint.h \
     core/gcode/printingstats.h \
     core/gcode/reporttemperature.h \
     core/gcode/settemperatures.h \

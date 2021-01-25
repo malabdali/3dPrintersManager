@@ -7,6 +7,7 @@
 #include "./gcode/startprinting.h"
 #include "./gcode/stopsdprint.h"
 #include "./gcode/settemperatures.h"
+#include "./gcode/preprint.h"
 #include "chrono"
 #include <QDateTime>
 class PrintController:public DeviceComponent
@@ -22,16 +23,19 @@ enum Status:int{
     Printing=4,
     SendStopCommand=5,
     SendHeatOffCommand=6,
-    Stopped=7
+    Stopped=7,
+    PreprintPrepare=8
 };
 
 private://fields
 GCode::StartPrinting* _start_printing_command;
 GCode::StopSDPrint* _stop_printing_command;
 GCode::SetTemperatures* _set_temperatures_command;
+GCode::PrePrint* _preprint_command;
 QByteArray _file;
 uint32_t _printed_bytes,_total_bytes;
-uint _wanted_bed_temprature,_wanted_hottend_temperature;
+uint _wanted_bed_temprature,_wanted_hottend_temperature,_wanted_acceleration,_wanted_jerk,_wanted_fan_speed;
+double _wanted_extruder;
 Status _current_status,_wanted_status;
 int _current_line;
 bool _continue_print;
@@ -49,6 +53,10 @@ public:
     uint GetWantedBedTemperature();
     uint GetWantedHotendTemperature();
     uint GetLastLayer(int index);
+    double GetLastEValue(int index);
+    int GetLastFanSpeed(int index);
+    int GetLastAcceleration(int index);
+    int GetLastJerk(int index);
     double _bed_temperature,_hotend_temperature;
     bool CanContinuePrinting();
     bool IsPrinting();
