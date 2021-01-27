@@ -2,11 +2,12 @@
 #include <QByteArray>
 #include "../device.h"
 #include "../deviceport.h"
-GCode::PrePrint::PrePrint(Device* device,int fanSpeed,int acceleration,double ePosition,bool goHome,bool EAbsolute):GCodeCommand(device,"M106")
+GCode::PrePrint::PrePrint(Device* device,int fanSpeed,int acceleration,int jerk,double ePosition,bool goHome,bool EAbsolute):GCodeCommand(device,"M106")
 {
     _fan_speed=fanSpeed;
     _acceleration=acceleration;
     _go_home=goHome;
+    _jerk=jerk;
     _e_absolute=EAbsolute;
     _e_position=ePosition;
     _e_position_finished=false;
@@ -14,11 +15,14 @@ GCode::PrePrint::PrePrint(Device* device,int fanSpeed,int acceleration,double eP
     _go_home_finished=false;
     _acceleration_finished=false;
     _fan_speed_finished=false;
+    _jerk_finished=false;
 
     if(_fan_speed<0)
         _fan_speed_finished=true;
     if(_acceleration<0)
         _acceleration_finished=true;
+    if(_jerk<0)
+        _jerk_finished=true;
     if(_e_position<0)
         _e_position=true;
     if(!_go_home)
@@ -38,6 +42,8 @@ void GCode::PrePrint::InsideStart()
         _device->GetDevicePort()->Write(QByteArray("G92 E"+QByteArray::number(_e_position)+"\n"));
     else if(!_acceleration_finished)
         _device->GetDevicePort()->Write(QByteArray("M204 S"+QByteArray::number(_acceleration)+"\n"));
+    else if(!_jerk_finished)
+        _device->GetDevicePort()->Write(QByteArray("M205 X"+QByteArray::number(_jerk)+" Y"+QByteArray::number(_jerk)+"\n"));
     else if(!_go_home_finished)
         _device->GetDevicePort()->Write(QByteArray("G28 \n"));
 
@@ -66,11 +72,13 @@ void GCode::PrePrint::OnAvailableData(const QByteArray &ba)
         }
         else if(!_acceleration_finished){
             _acceleration_finished=true;
-            _device->GetDevicePort()->Write(QByteArray("G28 \n"));
-            Finish(true);
+            _device->GetDevicePort()->Write(QByteArray("M205 X"+QByteArray::number(_jerk)+" Y"+QByteArray::number(_jerk)+"\n"));
         }
-        else if(!_go_home_finished){
+        else if(!_jerk_finished){
+            _device->GetDevicePort()->Write(QByteArray("G28 \n"));
+            _jerk_finished=true;
             _go_home_finished=true;
+            Finish(true);
         }
     }
     else{

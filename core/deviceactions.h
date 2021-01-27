@@ -11,7 +11,7 @@ class DeviceActions : public DeviceComponent
 private://fields
     class Device* _device;
     bool _is_playing;
-    QTimer *_reconnect_timer, *_save_device_data_timer, *_m600_timer;
+    QTimer *_reconnect_timer, *_save_device_data_timer, *_stop_timer;
 public:
     explicit DeviceActions(Device *device);
     void Setup();
@@ -26,7 +26,7 @@ private slots:
     void SolveReconnectProblem();
     void SaveData();
     void WhenDeviceLoaded();
-    void SendM600();
+    void StopPrinting();
     void WhenPrintStatusChanged();
 
 signals:

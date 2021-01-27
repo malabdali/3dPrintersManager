@@ -202,7 +202,7 @@ double PrintController::GetLastEValue(int index)
 
 int PrintController::GetLastFanSpeed(int index)
 {
-    double fsvalue=0;
+    double fsvalue=-1;
     QByteArray val=this->LookForLastLine(0,index,"M106");
     qDebug()<<val.length();
     if(val.length()>0){
@@ -219,7 +219,7 @@ int PrintController::GetLastFanSpeed(int index)
 
 int PrintController::GetLastAcceleration(int index)
 {
-    double acvalue=0;
+    double acvalue=-1;
     QByteArray val=this->LookForLastLine(0,index,"M204");
     qDebug()<<val.length();
     if(val.length()>0){
@@ -236,7 +236,7 @@ int PrintController::GetLastAcceleration(int index)
 
 int PrintController::GetLastJerk(int index)
 {
-    double jvalue=0;
+    double jvalue=-1;
     QByteArray val=this->LookForLastLine(0,index,"M205");
     qDebug()<<val.length();
     if(val.length()>0){
@@ -263,7 +263,7 @@ bool PrintController::CanContinuePrinting()
 
 bool PrintController::IsPrinting()
 {
-    return _current_status==Printing;
+    return _current_status==Printing || _wanted_status==Printing;
 }
 
 QByteArrayList PrintController::LookForLines(int from, int to, QByteArray command)
@@ -314,7 +314,7 @@ void PrintController::PrintUpdate()
         return;
     if(_current_status==Status::PreprintPrepare){
         if(_preprint_command==nullptr){
-            _preprint_command=new GCode::PrePrint(_device,_wanted_fan_speed,_wanted_acceleration,_wanted_extruder,true,true);
+            _preprint_command=new GCode::PrePrint(_device,_wanted_fan_speed,_wanted_acceleration,_wanted_jerk,_wanted_extruder,true,true);
             _device->AddGCodeCommand(_preprint_command);
         }
     }
