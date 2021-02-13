@@ -52,6 +52,10 @@ public:
     void Repeat() override;
     void WantToCancel();
     void SetData(QJsonObject data) override;
+
+    // Task interface
+public:
+    void Stop() override;
 };
 
 #endif // PRINTTASK_H

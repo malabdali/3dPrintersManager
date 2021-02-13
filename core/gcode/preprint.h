@@ -12,12 +12,13 @@ class GCode::PrePrint : public GCodeCommand
 {
     Q_OBJECT
 private://fields
-    int _fan_speed,_acceleration,_jerk;
+    int _fan_speed;
     bool _go_home,_e_absolute;
     double _e_position;
-    bool _fan_speed_finished,_acceleration_finished,_e_absolute_finished,_go_home_finished,_e_position_finished,_jerk_finished;
+    QByteArray _maximum_feedrate_m203,_acceleration_m204,_max_acceleration_m201,_jerk_limits_m205;
+    bool _fan_speed_finished,_acceleration_finished,_e_absolute_finished,_go_home_finished,_e_position_finished,_jerk_finished,_max_feedrate_finished,_max_acceleration_finished;
 public:
-    explicit PrePrint(Device* device,int fanSpeed,int acceleration,int jerk,double ePosition,bool goHome,bool EAbsolute);
+    explicit PrePrint(Device* device,int fanSpeed,QByteArray acceleration,QByteArray jerkLimits,QByteArray maxAcceleration,QByteArray maxFeedrate,double ePosition,bool goHome,bool EAbsolute);
 
 
     // GCodeCommand interface

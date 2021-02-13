@@ -34,7 +34,8 @@ GCode::SetTemperatures* _set_temperatures_command;
 GCode::PrePrint* _preprint_command;
 QByteArray _file;
 uint32_t _printed_bytes,_total_bytes;
-uint _wanted_bed_temprature,_wanted_hottend_temperature,_wanted_acceleration,_wanted_jerk,_wanted_fan_speed;
+uint _wanted_bed_temprature,_wanted_hottend_temperature,_wanted_fan_speed;
+QByteArray _wanted_acceleration,_wanted_jerk,_max_feedrate,_max_acceleration;
 double _wanted_extruder;
 Status _current_status,_wanted_status;
 int _current_line;
@@ -42,7 +43,7 @@ bool _continue_print;
 QByteArray _file_content;
 int _timer_id;
 QDateTime _start_printing_time,_finished_printing_time;
-
+double _bed_temperature,_hotend_temperature;
 public:
     explicit PrintController(class Device*);
     void StartPrint(QByteArray file);
@@ -55,9 +56,10 @@ public:
     uint GetLastLayer(int index);
     double GetLastEValue(int index);
     int GetLastFanSpeed(int index);
-    int GetLastAcceleration(int index);
-    int GetLastJerk(int index);
-    double _bed_temperature,_hotend_temperature;
+    QByteArray GetLastAcceleration(int index);
+    QByteArray GetLastJerk(int index);
+    QByteArray GetMaxFeedRate(int index);
+    QByteArray GetMaxAcceleration(int index);
     bool CanContinuePrinting();
     bool IsPrinting();
 public:

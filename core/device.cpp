@@ -144,6 +144,8 @@ Device::DeviceStatus Device::GetStatus() const{
 
 bool Device::IsOpen() const
 {
+    if(_want_remove)
+        return false;
     return _device_port->IsOpen();
 }
 

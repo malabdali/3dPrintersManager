@@ -7,6 +7,7 @@ FileInfo::FileInfo(QByteArray name, QByteArray locale, QByteArray source)
     this->SetSourcePath(source);
     _name=name;
     _upload_percent=0;
+    _is_uploaded=false;
 
 }
 
@@ -51,6 +52,11 @@ const QFileInfo& FileInfo::GetSourceFileInfo() const
 double FileInfo::GetUploadPercent() const
 {
     return _upload_percent;
+}
+
+bool FileInfo::IsUploaded() const
+{
+    return _is_uploaded;
 }
 
 bool FileInfo::operator==(const FileInfo &fi)const

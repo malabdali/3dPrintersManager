@@ -110,19 +110,22 @@ QJsonValue RemoteServer::GetJSONValue(QNetworkReply *reply)
 
 void RemoteServer::RemoveRequest(QNetworkReply *reply)
 {
-    if(reply==nullptr)
-        return;
-    reply->close();
-    reply->abort();
-    reply->deleteLater();
-    this->_callbacks.remove(reply);
+    if(reply){
+        this->_callbacks.remove(reply);
+        reply->close();
+        reply->abort();
+        reply->deleteLater();
+    }
 }
 
 void RemoteServer::OnFinish(QNetworkReply *rep)
 {
-    _callbacks[rep](rep);
-    _callbacks.remove(rep);
-    emit Finished(rep);
+    if(_callbacks.contains(rep))
+    {
+        _callbacks[rep](rep);
+        _callbacks.remove(rep);
+        emit Finished(rep);
+    }
 }
 
 

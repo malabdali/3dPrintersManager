@@ -34,6 +34,7 @@ public:
     void Print();
     bool IsStillUploading();
     double GetUploadProgress();
+    FileInfo GetUploadedFileInfo(const QByteArray& ba);
     QList<QByteArray> GetFailedUploads();
     QList<FileInfo>& GetFileList();
     void StopUpload(QByteArray ba);

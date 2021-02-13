@@ -69,6 +69,7 @@ void Task::UpdateStatus()
 Task::~Task()
 {
     RemoteServer::GetInstance()->RemoveRequest(_network_reply);
+    qDebug()<<"Task::~Task()";
 }
 
 bool Task::IsStarted()
@@ -122,6 +123,11 @@ void Task::NextStep()
 void Task::SetData(QJsonObject data)
 {
     _data=data;
+}
+
+void Task::Stop()
+{
+
 }
 
 void Task::Repeat()

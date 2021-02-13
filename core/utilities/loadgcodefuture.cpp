@@ -36,7 +36,10 @@ QList<QByteArray> LoadGCodeFuture::LoadFile()
             continue;
         }
         if(line.contains("M109")|| line.contains("M190"))
-            continue;
+        {
+            line.replace("M109","M104");
+            line.replace("M190","M140");
+        }
         int index=line.indexOf(';');
         line.remove(index,line.length()-index);
         _data.append(line+" \n");

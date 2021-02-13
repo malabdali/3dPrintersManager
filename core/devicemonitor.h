@@ -18,7 +18,7 @@ private://fields
     class GCode::EndstopsStates* _end_stops;
     QMap<QByteArray,QByteArray> _data;
     bool _wait_device_stats;
-    int _printing_stat_timer,_temperatures_timer,_endstops_timer;
+    int _printing_stat_timer,_temperatures_timer,_endstops_timer,_monitor_timer;
     int _printing_stat_interval,_temperatures_interval,_endstops_interval;
     std::chrono::time_point<std::chrono::steady_clock> _last_update_during_busy;
 public:
@@ -55,6 +55,7 @@ private:
     bool CommandReader(GCodeCommand*);
 private slots:
     void WhenCommandFinished(GCodeCommand* , bool);
+    void WhenDeviceRemoved();
 
 signals:
     void updated();

@@ -60,17 +60,19 @@ void PrintController::ContinuePrint()
             _device->GetFileSystem()->ReadLocaleFile(QByteArray("files/")+_file,[this](const QByteArray& ba)->void{
                 _file_content=ba;
                 _printed_bytes=GetLastLayer(_printed_bytes);
-                qDebug()<<"ContinuePrint 1";
+                //qDebug()<<"ContinuePrint 1";
                 CalculateWantedTempratures(_printed_bytes);
-                qDebug()<<"ContinuePrint 2"<<_wanted_bed_temprature<<_wanted_hottend_temperature;
+                //qDebug()<<"ContinuePrint 2"<<_wanted_bed_temprature<<_wanted_hottend_temperature;
                 _wanted_fan_speed=GetLastFanSpeed(_printed_bytes);
-                qDebug()<<"ContinuePrint 3"<<_wanted_fan_speed;
+                //qDebug()<<"ContinuePrint 3"<<_wanted_fan_speed;
                 _wanted_extruder= GetLastEValue(_printed_bytes);
-                qDebug()<<"ContinuePrint 4"<<_wanted_extruder;
+                //qDebug()<<"ContinuePrint 4"<<_wanted_extruder;
                 _wanted_acceleration= GetLastAcceleration(_printed_bytes);
-                qDebug()<<"ContinuePrint 5"<<_wanted_acceleration;
+                //qDebug()<<"ContinuePrint 5"<<_wanted_acceleration;
                 _wanted_jerk=GetLastJerk(_printed_bytes);
-                qDebug()<<"ContinuePrint 6"<<_wanted_jerk;
+                //qDebug()<<"ContinuePrint 6"<<_wanted_jerk;
+                _max_acceleration=GetMaxAcceleration(_printed_bytes);
+                _max_feedrate=GetMaxFeedRate(_printed_bytes);
                 SetCurrentStatus(Status::PreprintPrepare);
                 _wanted_status=Printing;
                 emit WantedStatusChanged();
@@ -78,17 +80,19 @@ void PrintController::ContinuePrint()
         }
         else{
             _printed_bytes=GetLastLayer(_printed_bytes);
-            qDebug()<<"ContinuePrint 1";
+            //qDebug()<<"ContinuePrint 1";
             CalculateWantedTempratures(_printed_bytes);
-            qDebug()<<"ContinuePrint 2"<<_wanted_bed_temprature<<_wanted_hottend_temperature;
+            //qDebug()<<"ContinuePrint 2"<<_wanted_bed_temprature<<_wanted_hottend_temperature;
             _wanted_fan_speed=GetLastFanSpeed(_printed_bytes);
-            qDebug()<<"ContinuePrint 3"<<_wanted_fan_speed;
+            //qDebug()<<"ContinuePrint 3"<<_wanted_fan_speed;
             _wanted_extruder= GetLastEValue(_printed_bytes);
-            qDebug()<<"ContinuePrint 4"<<_wanted_extruder;
+            //qDebug()<<"ContinuePrint 4"<<_wanted_extruder;
             _wanted_acceleration= GetLastAcceleration(_printed_bytes);
-            qDebug()<<"ContinuePrint 5"<<_wanted_acceleration;
+            //qDebug()<<"ContinuePrint 5"<<_wanted_acceleration;
             _wanted_jerk=GetLastJerk(_printed_bytes);
-            qDebug()<<"ContinuePrint 6"<<_wanted_jerk;
+            //qDebug()<<"ContinuePrint 6"<<_wanted_jerk;
+            _max_acceleration=GetMaxAcceleration(_printed_bytes);
+            _max_feedrate=GetMaxFeedRate(_printed_bytes);
             SetCurrentStatus(Status::PreprintPrepare);
             _wanted_status=Printing;
             emit WantedStatusChanged();
@@ -109,14 +113,25 @@ void PrintController::CalculateWantedTempratures(int bytes)
     _wanted_hottend_temperature=0;
     QByteArray hotend="";
     QByteArray bed="";
-    qDebug()<<"CalculateWantedTempratures 1";
+    //qDebug()<<"CalculateWantedTempratures 1";
     if(bytes==0){
         hotend=this->LookForFirstLine(0,_file_content.size(),"M104");
+        if(hotend.isEmpty())
+            hotend=this->LookForFirstLine(0,_file_content.size(),"M109");
+
         bed=this->LookForFirstLine(0,_file_content.size(),"M140");
+        if(hotend.isEmpty())
+            bed=this->LookForFirstLine(0,_file_content.size(),"M190");
+
+
     }
     else{
         hotend=this->LookForLastLine(0,bytes,"M104");
+        if(hotend.isEmpty())
+            hotend=this->LookForFirstLine(0,bytes,"M109");
         bed=this->LookForLastLine(0,bytes,"M140");
+        if(hotend.isEmpty())
+            bed=this->LookForFirstLine(0,bytes,"M190");
     }
     qDebug()<<"CalculateWantedTempratures 2";
     std::match_results<QByteArray::iterator> res;
@@ -195,7 +210,7 @@ double PrintController::GetLastEValue(int index)
     std::regex_search(val.begin(),val.end(),res,regex);
     if(res.length()>0){
         evalue=std::stod(res[0].str());
-        qDebug()<<evalue;
+        qDebug()<<val<<evalue;
     }
     return evalue;
 }
@@ -204,51 +219,59 @@ int PrintController::GetLastFanSpeed(int index)
 {
     double fsvalue=-1;
     QByteArray val=this->LookForLastLine(0,index,"M106");
-    qDebug()<<val.length();
+    //qDebug()<<val.length();
     if(val.length()>0){
         std::match_results<QByteArray::iterator> res;
         std::regex regex(R"(S\d+)");
         std::regex_search(val.begin(),val.end(),res,regex);
         if(res.length()>0){
             fsvalue=std::stod(res[0].str().substr(1));
-            qDebug()<<fsvalue;
+            //qDebug()<<fsvalue;
         }
     }
     return fsvalue;
 }
 
-int PrintController::GetLastAcceleration(int index)
+QByteArray PrintController::GetLastAcceleration(int index)
 {
-    double acvalue=-1;
     QByteArray val=this->LookForLastLine(0,index,"M204");
-    qDebug()<<val.length();
+    //qDebug()<<val.length();
     if(val.length()>0){
-        std::match_results<QByteArray::iterator> res;
-        std::regex regex(R"(S\d+)");
-        std::regex_search(val.begin(),val.end(),res,regex);
-        if(res.length()>0){
-            acvalue=std::stod(res[0].str().substr(1));
-            qDebug()<<acvalue;
-        }
+        return val.mid(5);
     }
-    return acvalue;
+    return "";
 }
 
-int PrintController::GetLastJerk(int index)
+QByteArray PrintController::GetLastJerk(int index)
 {
-    double jvalue=-1;
-    QByteArray val=this->LookForLastLine(0,index,"M205");
-    qDebug()<<val.length();
-    if(val.length()>0){
-        std::match_results<QByteArray::iterator> res;
-        std::regex regex(R"(X\d+)");
-        std::regex_search(val.begin(),val.end(),res,regex);
-        if(res.length()>0){
-            jvalue=std::stod(res[0].str().substr(1));
-            qDebug()<<jvalue;
+    QByteArray val1=this->LookForFirstLine(0,index,"M205");
+    QByteArray val2=this->LookForLastLine(0,index,"M205");
+    if(val1.length()>0){
+        if(val1!=val2)
+        {
+            return val1.mid(5) + val2.mid(5);
         }
     }
-    return jvalue;
+    return "";
+}
+
+QByteArray PrintController::GetMaxFeedRate(int index)
+{
+
+    QByteArray val=this->LookForFirstLine(0,index,"M203");
+    if(val.length()>0){
+        return val.mid(5);
+    }
+    return "";
+}
+
+QByteArray PrintController::GetMaxAcceleration(int index)
+{
+    QByteArray val=this->LookForFirstLine(0,index,"M201");
+    if(val.length()>0){
+        return val.mid(5);
+    }
+    return "";
 }
 
 
@@ -314,7 +337,7 @@ void PrintController::PrintUpdate()
         return;
     if(_current_status==Status::PreprintPrepare){
         if(_preprint_command==nullptr){
-            _preprint_command=new GCode::PrePrint(_device,_wanted_fan_speed,_wanted_acceleration,_wanted_jerk,_wanted_extruder,true,true);
+            _preprint_command=new GCode::PrePrint(_device,_wanted_fan_speed,_wanted_acceleration,_wanted_jerk,_max_acceleration,_max_feedrate,_wanted_extruder,true,true);
             _device->AddGCodeCommand(_preprint_command);
         }
     }

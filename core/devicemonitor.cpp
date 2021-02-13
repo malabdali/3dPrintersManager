@@ -29,7 +29,7 @@ void DeviceMonitor::Setup(){
     _endstops_interval=DEVICE_MONITOR_END_STOPS_STAT_TIMER;
     _temperatures_interval=DEVICE_MONITOR_TEMPERATURE_STAT_TIMER;
     _last_update_during_busy=std::chrono::steady_clock::now();
-    this->startTimer(DEVICE_MONITOR_TIMER);
+    _monitor_timer=this->startTimer(DEVICE_MONITOR_TIMER);
 }
 bool DeviceMonitor::IsPrinting() const
 {
@@ -337,6 +337,11 @@ void DeviceMonitor::WhenCommandFinished(GCodeCommand* command, bool success)
     if(command==this->_end_stops)
         _end_stops=nullptr;
 
+}
+
+void DeviceMonitor::WhenDeviceRemoved()
+{
+    this->killTimer(this->_monitor_timer);
 }
 
 QJsonDocument DeviceMonitor::ToJson() const

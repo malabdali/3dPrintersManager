@@ -9,6 +9,7 @@
 #include <QJsonObject>
 #include "../devices.h"
 #include "../printcontroller.h"
+#include "../fileinfo.h"
 PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
 {
     _file=data["file"].toString().toUtf8();
@@ -21,7 +22,7 @@ PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
 
 void PrintTask::DownloadFile()
 {
-    if(_device->GetFileSystem()->GetLocaleFiles(DOWNLOAD_PATH,QByteArray{".G"}).contains(_file)){
+    if(!_device->GetFileSystem()->GetUploadedFileInfo(_file).GetFileName().isEmpty()){
         SetStatus(TaskStatus::Downloaded);
         emit DownloadFileSuccess();
         _wait=false;
@@ -36,7 +37,7 @@ void PrintTask::DownloadFile()
             QJsonArray array=RemoteServer::GetInstance()->GetJSONValue(nr).toArray();
             if(array.size()>0){
                 _file_info=array[0].toObject();
-                RemoteServer::GetInstance()->Download([this](QNetworkReply *reply)->void{
+                _download=RemoteServer::GetInstance()->Download([this](QNetworkReply *reply)->void{
                     if(RemoteServer::GetInstance()->DownloadIsSuccess(reply))
                     {
                         WhenDownloadFinished(reply->readAll());
@@ -47,6 +48,8 @@ void PrintTask::DownloadFile()
                         emit DownloadFileFailed();
                         NextStep();
                     }
+                    reply->deleteLater();
+                    _download=nullptr;
                 },_file);
             }
             else{
@@ -56,11 +59,11 @@ void PrintTask::DownloadFile()
             }
         }
         else{
+            _download=nullptr;
             _wait=false;
             emit DownloadFileFailed();
             NextStep();
         }
-        _download=nullptr;
         nr->deleteLater();
     });
 }
@@ -78,7 +81,7 @@ void PrintTask::UploadFile()
         _wait=false;
         return;
     }
-    if(_device->GetFileSystem()->GetFileList().contains(FileInfo(_file)))
+    if(!_device->GetFileSystem()->GetUploadedFileInfo(_file).GetFileName().isEmpty()&&_device->GetFileSystem()->GetUploadedFileInfo(_file).IsUploaded())
     {
         SetStatus(TaskStatus::Uploaded);
         _wait=false;
@@ -257,7 +260,7 @@ void PrintTask::WhenPrintControllerWantedChanged()
 
 PrintTask::~PrintTask()
 {
-    RemoteServer::GetInstance()->RemoveRequest(_download);
+    qDebug()<<"PrintTask::~PrintTask()";
 }
 
 
@@ -301,8 +304,10 @@ void PrintTask::Cancel()
 
 void PrintTask::Repeat()
 {
+    _wait=false;
     _want_to_cancel=false;
     _want_to_cancel_finished=false;
+    _download=nullptr;
     Task::Repeat();
 }
 
@@ -320,4 +325,11 @@ void PrintTask::SetData(QJsonObject data)
     }
 
     Task::SetData(data);
+}
+
+
+void PrintTask::Stop()
+{
+    if(_download)
+        RemoteServer::GetInstance()->RemoveRequest(_download);
 }

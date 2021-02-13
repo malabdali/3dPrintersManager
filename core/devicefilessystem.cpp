@@ -89,6 +89,15 @@ double DeviceFilesSystem::GetUploadProgress()
     return 0;
 }
 
+FileInfo DeviceFilesSystem::GetUploadedFileInfo(const QByteArray &ba)
+{
+    int i=_files.indexOf(FileInfo(ba));
+    if(i>-1)
+        return _files[i];
+    return FileInfo("");
+}
+
+
 QList<QByteArray> DeviceFilesSystem::GetFailedUploads()
 {
     return _failed_uploads;
@@ -225,14 +234,16 @@ void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
     }
     else{
         _line_number=0;
+        emit LineNumberUpdated(false);
         if(_wait_for_upload.length()>0)
         {
             for(QByteArray& ba:_wait_for_upload)
             {
                 StopUpload(ba);
+                _failed_uploads.append(QUrl(ba).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8());
+                emit UploadFileFailed(QUrl(ba).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8());
             }
         }
-        emit LineNumberUpdated(false);
     }
 }
 
@@ -287,9 +298,9 @@ void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
         if(_files.contains(FileInfo(list.keys()[i])))
             continue;
         FileInfo fi=FileInfo(list.keys()[i]);
-        fi.SetIsUploaded(true);
-        fi.SetUploadPercent(100.0);
         if(sl.filter(fi.GetFileName(),Qt::CaseInsensitive).length()>0){
+            fi.SetIsUploaded(true);
+            fi.SetUploadPercent(100.0);
             fi.SetLocalePath(GetLocaleDirectory(LOCALE_GCODE_PATH+sl.filter(fi.GetFileName(),Qt::CaseInsensitive)[0].toUtf8()));
         }
         _files.append(fi);
