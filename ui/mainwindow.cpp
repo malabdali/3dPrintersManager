@@ -10,6 +10,7 @@
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include "../core/system.h"
+#include "../core/camerasmanager.h"
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow),_devices_widget(new DevicesWidget()),_tasks_widget(nullptr)
@@ -71,3 +72,10 @@ void MainWindow::WhensShowTasksTrigerred()
     }
 }
 
+
+
+void MainWindow::on_actioncapture_toggled(bool arg1)
+{
+    if(arg1)CamerasManager::GetInstance()->Play();
+    else CamerasManager::GetInstance()->Pause();
+}

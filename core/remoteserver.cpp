@@ -1,5 +1,7 @@
 #include "remoteserver.h"
 #include "device.h"
+#include <QHttpMultiPart>
+#include <QFile>
 RemoteServer* RemoteServer::_singleton=nullptr;
 RemoteServer::RemoteServer(QObject *parent) : QObject(parent)
 {
@@ -72,6 +74,40 @@ QNetworkReply *RemoteServer::Download(std::function<void (QNetworkReply *)> call
     return reply;
 }
 
+QNetworkReply *RemoteServer::UploadImage(QString filePath, QString uploadPath, std::function<void (QNetworkReply *)> callback)
+{
+    QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+    QHttpPart textPart;
+    textPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant(QString("form-data; name=\"path\"")));
+    textPart.setBody(uploadPath.toUtf8());
+
+    QHttpPart imagePart;
+    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("image/jpg"));
+    imagePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant(QString("form-data; name=\"imageFile\"; filename=\"%1\"").arg(QUrl(filePath).fileName())));
+    QFile *file = new QFile(filePath);
+    file->open(QIODevice::ReadOnly);
+    qDebug()<<file->size();
+    imagePart.setBodyDevice(file);
+    file->setParent(multiPart); // we cannot delete the file now, so delete it with the multiPart
+
+    multiPart->append(textPart);
+    multiPart->append(imagePart);
+
+    QUrl url(QStringLiteral(REMOTE_SERVER_URL)+"Images/Upload");
+    QNetworkRequest request(url);
+
+    request.setRawHeader("user",REMOTE_SERVER_ADMIN_NAME);
+    request.setRawHeader("pass",REMOTE_SERVER_ADMIN_PASS);
+    QNetworkReply *reply = _network->post(request, multiPart);
+    qDebug()<<"send request";
+    multiPart->setParent(reply); // delete the multiPart with the reply
+
+    _callbacks.insert(reply,callback);
+    return reply;
+}
+
+
 bool RemoteServer::IsSuccess(QNetworkReply *reply)
 {
     if(reply->error()!=QNetworkReply::NoError)
@@ -122,6 +158,7 @@ void RemoteServer::OnFinish(QNetworkReply *rep)
 {
     if(_callbacks.contains(rep))
     {
+        qDebug()<<rep->peek(rep->size());
         _callbacks[rep](rep);
         _callbacks.remove(rep);
         emit Finished(rep);

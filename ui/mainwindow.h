@@ -25,6 +25,9 @@ private slots:
     void WhenNetworkInfoActionClicked();
     void WhenTaskManagerChanged();
     void WhensShowTasksTrigerred();
+
+    void on_actioncapture_toggled(bool arg1);
+
 private:
     Ui::MainWindow *ui;
 };

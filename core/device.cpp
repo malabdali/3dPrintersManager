@@ -17,10 +17,11 @@
 #include "deviceactions.h"
 #include "remoteserver.h"
 #include "printcontroller.h"
+#include "camera.h"
 
 Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),_port_thread(new QThread()),
     _fileSystem(new DeviceFilesSystem(this)),_device_port(new DevicePort(this)),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this)),
-    _device_monitor(new DeviceMonitor(this)),_device_actions(new DeviceActions(this)),_print_controller(new PrintController(this))
+    _device_monitor(new DeviceMonitor(this)),_device_actions(new DeviceActions(this)),_print_controller(new PrintController(this)),_camera(new Camera(this))
 {
     _port_detector=nullptr;
     qRegisterMetaType<Errors>();
@@ -45,6 +46,7 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _device_port->Setup();
     _problem_solver->Setup();
     _print_controller->Setup();
+    _camera->Setup();
 
     QObject::connect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
     QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);
@@ -393,6 +395,11 @@ PrintController *Device::GetPrintController()
     return _print_controller;
 }
 
+Camera *Device::GetCamera()
+{
+    return _camera;
+}
+
 void Device::Remove()
 {
     emit DeviceRemoved();
@@ -410,6 +417,8 @@ void Device::Load()
         _device_data=QJsonDocument::fromJson(data);
         emit this->DeviceDataLoaded();
         emit AfterDeviceDataLoaded();
+        if(!_device_actions->IsPlaying())
+            _device_actions->Play();
     });
 }
 

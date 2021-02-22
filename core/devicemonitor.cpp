@@ -341,6 +341,7 @@ void DeviceMonitor::WhenCommandFinished(GCodeCommand* command, bool success)
 
 void DeviceMonitor::WhenDeviceRemoved()
 {
+    Pause();
     this->killTimer(this->_monitor_timer);
 }
 

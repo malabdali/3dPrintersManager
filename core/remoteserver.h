@@ -31,6 +31,8 @@ public:
     QNetworkReply* SendInsertQuery(std::function<void(QNetworkReply*)> callback,QString table,QVariantMap data);
     QNetworkReply *SendDeleteQuery(std::function<void(QNetworkReply*)> callback,QString table,QByteArray id);
     QNetworkReply *Download(std::function<void(QNetworkReply*)> callback,QString path);
+    QNetworkReply *UploadImage(QString file,QString uploadPath,std::function<void(QNetworkReply*)> callback);
+
     bool IsSuccess(QNetworkReply* reply);
     QJsonValue GetJSONValue(QNetworkReply* reply);
     void RemoveRequest(QNetworkReply* reply);

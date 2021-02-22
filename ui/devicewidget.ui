@@ -863,6 +863,11 @@
     <string>printer control</string>
    </property>
   </action>
+  <action name="_camera_settings_action">
+   <property name="text">
+    <string>Camera Settings</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="../resources/images.qrc"/>

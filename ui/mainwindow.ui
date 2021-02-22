@@ -24,7 +24,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuTools">
@@ -41,7 +41,18 @@
     <addaction name="_task_manager_action"/>
     <addaction name="_show_tasks_window_action"/>
    </widget>
+   <widget class="QMenu" name="menucamera">
+    <property name="title">
+     <string>camera</string>
+    </property>
+    <property name="icon">
+     <iconset resource="../resources/images.qrc">
+      <normaloff>:/icon/images/camera.png</normaloff>:/icon/images/camera.png</iconset>
+    </property>
+    <addaction name="actioncapture"/>
+   </widget>
    <addaction name="menuTools"/>
+   <addaction name="menucamera"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="_network_action">
@@ -77,6 +88,14 @@
    </property>
    <property name="text">
     <string>show tasks window</string>
+   </property>
+  </action>
+  <action name="actioncapture">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>enable camera captures</string>
    </property>
   </action>
  </widget>

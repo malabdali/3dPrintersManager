@@ -1,4 +1,4 @@
-QT       += core gui serialport network
+QT       += core gui serialport network multimedia
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -17,6 +17,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     config.h \
+    core/camera.cpp \
+    core/camerasmanager.cpp \
     core/device.cpp \
     core/deviceactions.cpp \
     core/devicecomponent.cpp \
@@ -50,6 +52,7 @@ SOURCES += \
     core/tasks/tasksmanager.cpp \
     core/utilities/loadgcodefuture.cpp \
     main.cpp \
+    ui/camerawidget.cpp \
     ui/deviceswidget.cpp \
     ui/devicewidget.cpp \
     ui/filessystemwidget.cpp \
@@ -60,6 +63,8 @@ SOURCES += \
     ui/taskswidget.cpp
 
 HEADERS += \
+    core/camera.h \
+    core/camerasmanager.h \
     core/device.h \
     core/deviceactions.h \
     core/devicecomponent.h \
@@ -92,6 +97,7 @@ HEADERS += \
     core/tasks/task.h \
     core/tasks/tasksmanager.h \
     core/utilities/loadgcodefuture.h \
+    ui/camerawidget.h \
     ui/deviceswidget.h \
     ui/devicewidget.h \
     ui/filessystemwidget.h \
@@ -102,6 +108,7 @@ HEADERS += \
     ui/taskswidget.h
 
 FORMS += \
+    ui/camerawidget.ui \
     ui/deviceswidget.ui \
     ui/devicewidget.ui \
     ui/filessystemwidget.ui \

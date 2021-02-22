@@ -28,6 +28,7 @@ private slots:
     void WhenDeviceLoaded();
     void StopPrinting();
     void WhenPrintStatusChanged();
+    void WhenDeviceRemoved();
 
 signals:
 

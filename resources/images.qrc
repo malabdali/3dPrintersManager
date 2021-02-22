@@ -13,5 +13,6 @@
         <file>images/played.png</file>
         <file>images/wait.png</file>
         <file>images/done.png</file>
+        <file>images/camera.png</file>
     </qresource>
 </RCC>

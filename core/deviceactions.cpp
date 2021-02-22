@@ -9,12 +9,19 @@
 DeviceActions::DeviceActions(Device *device) : DeviceComponent(device),_device(device),_reconnect_timer(new QTimer(this)),_save_device_data_timer(new QTimer(this)),
     _stop_timer(new QTimer(this))
 {
-    _is_playing=true;
     _reconnect_timer->setSingleShot(true);
     _stop_timer->setSingleShot(true);
+    _is_playing=false;
 }
 
 void DeviceActions::Setup(){
+    _device->Load();
+}
+
+void DeviceActions::Play()
+{
+    _is_playing=true;
+
     connect(_reconnect_timer,&QTimer::timeout,this,&DeviceActions::SolveReconnectProblem);
     connect(_stop_timer,&QTimer::timeout,this,&DeviceActions::StopPrinting);
     connect(_save_device_data_timer,&QTimer::timeout,this,&DeviceActions::SaveData);
@@ -24,18 +31,23 @@ void DeviceActions::Setup(){
     connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceActions::WhenSolveProblemFinished);
     connect(_device,&Device::DeviceDataLoaded,this,&DeviceActions::WhenDeviceLoaded);
     connect(_device->GetPrintController(),&PrintController::StatusChanged,this,&DeviceActions::WhenPrintStatusChanged);
-    _device->Load();
-}
-
-void DeviceActions::Play()
-{
-    _is_playing=true;
+    connect(_device,&Device::DeviceRemoved,this,&DeviceActions::WhenDeviceRemoved);
 }
 
 void DeviceActions::Pause()
 {
     _is_playing=false;
     _reconnect_timer->stop();
+
+    disconnect(_reconnect_timer,&QTimer::timeout,this,&DeviceActions::SolveReconnectProblem);
+    disconnect(_stop_timer,&QTimer::timeout,this,&DeviceActions::StopPrinting);
+    disconnect(_save_device_data_timer,&QTimer::timeout,this,&DeviceActions::SaveData);
+    disconnect(_device->GetDeviceMonitor(),&DeviceMonitor::updated,this,&DeviceActions::WhenMonitorUpdated);
+    disconnect(_device,&Device::CommandFinished,this,&DeviceActions::WhenCommandFinished);
+    disconnect(this->_device->GetProblemSolver(),&DeviceProblemSolver::ProblemDetected,this,&DeviceActions::WhenProblemDetected);
+    disconnect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceActions::WhenSolveProblemFinished);
+    disconnect(_device,&Device::DeviceDataLoaded,this,&DeviceActions::WhenDeviceLoaded);
+    disconnect(_device->GetPrintController(),&PrintController::StatusChanged,this,&DeviceActions::WhenPrintStatusChanged);
 }
 
 bool DeviceActions::IsPlaying()
@@ -111,4 +123,9 @@ void DeviceActions::StopPrinting()
 void DeviceActions::WhenPrintStatusChanged()
 {
     _device->Save();
+}
+
+void DeviceActions::WhenDeviceRemoved()
+{
+    Pause();
 }

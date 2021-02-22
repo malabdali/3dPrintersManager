@@ -18,6 +18,7 @@ private://fields
     FilesSystemWidget *_files_widget;
     class SerialWidget *_serial_widget;
     class PrinterControl *_printer_control_widget;
+    class CameraWidget *_camera_widget;
 public:
     explicit DeviceWidget(Device* device,QWidget *parent = nullptr);
     void Update();
@@ -54,6 +55,7 @@ private slots:
     void on__control_action_triggered();
     void on__stop_print_button_clicked();
     void on__continue_print_button_clicked();
+    void on__camera_settings_action_triggered();
 };
 
 #endif // DEVICEWIDGET_H

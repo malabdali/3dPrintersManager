@@ -63,6 +63,7 @@ private://fields
     class DeviceMonitor* _device_monitor;
     class DeviceActions* _device_actions;
     class PrintController* _print_controller;
+    class Camera* _camera;
 
 
 public:
@@ -84,6 +85,7 @@ public:
     DeviceProblemSolver *GetProblemSolver()const;
     DeviceMonitor *GetDeviceMonitor();
     PrintController *GetPrintController();
+    Camera *GetCamera();
     //json data
     void Load();
     void Save();

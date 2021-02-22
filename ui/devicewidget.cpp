@@ -17,6 +17,7 @@
 #include <QVBoxLayout>
 #include "../core/system.h"
 #include "../core/printcontroller.h"
+#include "camerawidget.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -25,6 +26,7 @@ DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     _serial_widget=nullptr;
     _files_widget=nullptr;
     _printer_control_widget=nullptr;
+    _camera_widget=nullptr;
     if(device){
         connect(device->GetDeviceMonitor(),&DeviceMonitor::updated,this,&DeviceWidget::WhenMonitorUpdated);
     }
@@ -343,6 +345,7 @@ void DeviceWidget::ShowContextMenu(const QPoint &pos)
         contextMenu.addAction(ui->_gcode_action);
         contextMenu.addAction(ui->_control_action);
     }
+    contextMenu.addAction(ui->_camera_settings_action);
     contextMenu.exec(mapToGlobal(pos));
 }
 
@@ -428,7 +431,7 @@ void DeviceWidget::on__gcode_action_triggered()
 void DeviceWidget::on__control_action_triggered()
 {
 
-    if(_files_widget){
+    if(_printer_control_widget){
         _printer_control_widget->show();
         _printer_control_widget->raise();
         return;
@@ -439,7 +442,7 @@ void DeviceWidget::on__control_action_triggered()
     _printer_control_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
     _printer_control_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _printer_control_widget->show();
-    QObject::connect(_files_widget,&QWidget::destroyed,this,[this]{_printer_control_widget=nullptr;});
+    QObject::connect(_printer_control_widget,&QWidget::destroyed,this,[this]{_printer_control_widget=nullptr;});
 }
 
 void DeviceWidget::on__stop_print_button_clicked()
@@ -451,4 +454,20 @@ void DeviceWidget::on__stop_print_button_clicked()
 void DeviceWidget::on__continue_print_button_clicked()
 {
     _device->GetPrintController()->ContinuePrint();
+}
+
+void DeviceWidget::on__camera_settings_action_triggered()
+{
+    if(_camera_widget){
+        _camera_widget->show();
+        _camera_widget->raise();
+        return;
+    }
+    _camera_widget=new CameraWidget(this->_device);
+    _camera_widget->setParent(this->window(),Qt::WindowType::Window);
+    _camera_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " camera settings");
+    _camera_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
+    _camera_widget->setWindowModality(Qt::WindowModality::WindowModal);
+    _camera_widget->show();
+    QObject::connect(_camera_widget,&QWidget::destroyed,this,[this]{_camera_widget=nullptr;});
 }

@@ -16,6 +16,11 @@
 #define WAIT_BEFORE_M600 30000
 #define PRINT_CONTROLLER_TIMER 1000
 
+//camera configs
+#define CAPTURE_CAMERA_FILE_NAME "capture.jpg"
+#define CAPTURE_CAMERA_UPLOAD_PATH "captures/%1.jpg"
+#define CAPTURE_ALL_CAMERAS_TIMER 10000
+
 //general configs
 #define REMOTE_SERVER_URL "http://185.247.117.33:8081/"//"http://185.247.117.33:8081/"
 #define REMOTE_SERVER_ADMIN_NAME "3dPrinters"
