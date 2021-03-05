@@ -69,7 +69,6 @@ void Task::UpdateStatus()
 Task::~Task()
 {
     RemoteServer::GetInstance()->RemoveRequest(_network_reply);
-    qDebug()<<"Task::~Task()";
 }
 
 bool Task::IsStarted()

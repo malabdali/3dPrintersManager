@@ -4,13 +4,14 @@
 #include <QObject>
 #include "devicecomponent.h"
 #include <QTimer>
+#include "device.h"
 
 class DeviceActions : public DeviceComponent
 {
     Q_OBJECT
 private://fields
     class Device* _device;
-    bool _is_playing;
+    bool _is_playing,_device_data_loaded;
     QTimer *_reconnect_timer, *_save_device_data_timer, *_stop_timer;
 public:
     explicit DeviceActions(Device *device);
@@ -29,6 +30,7 @@ private slots:
     void StopPrinting();
     void WhenPrintStatusChanged();
     void WhenDeviceRemoved();
+    void WhenDeviceStatusChanged();
 
 signals:
 

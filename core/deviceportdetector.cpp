@@ -72,6 +72,10 @@ void DevicePortDetector::StartDetect()
     }
 }
 
+DevicePortDetector::~DevicePortDetector()
+{
+}
+
 void DevicePortDetector::DetectPortProcessing()
 {
     QByteArray device_name=QByteArray(":")+_device_name+" ";

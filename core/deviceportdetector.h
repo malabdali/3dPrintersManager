@@ -25,6 +25,7 @@ public:
     explicit DevicePortDetector(QByteArray deviceName,quint32 baudRate, class Device* device);
     void timerEvent(QTimerEvent *event) override;
     void StartDetect();
+    ~DevicePortDetector();
 
 signals:
     void DetectPortFinished(QByteArray);

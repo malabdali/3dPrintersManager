@@ -42,9 +42,9 @@ GCode::PrePrint::PrePrint(Device* device,int fanSpeed,QByteArray acceleration,QB
 
 void GCode::PrePrint::InsideStart()
 {
-    qDebug()<<QByteArray("M106 S"+QByteArray::number(_fan_speed))<<QByteArray("M82 \n")<<QByteArray("G92 E"+QByteArray::number(_e_position)+"\n")<<
+    /*qDebug()<<QByteArray("M106 S"+QByteArray::number(_fan_speed))<<QByteArray("M82 \n")<<QByteArray("G92 E"+QByteArray::number(_e_position)+"\n")<<
               QByteArray("M201 "+this->_max_acceleration_m201+"\n")<<QByteArray("M203 "+this->_maximum_feedrate_m203+"\n")<<
-              QByteArray("M204 "+this->_acceleration_m204+"\n")<<QByteArray("M205 "+_jerk_limits_m205+"\n")<<QByteArray("G28 \n");
+              QByteArray("M204 "+this->_acceleration_m204+"\n")<<QByteArray("M205 "+_jerk_limits_m205+"\n")<<QByteArray("G28 \n");*/
     if(!_fan_speed_finished)
         _device->GetDevicePort()->Write(QByteArray("M106 S"+QByteArray::number(_fan_speed)+"\n"));
     else if(!_e_absolute_finished)

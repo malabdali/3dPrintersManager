@@ -260,7 +260,6 @@ void PrintTask::WhenPrintControllerWantedChanged()
 
 PrintTask::~PrintTask()
 {
-    qDebug()<<"PrintTask::~PrintTask()";
 }
 
 

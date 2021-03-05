@@ -90,13 +90,9 @@ void TasksManager::RemoveTask(Task *task)
     {
         task->Stop();
         _tasks.removeAll(task);
-        qDebug()<<"remove task 1";
         _started_tasks.removeAll(task);
-        qDebug()<<"remove task 2";
         _finished_tasks.removeAll(task);
-        qDebug()<<"remove task 3";
         emit OnTaskRemoved(task);
-        qDebug()<<"remove task 4";
         task->deleteLater();
     }
 }

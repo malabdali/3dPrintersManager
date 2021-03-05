@@ -87,7 +87,6 @@ QNetworkReply *RemoteServer::UploadImage(QString filePath, QString uploadPath, s
     imagePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant(QString("form-data; name=\"imageFile\"; filename=\"%1\"").arg(QUrl(filePath).fileName())));
     QFile *file = new QFile(filePath);
     file->open(QIODevice::ReadOnly);
-    qDebug()<<file->size();
     imagePart.setBodyDevice(file);
     file->setParent(multiPart); // we cannot delete the file now, so delete it with the multiPart
 
@@ -100,7 +99,6 @@ QNetworkReply *RemoteServer::UploadImage(QString filePath, QString uploadPath, s
     request.setRawHeader("user",REMOTE_SERVER_ADMIN_NAME);
     request.setRawHeader("pass",REMOTE_SERVER_ADMIN_PASS);
     QNetworkReply *reply = _network->post(request, multiPart);
-    qDebug()<<"send request";
     multiPart->setParent(reply); // delete the multiPart with the reply
 
     _callbacks.insert(reply,callback);
@@ -158,7 +156,6 @@ void RemoteServer::OnFinish(QNetworkReply *rep)
 {
     if(_callbacks.contains(rep))
     {
-        qDebug()<<rep->peek(rep->size());
         _callbacks[rep](rep);
         _callbacks.remove(rep);
         emit Finished(rep);

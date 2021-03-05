@@ -60,17 +60,11 @@ void PrintController::ContinuePrint()
             _device->GetFileSystem()->ReadLocaleFile(QByteArray("files/")+_file,[this](const QByteArray& ba)->void{
                 _file_content=ba;
                 _printed_bytes=GetLastLayer(_printed_bytes);
-                //qDebug()<<"ContinuePrint 1";
                 CalculateWantedTempratures(_printed_bytes);
-                //qDebug()<<"ContinuePrint 2"<<_wanted_bed_temprature<<_wanted_hottend_temperature;
                 _wanted_fan_speed=GetLastFanSpeed(_printed_bytes);
-                //qDebug()<<"ContinuePrint 3"<<_wanted_fan_speed;
                 _wanted_extruder= GetLastEValue(_printed_bytes);
-                //qDebug()<<"ContinuePrint 4"<<_wanted_extruder;
                 _wanted_acceleration= GetLastAcceleration(_printed_bytes);
-                //qDebug()<<"ContinuePrint 5"<<_wanted_acceleration;
                 _wanted_jerk=GetLastJerk(_printed_bytes);
-                //qDebug()<<"ContinuePrint 6"<<_wanted_jerk;
                 _max_acceleration=GetMaxAcceleration(_printed_bytes);
                 _max_feedrate=GetMaxFeedRate(_printed_bytes);
                 SetCurrentStatus(Status::PreprintPrepare);
@@ -80,17 +74,11 @@ void PrintController::ContinuePrint()
         }
         else{
             _printed_bytes=GetLastLayer(_printed_bytes);
-            //qDebug()<<"ContinuePrint 1";
             CalculateWantedTempratures(_printed_bytes);
-            //qDebug()<<"ContinuePrint 2"<<_wanted_bed_temprature<<_wanted_hottend_temperature;
             _wanted_fan_speed=GetLastFanSpeed(_printed_bytes);
-            //qDebug()<<"ContinuePrint 3"<<_wanted_fan_speed;
             _wanted_extruder= GetLastEValue(_printed_bytes);
-            //qDebug()<<"ContinuePrint 4"<<_wanted_extruder;
             _wanted_acceleration= GetLastAcceleration(_printed_bytes);
-            //qDebug()<<"ContinuePrint 5"<<_wanted_acceleration;
             _wanted_jerk=GetLastJerk(_printed_bytes);
-            //qDebug()<<"ContinuePrint 6"<<_wanted_jerk;
             _max_acceleration=GetMaxAcceleration(_printed_bytes);
             _max_feedrate=GetMaxFeedRate(_printed_bytes);
             SetCurrentStatus(Status::PreprintPrepare);
@@ -113,7 +101,6 @@ void PrintController::CalculateWantedTempratures(int bytes)
     _wanted_hottend_temperature=0;
     QByteArray hotend="";
     QByteArray bed="";
-    //qDebug()<<"CalculateWantedTempratures 1";
     if(bytes==0){
         hotend=this->LookForFirstLine(0,_file_content.size(),"M104");
         if(hotend.isEmpty())
@@ -133,10 +120,8 @@ void PrintController::CalculateWantedTempratures(int bytes)
         if(hotend.isEmpty())
             bed=this->LookForFirstLine(0,bytes,"M190");
     }
-    qDebug()<<"CalculateWantedTempratures 2";
     std::match_results<QByteArray::iterator> res;
     std::regex regex(R"(S\d+)");
-    qDebug()<<"CalculateWantedTempratures 3";
     if(!hotend.isEmpty())
     {
         std::regex_search(hotend.begin(),hotend.end(),res,regex);
@@ -190,9 +175,7 @@ uint PrintController::GetLastLayer(int last)
         return 0;
     QByteArray ba=_file_content.left(last+1);
     int zindex=ba.lastIndexOf('Z');
-    qDebug()<<"zindex "<<zindex;
     int nindex=ba.left(zindex).lastIndexOf('\n');
-    qDebug()<<"nindex "<<nindex;
     return nindex;
 }
 
@@ -210,7 +193,6 @@ double PrintController::GetLastEValue(int index)
     std::regex_search(val.begin(),val.end(),res,regex);
     if(res.length()>0){
         evalue=std::stod(res[0].str());
-        qDebug()<<val<<evalue;
     }
     return evalue;
 }
@@ -219,14 +201,12 @@ int PrintController::GetLastFanSpeed(int index)
 {
     double fsvalue=-1;
     QByteArray val=this->LookForLastLine(0,index,"M106");
-    //qDebug()<<val.length();
     if(val.length()>0){
         std::match_results<QByteArray::iterator> res;
         std::regex regex(R"(S\d+)");
         std::regex_search(val.begin(),val.end(),res,regex);
         if(res.length()>0){
             fsvalue=std::stod(res[0].str().substr(1));
-            //qDebug()<<fsvalue;
         }
     }
     return fsvalue;
@@ -235,7 +215,6 @@ int PrintController::GetLastFanSpeed(int index)
 QByteArray PrintController::GetLastAcceleration(int index)
 {
     QByteArray val=this->LookForLastLine(0,index,"M204");
-    //qDebug()<<val.length();
     if(val.length()>0){
         return val.mid(5);
     }
@@ -398,7 +377,6 @@ void PrintController::SetCurrentStatus(PrintController::Status status)
 {
     bool changed=_current_status!=status;
     _current_status=status;
-    qDebug()<<status;
     switch (status) {
     case PrintController::Nothing:
         _device->GetDeviceMonitor()->ResetIntervals();
@@ -444,7 +422,6 @@ void PrintController::WhenCommandFinished(GCodeCommand *command, bool success)
     else if(_preprint_command==command){
         if(success)
         {
-            qDebug()<<"preprint success";
             SetCurrentStatus(SendHeatUpCommands);
         }
         _preprint_command=nullptr;
@@ -495,7 +472,6 @@ void PrintController::WhenMonitorUpdated()
         _printed_bytes=monitor->GetPrintedBytes();
         _total_bytes=monitor->GetTotalBytes();
         this->SetCurrentStatus(Printing);
-        qDebug()<<_printed_bytes<<_total_bytes;
     }
     else if(_wanted_status!=Printing && (_current_status==HeatUp||_current_status==SendPrintCommand||_current_status==SendHeatUpCommands)){
         if(_wanted_status!=Stopped)

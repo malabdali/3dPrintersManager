@@ -23,15 +23,12 @@ void CamerasManager::StartCaptureAllDevicesCameras()
     }
     this->_start_capture=true;
     StartNextCapture();
-
-    qDebug()<<"CamerasManager::StartCaptureAllDevicesCameras"<<_cameras.length();
 }
 
 void CamerasManager::Play()
 {
     if(_is_played)
         return;
-    qDebug()<<"CamerasManager::Play";
     _is_played=true;
     this->_cpture_timer_id=this->startTimer(CAPTURE_ALL_CAMERAS_TIMER);
 }

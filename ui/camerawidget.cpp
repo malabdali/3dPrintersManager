@@ -31,7 +31,6 @@ void CameraWidget::on__save_button_clicked()
 
 void CameraWidget::WhenImageCaptured(QPixmap pixmap)
 {
-    qDebug()<<"image captured";
     ui->_capture_window->setPixmap(pixmap);
     _device->GetCamera()->UploadImage();
 

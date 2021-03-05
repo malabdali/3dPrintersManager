@@ -417,8 +417,6 @@ void Device::Load()
         _device_data=QJsonDocument::fromJson(data);
         emit this->DeviceDataLoaded();
         emit AfterDeviceDataLoaded();
-        if(!_device_actions->IsPlaying())
-            _device_actions->Play();
     });
 }
 

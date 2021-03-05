@@ -340,6 +340,11 @@ void DeviceFilesSystem::SaveLocaleFile(const QString &path, const QByteArray &da
     {
         dir.mkpath(".");
     }
+    QFutureWatcher<bool>* fw=new QFutureWatcher<bool>(this);
+    QObject::connect(fw,&QFutureWatcher<bool>::finished,[fw,callback]{
+        fw->deleteLater();
+        callback(fw->result());
+    });
     QFuture<bool> _future=QtConcurrent::run([data,path=path2]()->bool{
         QFile file(path);
         if(file.open(QIODevice::WriteOnly))
@@ -351,11 +356,6 @@ void DeviceFilesSystem::SaveLocaleFile(const QString &path, const QByteArray &da
         else{
             return false;
         }
-    });
-    QFutureWatcher<bool>* fw=new QFutureWatcher<bool>(this);
-    QObject::connect(fw,&QFutureWatcher<bool>::finished,[fw,callback]{
-        fw->deleteLater();
-        callback(fw->result());
     });
     fw->setFuture(_future);
 }
@@ -370,6 +370,11 @@ bool DeviceFilesSystem::DeleteLocaleFile(const QByteArray &path)
 void DeviceFilesSystem::ReadLocaleFile(const QByteArray &path, std::function<void (QByteArray)> callback)
 {
     QString path2=GetLocaleDirectory(path);
+    QFutureWatcher<QByteArray>* fw=new QFutureWatcher<QByteArray>(this);
+    QObject::connect(fw,&QFutureWatcher<bool>::finished,[fw,callback]{
+        fw->deleteLater();
+        callback(fw->result());
+    });
     QFuture<QByteArray> _future=QtConcurrent::run([path2]()->QByteArray{
                                                       QFile file(path2);
                                                       if(file.open(QIODevice::ReadOnly))
@@ -382,24 +387,19 @@ void DeviceFilesSystem::ReadLocaleFile(const QByteArray &path, std::function<voi
                                                           return QByteArray();
                                                       }
                                                   });
-    QFutureWatcher<QByteArray>* fw=new QFutureWatcher<QByteArray>(this);
-    QObject::connect(fw,&QFutureWatcher<bool>::finished,[fw,callback]{
-        fw->deleteLater();
-        callback(fw->result());
-    });
     fw->setFuture(_future);
 }
 
 void DeviceFilesSystem::CopyLocaleFile(const QByteArray &fpath, const QByteArray &tpath, std::function<void (bool)> callback)
 {
     QString path2=GetLocaleDirectory(tpath);
-    QFuture<bool> _future=QtConcurrent::run([path2,fpath]()->bool{
-        return QFile::copy(fpath,path2);
-    });
     QFutureWatcher<bool>* fw=new QFutureWatcher<bool>(this);
     QObject::connect(fw,&QFutureWatcher<bool>::finished,[fw,callback]{
         fw->deleteLater();
         callback(fw->result());
+    });
+    QFuture<bool> _future=QtConcurrent::run([path2,fpath]()->bool{
+        return QFile::copy(fpath,path2);
     });
     fw->setFuture(_future);
 }
