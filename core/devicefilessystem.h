@@ -57,6 +57,7 @@ signals:
     void UploadFileFailed(QByteArray);
     void FileListUpdated();
     void LineNumberUpdated(bool);
+    void SdSupportChanged(bool);
 
 private slots:
     void WhenDeviceReady(Device::DeviceStatus b);

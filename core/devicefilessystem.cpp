@@ -316,8 +316,8 @@ void DeviceFilesSystem::WhenDeviceRemoved()
 }
 
 void DeviceFilesSystem::SetSdSupported(bool b){
-
     _sd_supported=b;
+    SdSupportChanged(b);
 }
 
 void DeviceFilesSystem::CallFunction(const char* function)

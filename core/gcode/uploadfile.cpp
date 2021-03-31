@@ -3,6 +3,7 @@
 #include "QTimer"
 #include "../deviceport.h"
 #include "../device.h"
+#include "../../config.h"
 GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine):
     GCodeCommand(device,"M28"),_file_name(fileName),_file_size(0),_data(data),_first_line(firstLine)
 {
@@ -19,7 +20,12 @@ GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArra
 void GCode::UploadFile::InsideStart()
 {
     _end_timer=new QTimer(this);
-    _end_timer->moveToThread(this->thread());
+    _send_timer=new QTimer(this);
+    _send_timer->setSingleShot(true);
+
+    //_end_timer->moveToThread(this->thread());
+    //_send_timer->moveToThread(this->thread());
+    QObject::connect(_send_timer,&QTimer::timeout,this,&UploadFile::Send);
     QObject::connect(_end_timer,&QTimer::timeout,this,&UploadFile::Send29);
     for(QByteArray& ba :_data)
     {
@@ -123,6 +129,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
             }
         }
         _device->GetDevicePort()->Clear();
+        if(_send_timer->isActive())_send_timer->stop();
         _resend=true;
         uint32_t ln=ba.mid(8).simplified().trimmed().toUInt()-_first_line;
         if(ln>=_counter)
@@ -165,8 +172,7 @@ void GCode::UploadFile::OnAllDataWritten(bool success)
         }
         else if(!_resend)
         {
-            Send();
-            //QTimer::singleShot(_data[_counter].length()/20,this,&UploadFile::Send);
+            _send_timer->start(_data[_counter].length()/UPLOAD_SEND_WAIT_TIME_DEVIDER);
         }
 
     }

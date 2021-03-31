@@ -18,6 +18,7 @@ FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
     ui->_delete_file_button->setVisible(false);
     ui->_print_button->setVisible(false);
     OnFileListUpdated();
+    _wanted_order="";
     this->startTimer(1000);
 }
 
@@ -39,6 +40,13 @@ void FilesSystemWidget::timerEvent(QTimerEvent *event)
 
 void FilesSystemWidget::on__update_files_button_clicked()
 {
+    if(!_device->GetFileSystem()->SdSupported() && _wanted_order.isEmpty()){
+        QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::SdSupportChanged,this,&FilesSystemWidget::WhenSdSupportChanged);
+        QObject::connect(_device,&Device::DeviceStatsUpdateFailed,this,&FilesSystemWidget::WhenUpdateDeviceStatsFailed);
+        _wanted_order="update_list";
+        _device->UpdateDeviceStats();
+        return;
+    }
     this->_device->GetFileSystem()->UpdateFileList();
 }
 
@@ -114,6 +122,13 @@ void FilesSystemWidget::on__delete_file_button_clicked()
 
 void FilesSystemWidget::on__upload_file_button_clicked()
 {
+    if(!_device->GetFileSystem()->SdSupported()&&  _wanted_order.isEmpty()){
+        QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::SdSupportChanged,this,&FilesSystemWidget::WhenSdSupportChanged);
+        QObject::connect(_device,&Device::DeviceStatsUpdateFailed,this,&FilesSystemWidget::WhenUpdateDeviceStatsFailed);
+        _wanted_order="upload_file";
+        _device->UpdateDeviceStats();
+        return;
+    }
     QFileDialog fd;
     fd.setFileMode(QFileDialog::FileMode::ExistingFiles);
     fd.setNameFilter("*.GCO *.gcode *.G");
@@ -160,3 +175,24 @@ void FilesSystemWidget::on__print_button_clicked()
     _device->GetPrintController()->StartPrint(name.toUtf8());
 
 }
+
+void FilesSystemWidget::WhenSdSupportChanged(bool b)
+{
+    QObject::disconnect(_device->GetFileSystem(),&DeviceFilesSystem::SdSupportChanged,this,&FilesSystemWidget::WhenSdSupportChanged);
+    QObject::disconnect(_device,&Device::DeviceStatsUpdateFailed,this,&FilesSystemWidget::WhenUpdateDeviceStatsFailed);
+    if(b){
+        if(_wanted_order=="update_list")
+            this->on__update_files_button_clicked();
+        if(_wanted_order=="upload_file")
+            this->on__update_files_button_clicked();
+    }
+    _wanted_order="";
+}
+
+void FilesSystemWidget::WhenUpdateDeviceStatsFailed(GCodeCommand *)
+{
+    QObject::disconnect(_device->GetFileSystem(),&DeviceFilesSystem::SdSupportChanged,this,&FilesSystemWidget::WhenSdSupportChanged);
+    QObject::disconnect(_device,&Device::DeviceStatsUpdateFailed,this,&FilesSystemWidget::WhenUpdateDeviceStatsFailed);
+    _wanted_order="";
+}
+

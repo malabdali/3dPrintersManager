@@ -28,7 +28,7 @@ private://fields
     size_t _file_size;
     QByteArrayList _data;
     double _progress;
-    QTimer* _end_timer;
+    QTimer* _end_timer,* _send_timer;
     int _resend_tries;
     // GCodeCommand interface
 public:

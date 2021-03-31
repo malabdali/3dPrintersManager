@@ -41,4 +41,7 @@
 //tasks config
 #define TASK_MANAGER_TIMER 10000
 
+//gcode config
+#define UPLOAD_SEND_WAIT_TIME_DEVIDER 10
+
 #endif

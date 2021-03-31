@@ -12,7 +12,7 @@ class DeviceActions : public DeviceComponent
 private://fields
     class Device* _device;
     bool _is_playing,_device_data_loaded;
-    QTimer *_reconnect_timer, *_save_device_data_timer, *_stop_timer;
+    QTimer *_reconnect_timer, *_save_device_data_timer, *_stop_timer, *_sd_recheck_timer;
 public:
     explicit DeviceActions(Device *device);
     void Setup();
@@ -26,11 +26,13 @@ private slots:
     void WhenSolveProblemFinished();
     void SolveReconnectProblem();
     void SaveData();
+    void RecheckSDSUpport();
     void WhenDeviceLoaded();
     void StopPrinting();
     void WhenPrintStatusChanged();
     void WhenDeviceRemoved();
     void WhenDeviceStatusChanged();
+    void WhenDeviceReady();
 
 signals:
 
