@@ -67,12 +67,15 @@ private slots:
     void WhenLineNumberUpdated(GCode::LineNumber*);
     void WhenFileUploaded(GCode::UploadFile*);
     void WhenFileListUpdated(GCode::FilesList*);
-    void WhenDeviceRemoved();
 
 private: //methods
     void SetSdSupported(bool b);
     void CallFunction(const char* function);
 
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // DEVICEFILESSYSTEM_H

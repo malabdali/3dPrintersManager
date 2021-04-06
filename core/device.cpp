@@ -131,7 +131,6 @@ void Device::CompleteRemove()
             _port_thread->exit(0);
         }
         else{
-            delete _device_port;
             _port_thread->deleteLater();
             this->deleteLater();
         }
@@ -274,6 +273,8 @@ Device::~Device()
 
 void Device::OnErrorOccurred(int error)
 {
+    if(_want_remove)
+        return;
     SetFlags(false,false);
     emit ErrorOccurred(error);
 }
@@ -402,11 +403,13 @@ Camera *Device::GetCamera()
 
 void Device::Remove()
 {
+
+    QObject::disconnect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
     emit DeviceRemoved();
     _want_remove=true;
-    ClosePort();
     PauseCommands();
     ClearCommands();
+    ClosePort();
     if(_current_command==nullptr)
         CompleteRemove();
 }

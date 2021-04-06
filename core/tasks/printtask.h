@@ -13,7 +13,8 @@ class PrintTask : public Task
     QByteArray _file;
     QJsonObject _file_info;
     bool _wait,_want_to_cancel,_want_to_cancel_finished;
-    QNetworkReply* _download;
+    QByteArray _current_action;
+    QNetworkReply* _download,*_action_network;
 public:
     PrintTask(QJsonObject data, QObject *parent=nullptr);
     void DownloadFile();
@@ -25,6 +26,8 @@ private:
     void WhenUploadFinished();
     void TryToCancel();
     void StopPrinting();
+    void ProccessAction(QByteArray action);
+    void ActionDone();
 signals:
     void DownloadFileSuccess();
     void DownloadFileFailed();

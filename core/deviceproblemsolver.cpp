@@ -133,7 +133,7 @@ QByteArray DeviceProblemSolver::ErrorToText()
         }
     }
     else if(_last_device_error!=Device::Errors::NoError){
-        error="device open port error";
+        error=_device->GetDevicePort()->GetTextError().toUtf8();
     }
     return error;
 }
@@ -194,3 +194,15 @@ void DeviceProblemSolver::Load()
 
 
 
+
+
+void DeviceProblemSolver::Disable()
+{
+    QObject::disconnect(_device,&Device::CommandFinished,this,&DeviceProblemSolver::WhenCommandFinished);
+    QObject::disconnect(_device,&Device::CommandStarted,this,&DeviceProblemSolver::WhenCommandStarted);
+    QObject::disconnect(_device,&Device::PortClosed,this,&DeviceProblemSolver::WhenPortClosed);
+    QObject::disconnect(_device,&Device::PortOpened,this,&DeviceProblemSolver::WhenPortOpened);
+    QObject::disconnect(_device,&Device::DeviceStatsUpdateFailed,this,&DeviceProblemSolver::WhenStatsUpdateFailed);
+    QObject::disconnect(_device,&Device::ErrorOccurred,this,&DeviceProblemSolver::WhenErrorOccured);
+    QObject::disconnect(_device,&Device::BeforeSaveDeviceData,this,&DeviceProblemSolver::Save);
+}

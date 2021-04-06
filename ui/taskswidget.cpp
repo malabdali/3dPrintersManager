@@ -5,6 +5,7 @@
 #include "../core/tasks/printtask.h"
 #include "../core/tasks/tasksmanager.h"
 #include "../core/device.h"
+#include "../core/devicemonitor.h"
 #include "../core/deviceinfo.h"
 #include <QMenu>
 TasksWidget::TasksWidget(QWidget *parent) :
@@ -36,7 +37,8 @@ void TasksWidget::UpdateList()
             this->UpdateItem(item);
         }
     }
-    for(auto&[k,v]:_tasks)
+    auto rtasks=_tasks;
+    for(auto&[k,v]:rtasks)
         if(!tasks.contains(v))
             RemoveItem(k);
 
@@ -298,4 +300,5 @@ void TasksWidget::on__repeat_action_triggered()
 void TasksWidget::on__finish_action_triggered()
 {
     _selected_task->Finish();
+    _selected_task->GetDevice()->GetDeviceMonitor()->Reset();
 }

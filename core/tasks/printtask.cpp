@@ -17,6 +17,8 @@ PrintTask::PrintTask(QJsonObject data, QObject *parent):Task(data,parent)
     _want_to_cancel=false;
     _want_to_cancel_finished=false;
     _download=nullptr;
+    _current_action="";
+    _action_network=nullptr;
     NextStep();
 }
 
@@ -190,6 +192,30 @@ void PrintTask::StopPrinting()
     }
 }
 
+void PrintTask::ProccessAction(QByteArray action)
+{
+    if(_current_action.isEmpty()){
+        _current_action=action;
+        if(action=="cancel")
+            WantToCancel();
+        if(action=="finish")
+            Finish();
+    }
+}
+
+void PrintTask::ActionDone()
+{
+    qDebug()<<"action done";
+    QVariantMap vm;
+    vm.insert("action","");
+    _action_network=RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)
+    {
+            qDebug()<<reply->peek(reply->size());
+        reply->deleteLater();
+        _action_network=nullptr;
+    },"Tasks",vm,this->_id);
+}
+
 
 void PrintTask::NextStep()
 {
@@ -271,6 +297,9 @@ void PrintTask::Start()
 void PrintTask::Finish()
 {
     Task::Finish();
+    _device->GetDeviceMonitor()->Reset();
+    if(_current_action=="finish")
+        ActionDone();
 }
 
 
@@ -297,6 +326,8 @@ void PrintTask::Cancel()
     else if(_want_to_cancel && !_want_to_cancel_finished){
         return;
     }
+    if(this->_current_action=="cancel")
+        ActionDone();
     Task::Cancel();
 }
 
@@ -304,9 +335,11 @@ void PrintTask::Cancel()
 void PrintTask::Repeat()
 {
     _wait=false;
+    _current_action="";
     _want_to_cancel=false;
     _want_to_cancel_finished=false;
     _download=nullptr;
+    _action_network=nullptr;
     Task::Repeat();
 }
 
@@ -319,8 +352,8 @@ void PrintTask::WantToCancel()
 
 void PrintTask::SetData(QJsonObject data)
 {
-    if(!_want_to_cancel && data["cancel"].toBool()){
-        WantToCancel();
+    if(!data["action"].toString().isEmpty()){
+        ProccessAction(data["action"].toString().toUtf8());
     }
 
     Task::SetData(data);
@@ -331,4 +364,6 @@ void PrintTask::Stop()
 {
     if(_download)
         RemoteServer::GetInstance()->RemoveRequest(_download);
+    if(_action_network)
+        RemoteServer::GetInstance()->RemoveRequest(_action_network);
 }

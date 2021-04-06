@@ -11,7 +11,10 @@ protected:
 public:
     explicit DeviceComponent(class Device* device);
     virtual void Setup()=0;
+    virtual void Disable()=0;
     Device* GetDevice();
+private slots:
+    void WhenDeviceRemoved();
 
 signals:
 

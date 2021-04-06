@@ -29,7 +29,6 @@ void DeviceFilesSystem::Setup()
     QObject::connect(_device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
     QObject::connect(_device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
     QObject::connect(_device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
-    QObject::connect(_device,&Device::DeviceRemoved,this,&DeviceFilesSystem::WhenDeviceRemoved);
 }
 
 void DeviceFilesSystem::Initiate()
@@ -64,15 +63,16 @@ void DeviceFilesSystem::DeleteFile(const QByteArray &file)
 void DeviceFilesSystem::UploadFile(QByteArray fileName)
 {
     if(!_sd_supported){
+        qDebug()<<"upload failed";
         _failed_uploads.append(fileName);
         emit UploadFileFailed(fileName);
     }
     _failed_uploads.removeAll(fileName);
-    if(_wait_for_upload.empty())
+    _wait_for_upload.append(fileName);
+    if(_wait_for_upload.length()==1)
     {
         UpdateLineNumber();
     }
-    _wait_for_upload.append(fileName);
 }
 
 bool DeviceFilesSystem::IsStillUploading()
@@ -110,6 +110,7 @@ QList<FileInfo>& DeviceFilesSystem::GetFileList()
 
 void DeviceFilesSystem::StopUpload(QByteArray ba)
 {
+    ba=QUrl(ba).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
     auto files=_wait_for_upload;
     if(_uploading_file!=nullptr && _uploading_file->GetFileName()==ba)
     {
@@ -118,6 +119,8 @@ void DeviceFilesSystem::StopUpload(QByteArray ba)
     else{
         for(QByteArray& f:files){
             QByteArray name=QUrl(f).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
+
+            qDebug()<<name<<ba<<f;
             if(name==ba){
                 _wait_for_upload.removeAll(f);
             }
@@ -241,6 +244,7 @@ void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
             {
                 StopUpload(ba);
                 _failed_uploads.append(QUrl(ba).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8());
+
                 emit UploadFileFailed(QUrl(ba).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8());
             }
         }
@@ -292,6 +296,7 @@ void DeviceFilesSystem::WhenFileUploaded(GCode::UploadFile *uploadFile)
 void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
 {
     auto list=fs->GetFilesList();
+    _files.clear();
     QStringList sl=this->GetLocaleFiles(LOCALE_GCODE_PATH,"."+QByteArray(UPLOAD_SUFFIX));
     for(int i=0;i<list.size();i++)
     {
@@ -306,13 +311,6 @@ void DeviceFilesSystem::WhenFileListUpdated(GCode::FilesList* fs)
         _files.append(fi);
     }
     emit FileListUpdated();
-}
-
-void DeviceFilesSystem::WhenDeviceRemoved()
-{
-    if(_load_file!=nullptr)
-        _load_file->Stop();
-    Stop();
 }
 
 void DeviceFilesSystem::SetSdSupported(bool b){
@@ -421,4 +419,16 @@ QByteArray DeviceFilesSystem::GetLocaleDirectory(const QByteArray& subdir){
     if(!subdir.isEmpty())
         sub="/"+subdir;
     return (QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()).toUtf8()+sub;
+}
+
+
+void DeviceFilesSystem::Disable()
+{
+    if(_load_file!=nullptr)
+        _load_file->Stop();
+    Stop();
+    QObject::disconnect(_device,&Device::StatusChanged,this,&DeviceFilesSystem::WhenDeviceReady);
+    QObject::disconnect(_device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
+    QObject::disconnect(_device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
+    QObject::disconnect(_device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
 }

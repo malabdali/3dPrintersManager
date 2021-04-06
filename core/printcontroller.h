@@ -92,6 +92,10 @@ private slots:
     void WhenPortClosed();
     void WhenPortOpened();
 
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // PRINTCONTROLLER_H

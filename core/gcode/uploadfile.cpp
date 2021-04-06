@@ -5,7 +5,7 @@
 #include "../device.h"
 #include "../../config.h"
 GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine):
-    GCodeCommand(device,"M28"),_file_name(fileName),_file_size(0),_data(data),_first_line(firstLine)
+    GCodeCommand(device,"M28"),_first_line(firstLine),_file_name(fileName),_file_size(0),_data(data)
 {
     _resend_tries=RESEND_TRIES;
     _resend=false;
@@ -36,6 +36,9 @@ void GCode::UploadFile::InsideStart()
 
 void GCode::UploadFile::InsideStop()
 {
+    _send_timer->stop();
+    _no_response_timer->stop();
+    _end_timer->stop();
     Finish(false);
 }
 

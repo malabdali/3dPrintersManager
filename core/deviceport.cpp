@@ -13,6 +13,7 @@ DevicePort::DevicePort(Device* device):DeviceComponent(device)
     QObject::connect(_serial_port,&QSerialPort::readyRead,this,&DevicePort::OnAvailableData);
     QObject::connect(_serial_port,&QSerialPort::errorOccurred,this,&DevicePort::OnErrorOccurred);
     QObject::connect(_serial_port,&QSerialPort::bytesWritten,this,&DevicePort::OnDataWritten);
+    QObject::connect(_device,&Device::destroyed,this,&DevicePort::WhenDeviceRemoved,Qt::ConnectionType::DirectConnection);
 
 }
 
@@ -107,6 +108,16 @@ bool DevicePort::IsOpen()
     return _serial_port->isOpen();
 }
 
+int DevicePort::GetError() const
+{
+    return _serial_port->error();
+}
+
+QString DevicePort::GetTextError() const
+{
+    return _serial_port->errorString();
+}
+
 
 void DevicePort::Close()
 {
@@ -148,6 +159,7 @@ void DevicePort::Reconnect()
 
 DevicePort::~DevicePort()
 {
+    qDebug()<<"DevicePort::~DevicePort()";
     Clear();
     _serial_port->close();
 }
@@ -249,6 +261,11 @@ void DevicePort::timerEvent(QTimerEvent *event)
     }
 }
 
+void DevicePort::WhenDeviceRemoved()
+{
+    delete this;
+}
+
 void DevicePort::SerialInputFilter(QByteArrayList &list)
 {
     list.erase(std::remove_if(list.begin(),list.end(),[](QByteArray& ba){
@@ -274,4 +291,9 @@ void DevicePort::CallFunction(QByteArray function, QGenericArgument argument1, Q
 
 void DevicePort::Setup(){
 
+}
+
+
+void DevicePort::Disable()
+{
 }

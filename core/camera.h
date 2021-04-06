@@ -64,7 +64,6 @@ private slots:
     void WhenErrorAccured(QCamera::Error);
     void WhenAvailablityChanged(bool);
     void WhenLockFailed();
-    void WhenDeviceRemoved();
 
 private:
     void EndCapture(bool);
@@ -72,6 +71,10 @@ private:
 
 
 
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // CAMERA_H

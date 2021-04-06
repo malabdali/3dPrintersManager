@@ -18,6 +18,7 @@
 #include "../core/system.h"
 #include "../core/printcontroller.h"
 #include "camerawidget.h"
+#include "../core/deviceport.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -41,7 +42,7 @@ void DeviceWidget::Update()
         ui->_uploading_label->setVisible(false);
         if((_device->GetPrintController()->GetCurrentStatus()==PrintController::HeatUp || _device->GetPrintController()->GetCurrentStatus()==PrintController::Printing)
                 && _device->IsOpen() && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
-              !_device->GetDeviceMonitor()->IsBusy()  )
+                !_device->GetDeviceMonitor()->IsBusy()  )
         {
             ui->_stop_print_button->setVisible(true);
         }
@@ -71,6 +72,23 @@ void DeviceWidget::Update()
                 ui->_status->setText("closed");
                 break;
             }
+        }
+
+        if(_device->GetProblemSolver()->IsThereProblem()){
+
+            if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort){
+                _device->ClosePort();
+            }
+            else if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::GCode)
+            {
+            }
+            ui->_error->setText(_device->GetProblemSolver()->ErrorToText());
+            ui->_error_label->setVisible(true);
+            ui->_error->setVisible(true);
+        }
+        else{
+            ui->_error_label->setVisible(false);
+            ui->_error->setVisible(false);
         }
     }
 }
@@ -113,7 +131,8 @@ void DeviceWidget::Setup()
         QObject::connect(this->_device,&Device::DetectPortFailed,this,&DeviceWidget::OnDetectPort);
         QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnPortConnected);
         QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnPortDisconnected);
-        QObject::connect(this->_device,&Device::ErrorOccurred,this,&DeviceWidget::OnErrorOccured);
+        QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::ProblemDetected,this,&DeviceWidget::OnErrorOccured);
+        QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceWidget::OnErrorSolved);
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::Saved,this,&DeviceWidget::WhenDeviceInfoSaved);
         QObject::connect(Devices::GetInstance(),&Devices::DeviceDeleted,this,&DeviceWidget::WhenDeviceDeleted);
     }
@@ -208,12 +227,23 @@ void DeviceWidget::WhenDeviceDeleted(Device *dev)
     ui->_delete_button->setVisible(true);
 }
 
-void DeviceWidget::OnErrorOccured(int error)
+void DeviceWidget::OnErrorOccured()
 {
-    _device->ClosePort();
+    if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort){
+        _device->ClosePort();
+    }
+    else if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::GCode)
+    {
+    }
+    ui->_error->setText(_device->GetProblemSolver()->ErrorToText());
     ui->_error_label->setVisible(true);
     ui->_error->setVisible(true);
-    ui->_error->setText(QString::number(error));
+}
+
+void DeviceWidget::OnErrorSolved()
+{
+    ui->_error_label->setVisible(false);
+    ui->_error->setVisible(false);
 }
 
 void DeviceWidget::OnPortConnected()

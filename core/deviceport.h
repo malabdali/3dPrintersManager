@@ -31,6 +31,8 @@ public:
     bool IsThereAvailableLines();
     void Clear();
     bool IsOpen();
+    int GetError()const;
+    QString GetTextError()const;
     Q_INVOKABLE void Close();
     Q_INVOKABLE void Reconnect();
     ~DevicePort();
@@ -49,6 +51,7 @@ private slots:
     void OnDataWritten(quint64);
     void InsideWrite(QByteArray);
     void timerEvent(QTimerEvent *event) override;
+    void WhenDeviceRemoved();
 private://methods
     void SerialInputFilter(QByteArrayList& list);
     void CallFunction(QByteArray function);
@@ -56,6 +59,10 @@ private://methods
     void CallFunction(QByteArray function,QGenericArgument argument1,QGenericArgument argument2);
 
 
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // DEVICEPORT_H

@@ -33,7 +33,8 @@ private slots:
     void OnCommandStarted(const GCodeCommand* function);
     void WhenDeviceCreated(Device* dev);
     void WhenDeviceDeleted(Device* dev);
-    void OnErrorOccured(int);
+    void OnErrorOccured();
+    void OnErrorSolved();
     void OnPortConnected();
     void OnPortDisconnected();
     void OnDetectPort();

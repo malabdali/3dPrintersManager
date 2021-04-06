@@ -36,6 +36,10 @@ private slots:
 
 signals:
 
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // DEVICEACTIONS_H

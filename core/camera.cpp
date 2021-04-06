@@ -181,7 +181,6 @@ void Camera::Setup()
     _last_capture_date=QDateTime(QDate(2000,1,1),QTime(1,1));
     connect(_device,&Device::BeforeSaveDeviceData,this,&Camera::Save);
     connect(_device,&Device::DeviceDataLoaded,this,&Camera::Load);
-    connect(_device,&Device::DeviceRemoved,this,&Camera::WhenDeviceRemoved);
 }
 
 void Camera::WhenImageCaptured(int id, QImage image)
@@ -215,15 +214,6 @@ void Camera::WhenLockFailed()
     }
 }
 
-void Camera::WhenDeviceRemoved()
-{
-    this->Close();
-    if(_upload_reply)
-    {
-        RemoteServer::GetInstance()->RemoveRequest(_upload_reply);
-    }
-
-}
 
 void Camera::EndCapture(bool s)
 {
@@ -235,4 +225,16 @@ void Camera::EndCapture(bool s)
         emit OnCaptureFailed();
     }
     _want_capture=false;
+}
+
+
+void Camera::Disable()
+{
+    disconnect(_device,&Device::BeforeSaveDeviceData,this,&Camera::Save);
+    disconnect(_device,&Device::DeviceDataLoaded,this,&Camera::Load);
+    this->Close();
+    if(_upload_reply)
+    {
+        RemoteServer::GetInstance()->RemoveRequest(_upload_reply);
+    }
 }

@@ -55,13 +55,16 @@ private:
     bool CommandReader(GCodeCommand*);
 private slots:
     void WhenCommandFinished(GCodeCommand* , bool);
-    void WhenDeviceRemoved();
 
 signals:
     void updated();
 
 
     // DeviceComponent interface
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // DEVICEMONITOR_H

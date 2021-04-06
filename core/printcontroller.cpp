@@ -576,3 +576,11 @@ void PrintController::WhenPrintingFinished()
     emit PrintingFinished();
 }
 
+
+
+void PrintController::Disable()
+{
+    disconnect(_device,&Device::BeforeSaveDeviceData,this,&PrintController::Save);
+    disconnect(_device,&Device::DeviceDataLoaded,this,&PrintController::Load);
+    disconnect(_device,&Device::DeviceDataLoaded,this,&PrintController::AfterLoad);
+}

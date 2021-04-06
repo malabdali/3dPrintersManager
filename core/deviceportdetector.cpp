@@ -114,3 +114,8 @@ void DevicePortDetector::OnChecPortsDataAvailableMapped(int sid)
 
 
 
+
+
+void DevicePortDetector::Disable()
+{
+}

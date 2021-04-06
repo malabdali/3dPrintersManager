@@ -24,6 +24,7 @@ public:
     bool IsThereProblem();
     QJsonDocument ToJson();
     void FromJson(QJsonDocument* json);
+    QByteArray ErrorToText();
 
 signals:
     void ProblemDetected();
@@ -37,10 +38,9 @@ private slots:
     void WhenCommandStarted(class GCodeCommand* command);
     void WhenCommandFinished(class GCodeCommand* command,bool success);
     void WhenStatsUpdateFailed(class GCodeCommand* command);
-    QByteArray ErrorToText();
+    void CheckCommandError(GCodeCommand* command);
 public slots:
     void SolveProblem();
-    void CheckCommandError(GCodeCommand* command);
 
 private://methods
     void SolveNoChecksumProblem();
@@ -52,6 +52,10 @@ private://methods
     // DeviceComponent interface
 public:
     void Setup() override;
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // DEVICEPROBLEMSOLVER_H

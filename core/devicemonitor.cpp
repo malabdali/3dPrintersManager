@@ -143,24 +143,24 @@ void DeviceMonitor::Update()
             _printing_stats=new GCode::PrintingStats(_device);
             _device->AddGCodeCommand(_printing_stats);
         }
-        else if(_printing_stats && _printing_stats->IsStarted() && !_printing_stats->IsFinished())
-            _printing_stats->Stop();
+        /*else if(_printing_stats && _printing_stats->IsStarted() && !_printing_stats->IsFinished())
+            _printing_stats->Stop();*/
         if(_report_temprature==nullptr && _temperatures_timer<=0)
         {
             _temperatures_timer=_temperatures_interval;
             _report_temprature=new GCode::ReportTemperature(_device);
             _device->AddGCodeCommand(_report_temprature);
         }
-        else if(_report_temprature && _report_temprature->IsStarted() && !_report_temprature->IsFinished())
-            _report_temprature->Stop();
+        /*else if(_report_temprature && _report_temprature->IsStarted() && !_report_temprature->IsFinished())
+            _report_temprature->Stop();*/
         if(_end_stops==nullptr && _endstops_timer<=0)
         {
             _endstops_timer=_endstops_interval;
             _end_stops=new GCode::EndstopsStates(_device);
             _device->AddGCodeCommand(_end_stops);
         }
-        else if(_end_stops && _end_stops->IsStarted() && !_end_stops->IsFinished())
-            _end_stops->Stop();
+        /*else if(_end_stops && _end_stops->IsStarted() && !_end_stops->IsFinished())
+            _end_stops->Stop();*/
     }
 }
 
@@ -339,11 +339,6 @@ void DeviceMonitor::WhenCommandFinished(GCodeCommand* command, bool success)
 
 }
 
-void DeviceMonitor::WhenDeviceRemoved()
-{
-    Pause();
-    this->killTimer(this->_monitor_timer);
-}
 
 QJsonDocument DeviceMonitor::ToJson() const
 {
@@ -362,4 +357,16 @@ void DeviceMonitor::FromJson(QJsonDocument json)
     }
 
     emit updated();
+}
+
+
+void DeviceMonitor::Disable()
+{
+    Pause();
+    this->killTimer(this->_monitor_timer);
+    disconnect(_device,&Device::CommandFinished,this,&DeviceMonitor::WhenCommandFinished);
+    disconnect(_device,&Device::DeviceStatsUpdated,this,&DeviceMonitor::WhenDeviceStatsUpdated);
+    disconnect(_device,&Device::DeviceStatsUpdateFailed,this,&DeviceMonitor::WhenDeviceStatsUpdated);
+    disconnect(_device,&Device::BeforeSaveDeviceData,this,&DeviceMonitor::Save);
+    disconnect(_device,&Device::DeviceDataLoaded,this,&DeviceMonitor::Load);
 }

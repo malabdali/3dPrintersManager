@@ -42,6 +42,10 @@ private slots:
     // DeviceComponent interface
 public:
     void Setup() override;
+
+    // DeviceComponent interface
+public:
+    void Disable() override;
 };
 
 #endif // DEVICEPORTDETECTOR_H
