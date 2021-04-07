@@ -205,12 +205,10 @@ void PrintTask::ProccessAction(QByteArray action)
 
 void PrintTask::ActionDone()
 {
-    qDebug()<<"action done";
     QVariantMap vm;
     vm.insert("action","");
     _action_network=RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)
     {
-            qDebug()<<reply->peek(reply->size());
         reply->deleteLater();
         _action_network=nullptr;
     },"Tasks",vm,this->_id);

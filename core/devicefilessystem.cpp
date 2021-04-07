@@ -63,7 +63,6 @@ void DeviceFilesSystem::DeleteFile(const QByteArray &file)
 void DeviceFilesSystem::UploadFile(QByteArray fileName)
 {
     if(!_sd_supported){
-        qDebug()<<"upload failed";
         _failed_uploads.append(fileName);
         emit UploadFileFailed(fileName);
     }
@@ -119,8 +118,6 @@ void DeviceFilesSystem::StopUpload(QByteArray ba)
     else{
         for(QByteArray& f:files){
             QByteArray name=QUrl(f).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
-
-            qDebug()<<name<<ba<<f;
             if(name==ba){
                 _wait_for_upload.removeAll(f);
             }

@@ -122,12 +122,10 @@ void FilesSystemWidget::on__delete_file_button_clicked()
 
 void FilesSystemWidget::on__upload_file_button_clicked()
 {
-    qDebug()<<_device->GetFileSystem()->SdSupported()<<  _wanted_order.isEmpty();
     if(!_device->GetFileSystem()->SdSupported()&&  _wanted_order.isEmpty()){
         QObject::connect(_device->GetFileSystem(),&DeviceFilesSystem::SdSupportChanged,this,&FilesSystemWidget::WhenSdSupportChanged);
         QObject::connect(_device,&Device::DeviceStatsUpdateFailed,this,&FilesSystemWidget::WhenUpdateDeviceStatsFailed);
         _wanted_order="upload_file";
-        qDebug()<<"udate device stats";
         _device->UpdateDeviceStats();
         return;
     }

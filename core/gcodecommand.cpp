@@ -124,7 +124,6 @@ void GCodeCommand::Finish(bool b)
 
 void GCodeCommand::WhenTimeOut()
 {
-    qDebug()<<"when time out";
     if(_device==nullptr)return;
     this->_no_response_timer->stop();
     this->SetError(TimeOut);

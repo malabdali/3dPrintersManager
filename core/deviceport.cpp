@@ -159,7 +159,6 @@ void DevicePort::Reconnect()
 
 DevicePort::~DevicePort()
 {
-    qDebug()<<"DevicePort::~DevicePort()";
     Clear();
     _serial_port->close();
 }

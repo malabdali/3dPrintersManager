@@ -377,35 +377,32 @@ void PrintController::SetCurrentStatus(PrintController::Status status)
 {
     bool changed=_current_status!=status;
     _current_status=status;
-    switch (status) {
-    case PrintController::Nothing:
-        _device->GetDeviceMonitor()->ResetIntervals();
-        break;
-    case PrintController::SendHeatUpCommands:
-        break;
-    case PrintController::HeatUp:
-        _device->GetDeviceMonitor()->SetUpdateIntervals(60000,3000,60000);
-        break;
-    case PrintController::SendPrintCommand:
-        break;
-    case PrintController::Printing:
-        _device->GetDeviceMonitor()->SetUpdateIntervals(2000,60000,20000);
-        break;
-    case PrintController::SendStopCommand:
-        break;
-    case SendHeatOffCommand:
-        break;
-    case PrintController::Stopped:
-        _device->GetDeviceMonitor()->ResetIntervals();
-        break;
-
-
-    }
     if(changed)
     {
-        emit StatusChanged();
+        switch (status) {
+        case PrintController::Nothing:
+            _device->GetDeviceMonitor()->ResetIntervals();
+            break;
+        case PrintController::SendHeatUpCommands:
+            break;
+        case PrintController::HeatUp:
+            _device->GetDeviceMonitor()->SetUpdateIntervals(60000,3000,60000);
+            break;
+        case PrintController::SendPrintCommand:
+            break;
+        case PrintController::Printing:
+            _device->GetDeviceMonitor()->SetUpdateIntervals(2000,60000,20000);
+            break;
+        case PrintController::SendStopCommand:
+            break;
+        case SendHeatOffCommand:
+            break;
+        case PrintController::Stopped:
+            _device->GetDeviceMonitor()->ResetIntervals();
+            break;
+            emit StatusChanged();
+        }
     }
-
 }
 
 

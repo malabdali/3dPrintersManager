@@ -58,9 +58,11 @@ void DeviceActions::WhenMonitorUpdated()
         return;
     DeviceMonitor* monitor=_device->GetDeviceMonitor();
     if(pc->IsPrinting() && monitor->IsFilamentRunout() && !monitor->IsPaused()){
-        _stop_timer->start(WAIT_BEFORE_M600);
+        if(!_stop_timer->isActive()){
+            _stop_timer->start(WAIT_BEFORE_M600);
+        }
     }
-    else{
+    else if(_stop_timer->isActive()){
         _stop_timer->stop();
     }
 
