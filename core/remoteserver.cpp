@@ -166,7 +166,8 @@ QJsonValue RemoteServer::GetJSONValue(QNetworkReply *reply)
 void RemoteServer::RemoveRequest(QNetworkReply *reply)
 {
     if(reply){
-        this->_callbacks.erase(reply);
+        _callbacks.erase(reply);
+        _timers.erase(reply);
         reply->close();
         reply->abort();
         reply->deleteLater();
