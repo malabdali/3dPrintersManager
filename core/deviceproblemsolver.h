@@ -5,6 +5,7 @@
 #include "devicecomponent.h"
 #include <QJsonDocument>
 #include "gcodecommand.h"
+#include "QDateTime"
 
 class DeviceProblemSolver : public DeviceComponent
 {
@@ -12,6 +13,7 @@ class DeviceProblemSolver : public DeviceComponent
 private://fields
     int _last_command_error,_last_device_error;
     bool _commands_was_played;
+    QDateTime _last_error_time;
 public: //nested types
     enum SolvingType:int{
         NON=0,

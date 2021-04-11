@@ -21,6 +21,7 @@ private:
     GCode::UploadFile* _uploading_file;
     QByteArray _uploading_file_content;
     quint64 _line_number;
+    unsigned _upload_speed;
     QList<QByteArray> _failed_uploads,_wait_for_upload;
     bool _sd_supported;
     class LoadGCodeFuture* _load_file;
@@ -33,6 +34,8 @@ public:
     void UploadFile(QByteArray fileName);
     void Print();
     bool IsStillUploading();
+    void SetUploadSpeed(unsigned spedd);
+    unsigned GetUploadSpeed();
     double GetUploadProgress();
     FileInfo GetUploadedFileInfo(const QByteArray& ba);
     QList<QByteArray> GetFailedUploads();
@@ -49,6 +52,11 @@ public:
     void CopyLocaleFile(const QByteArray& fpath,const QByteArray& tpath,std::function<void (bool)> callback);
     QStringList GetLocaleFiles(const QByteArray& path , const QByteArray& suffix);
     void Setup()override;
+
+    QJsonDocument ToJson() ;
+    void FromJson(QJsonDocument json);
+    void Save();
+    void Load();
 
 
 signals:

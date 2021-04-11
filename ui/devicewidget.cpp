@@ -104,6 +104,7 @@ void DeviceWidget::Setup()
         ui->_name->setReadOnly(true);
         ui->_baud_rate->setText(QString::number(_device->GetDeviceInfo()->GetBaudRate()));
         ui->_name->setText(_device->GetDeviceInfo()->GetDeviceName());
+        ui->_device_type->setCurrentText(_device->GetDeviceInfo()->GetDeviceType().isEmpty()?QStringLiteral("UNKNOWN"):QString(_device->GetDeviceInfo()->GetDeviceType()));
         ui->_port->setText(this->_device->GetPort());
         ui->_x->setText(QString::number(_device->GetDeviceInfo()->GetX()));
         ui->_y->setText(QString::number(_device->GetDeviceInfo()->GetY()));
@@ -124,7 +125,7 @@ void DeviceWidget::Setup()
         ui->_continue_print_button->setVisible(false);
 
         // device events
-        QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged);
+        QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged,Qt::ConnectionType::QueuedConnection);
         QObject::connect(this->_device,&Device::CommandFinished,this,&DeviceWidget::OnCommandFinished);
         QObject::connect(this->_device,&Device::CommandStarted,this,&DeviceWidget::OnCommandStarted);
         QObject::connect(this->_device,&Device::DetectPortSucceed,this,&DeviceWidget::OnDetectPort);
@@ -155,6 +156,8 @@ void DeviceWidget::Setup()
         ui->_reset_button->setVisible(false);
         ui->_bed_temperature->setVisible(false);
         ui->_bed_temperature_label->setVisible(false);
+        ui->_stop_print_button->setVisible(false);
+        ui->_continue_print_button->setVisible(false);
         QObject::connect(Devices::GetInstance(),&Devices::DeviceCreated,this,&DeviceWidget::WhenDeviceCreated);
 
     }
@@ -173,6 +176,7 @@ void DeviceWidget::Setup()
         QObject::connect(ui->_z,&QLineEdit::textEdited,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_nozzle,&QLineEdit::textEdited,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_material,&QComboBox::currentTextChanged,this,&DeviceWidget::WhenEditValues);
+        QObject::connect(ui->_device_type,&QComboBox::currentTextChanged,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_save_changes_button,&QPushButton::clicked,this,&DeviceWidget::SaveChanges);
         QObject::connect(ui->_create_button,&QPushButton::clicked,this,&DeviceWidget::CreateDevice);
         QObject::connect(ui->_delete_button,&QPushButton::clicked,this,&DeviceWidget::DeleteDevice);
@@ -306,10 +310,11 @@ void DeviceWidget::WhenEditValues()
 void DeviceWidget::SaveChanges()
 {
     ui->_save_changes_button->setEnabled(false);
-    _device->GetDeviceInfo()->SetDimensions(ui->_x->text().toUInt(),ui->_y->text().toUInt(),ui->_z->text().toUInt());
     _device->GetDeviceInfo()->SetBaudRate(ui->_baud_rate->text().toUInt());
+    _device->GetDeviceInfo()->SetDimensions(ui->_x->text().toUInt(),ui->_y->text().toUInt(),ui->_z->text().toUInt());
     _device->GetDeviceInfo()->SetNozzleDiameter(ui->_nozzle->text().toFloat());
     _device->GetDeviceInfo()->SetFilamentMaterial(ui->_material->currentText().toUtf8());
+    _device->GetDeviceInfo()->SetDeviceType(ui->_device_type->currentText().toUtf8());
 
     _device->ClosePort();
     _device->GetDeviceInfo()->SaveChanges();
@@ -324,6 +329,7 @@ void DeviceWidget::CreateDevice()
     di.SetBaudRate(ui->_baud_rate->text().toUInt());
     di.SetNozzleDiameter(ui->_nozzle->text().toFloat());
     di.SetFilamentMaterial(ui->_material->currentText().toUtf8());
+    di.SetDeviceType(ui->_device_type->currentText().toUtf8());
     Devices::GetInstance()->CreateDevice(di);
 }
 

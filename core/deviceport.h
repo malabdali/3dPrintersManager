@@ -31,8 +31,8 @@ public:
     bool IsThereAvailableLines();
     void Clear();
     bool IsOpen();
-    int GetError()const;
-    QString GetTextError()const;
+    int GetError();
+    QString GetTextError();
     Q_INVOKABLE void Close();
     Q_INVOKABLE void Reconnect();
     ~DevicePort();

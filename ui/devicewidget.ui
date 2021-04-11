@@ -99,6 +99,84 @@
             </sizepolicy>
            </property>
            <layout class="QGridLayout" name="gridLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="_name_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <family>Sylfaen</family>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(59, 208, 18);</string>
+              </property>
+              <property name="text">
+               <string>NAME </string>
+              </property>
+              <property name="textFormat">
+               <enum>Qt::PlainText</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="_port">
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="_name">
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="maxLength">
+               <number>12</number>
+              </property>
+              <property name="placeholderText">
+               <string>printer name</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QLineEdit" name="_z">
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="inputMethodHints">
+               <set>Qt::ImhDigitsOnly</set>
+              </property>
+              <property name="inputMask">
+               <string>99999</string>
+              </property>
+              <property name="maxLength">
+               <number>5</number>
+              </property>
+              <property name="placeholderText">
+               <string> z length</string>
+              </property>
+             </widget>
+            </item>
             <item row="3" column="0">
              <widget class="QLabel" name="_x_label">
               <property name="sizePolicy">
@@ -120,33 +198,6 @@
               </property>
               <property name="text">
                <string>X</string>
-              </property>
-              <property name="textFormat">
-               <enum>Qt::PlainText</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2">
-             <widget class="QLabel" name="_nozzle_label">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="font">
-               <font>
-                <family>Sylfaen</family>
-                <pointsize>12</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">color: rgb(59, 208, 18);</string>
-              </property>
-              <property name="text">
-               <string>NOZZLE </string>
               </property>
               <property name="textFormat">
                <enum>Qt::PlainText</enum>
@@ -175,53 +226,28 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="_name_label">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="font">
-               <font>
-                <family>Sylfaen</family>
-                <pointsize>12</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">color: rgb(59, 208, 18);</string>
-              </property>
-              <property name="text">
-               <string>NAME </string>
-              </property>
-              <property name="textFormat">
-               <enum>Qt::PlainText</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="QLineEdit" name="_z">
-              <property name="maximumSize">
-               <size>
-                <width>100</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="inputMethodHints">
-               <set>Qt::ImhDigitsOnly</set>
-              </property>
-              <property name="inputMask">
-               <string>99999</string>
-              </property>
-              <property name="maxLength">
-               <number>5</number>
-              </property>
-              <property name="placeholderText">
-               <string> z length</string>
-              </property>
+            <item row="1" column="3">
+             <widget class="QComboBox" name="_material">
+              <item>
+               <property name="text">
+                <string>PLA</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>TPU</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>PLA+</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>MARBLE</string>
+               </property>
+              </item>
              </widget>
             </item>
             <item row="2" column="0">
@@ -248,65 +274,6 @@
               </property>
               <property name="textFormat">
                <enum>Qt::PlainText</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="3">
-             <widget class="QComboBox" name="_material">
-              <item>
-               <property name="text">
-                <string>PLA</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>TPU</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>PLA+</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="_z_label">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="font">
-               <font>
-                <family>Sylfaen</family>
-                <pointsize>12</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">color: rgb(59, 208, 18);</string>
-              </property>
-              <property name="text">
-               <string>Z</string>
-              </property>
-              <property name="textFormat">
-               <enum>Qt::PlainText</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QLineEdit" name="_port">
-              <property name="maximumSize">
-               <size>
-                <width>100</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -337,41 +304,30 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QLineEdit" name="_name">
-              <property name="maximumSize">
-               <size>
-                <width>100</width>
-                <height>16777215</height>
-               </size>
+            <item row="4" column="0">
+             <widget class="QLabel" name="_y_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
-              <property name="maxLength">
-               <number>12</number>
+              <property name="font">
+               <font>
+                <family>Sylfaen</family>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
               </property>
-              <property name="placeholderText">
-               <string>printer name</string>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(59, 208, 18);</string>
               </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="QLineEdit" name="_y">
-              <property name="maximumSize">
-               <size>
-                <width>100</width>
-                <height>16777215</height>
-               </size>
+              <property name="text">
+               <string>Y</string>
               </property>
-              <property name="inputMethodHints">
-               <set>Qt::ImhDigitsOnly</set>
-              </property>
-              <property name="inputMask">
-               <string>99999</string>
-              </property>
-              <property name="maxLength">
-               <number>5</number>
-              </property>
-              <property name="placeholderText">
-               <string>y length</string>
+              <property name="textFormat">
+               <enum>Qt::PlainText</enum>
               </property>
              </widget>
             </item>
@@ -402,6 +358,98 @@
               </property>
              </widget>
             </item>
+            <item row="0" column="3">
+             <widget class="QLineEdit" name="_nozzle">
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="inputMask">
+               <string>N.NN</string>
+              </property>
+              <property name="readOnly">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="_z_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <family>Sylfaen</family>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(59, 208, 18);</string>
+              </property>
+              <property name="text">
+               <string>Z</string>
+              </property>
+              <property name="textFormat">
+               <enum>Qt::PlainText</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLineEdit" name="_y">
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="inputMethodHints">
+               <set>Qt::ImhDigitsOnly</set>
+              </property>
+              <property name="inputMask">
+               <string>99999</string>
+              </property>
+              <property name="maxLength">
+               <number>5</number>
+              </property>
+              <property name="placeholderText">
+               <string>y length</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QLabel" name="_nozzle_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <family>Sylfaen</family>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(59, 208, 18);</string>
+              </property>
+              <property name="text">
+               <string>NOZZLE </string>
+              </property>
+              <property name="textFormat">
+               <enum>Qt::PlainText</enum>
+              </property>
+             </widget>
+            </item>
             <item row="2" column="1">
              <widget class="QLineEdit" name="_baud_rate">
               <property name="maximumSize">
@@ -424,24 +472,8 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="3">
-             <widget class="QLineEdit" name="_nozzle">
-              <property name="maximumSize">
-               <size>
-                <width>100</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="inputMask">
-               <string>N.NN</string>
-              </property>
-              <property name="readOnly">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="_y_label">
+            <item row="2" column="2">
+             <widget class="QLabel" name="_device_type_label">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                 <horstretch>0</horstretch>
@@ -460,11 +492,40 @@
                <string notr="true">color: rgb(59, 208, 18);</string>
               </property>
               <property name="text">
-               <string>Y</string>
+               <string>Device Type</string>
               </property>
               <property name="textFormat">
                <enum>Qt::PlainText</enum>
               </property>
+             </widget>
+            </item>
+            <item row="2" column="3">
+             <widget class="QComboBox" name="_device_type">
+              <item>
+               <property name="text">
+                <string>UNKNOWN</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>GENIUS</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>KP3S</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string/>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string/>
+               </property>
+              </item>
              </widget>
             </item>
            </layout>

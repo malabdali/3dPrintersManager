@@ -26,6 +26,8 @@
 #define REMOTE_SERVER_ADMIN_PASS "mM41634163Mm"
 #define DEVICES_TABLE "Printers"
 #define TASKS_TABLE "Tasks"
+#define DEFAULT_HTTP_REQUEST_TIMEOUT 10
+#define REMOTE_SERVER_TIMER 1000
 
 //ui config
 #define UPDATE_DEVICES_GUI_TIMER 500
@@ -39,9 +41,11 @@
 
 //tasks config
 #define TASK_MANAGER_TIMER 10000
+#define DOWNLOAD_TIMEOUT 20
 
 //gcode config
 #define UPLOAD_SEND_WAIT_TIME_DEVIDER 10
 #define DEFAULT_Command_No_RESPONSE_TIMEOUT 15000
+
 
 #endif

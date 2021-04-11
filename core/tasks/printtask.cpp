@@ -67,7 +67,7 @@ void PrintTask::DownloadFile()
             NextStep();
         }
         nr->deleteLater();
-    });
+    },DOWNLOAD_TIMEOUT);
 }
 
 void PrintTask::UploadFile()
@@ -209,8 +209,15 @@ void PrintTask::ActionDone()
     vm.insert("action","");
     _action_network=RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)
     {
-        reply->deleteLater();
-        _action_network=nullptr;
+        if(RemoteServer::GetInstance()->IsSuccess(reply)){
+            reply->deleteLater();
+            _action_network=nullptr;
+        }
+        else{
+            reply->deleteLater();
+            _action_network=nullptr;
+            ActionDone();
+        }
     },"Tasks",vm,this->_id);
 }
 

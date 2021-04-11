@@ -108,13 +108,15 @@ bool DevicePort::IsOpen()
     return _serial_port->isOpen();
 }
 
-int DevicePort::GetError() const
+int DevicePort::GetError()
 {
+    QMutexLocker locker(&_mutex);
     return _serial_port->error();
 }
 
-QString DevicePort::GetTextError() const
+QString DevicePort::GetTextError()
 {
+    QMutexLocker locker(&_mutex);
     return _serial_port->errorString();
 }
 

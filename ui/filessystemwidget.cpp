@@ -20,6 +20,17 @@ FilesSystemWidget::FilesSystemWidget(Device* device,QWidget *parent) :
     OnFileListUpdated();
     _wanted_order="";
     this->startTimer(1000);
+    unsigned speed=_device->GetFileSystem()->GetUploadSpeed();
+    switch (speed) {
+    case 0:
+        ui->_upload_speed->setCurrentText("maximum");
+        break;
+
+    default:
+        ui->_upload_speed->setCurrentIndex(speed/5>(unsigned)ui->_upload_speed->count()-1?ui->_upload_speed->count()-1:ui->_upload_speed->count()-speed/5);
+
+    }
+
 }
 
 FilesSystemWidget::~FilesSystemWidget()
@@ -36,6 +47,18 @@ void FilesSystemWidget::timerEvent(QTimerEvent *event)
                 ui->_files_list->item(i)->setText(ui->_files_list->item(i)->data(0x0100).toString()+QStringLiteral("* \r")+
                                                   QString::number(_device->GetFileSystem()->GetUploadProgress(),'f',2));
     }
+
+    unsigned speed=_device->GetFileSystem()->GetUploadSpeed();
+    switch (speed) {
+    case 0:
+        ui->_upload_speed->setCurrentText("maximum");
+        break;
+
+    default:
+        ui->_upload_speed->setCurrentIndex(speed/5>(unsigned)ui->_upload_speed->count()-1?ui->_upload_speed->count()-1:ui->_upload_speed->count()-speed/5);
+
+    }
+
 }
 
 void FilesSystemWidget::on__update_files_button_clicked()
@@ -195,3 +218,15 @@ void FilesSystemWidget::WhenUpdateDeviceStatsFailed(GCodeCommand *)
     _wanted_order="";
 }
 
+
+void FilesSystemWidget::on__upload_speed_currentIndexChanged(const QString &arg1)
+{
+    if((unsigned)arg1.toUInt()==_device->GetFileSystem()->GetUploadSpeed())
+        return;
+    if(arg1=="maximum"){
+        _device->GetFileSystem()->SetUploadSpeed(0);
+    }
+    else{
+        _device->GetFileSystem()->SetUploadSpeed(arg1.toUInt());
+    }
+}

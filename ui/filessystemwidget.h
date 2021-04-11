@@ -40,6 +40,8 @@ private slots:
 
     void WhenUpdateDeviceStatsFailed(GCodeCommand*);
 
+    void on__upload_speed_currentIndexChanged(const QString &arg1);
+
 private:
     Ui::FilesSystemWidget *ui;
 

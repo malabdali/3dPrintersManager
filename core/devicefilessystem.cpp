@@ -21,6 +21,7 @@ DeviceFilesSystem::DeviceFilesSystem(Device *device): DeviceComponent(device)
     _line_number=0;
     _uploading_file=nullptr;
     _load_file=nullptr;
+    _upload_speed=0;
 }
 
 void DeviceFilesSystem::Setup()
@@ -29,6 +30,8 @@ void DeviceFilesSystem::Setup()
     QObject::connect(_device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
     QObject::connect(_device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
     QObject::connect(_device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
+    connect(_device,&Device::BeforeSaveDeviceData,this,&DeviceFilesSystem::Save);
+    connect(_device,&Device::DeviceDataLoaded,this,&DeviceFilesSystem::Load);
 }
 
 void DeviceFilesSystem::Initiate()
@@ -79,6 +82,16 @@ bool DeviceFilesSystem::IsStillUploading()
     if(_uploading_file!=nullptr)
         return true;
     return false;
+}
+
+void DeviceFilesSystem::SetUploadSpeed(unsigned speed)
+{
+    _upload_speed=speed;
+}
+
+unsigned DeviceFilesSystem::GetUploadSpeed()
+{
+    return _upload_speed;
 }
 
 double DeviceFilesSystem::GetUploadProgress()
@@ -225,7 +238,7 @@ void DeviceFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
                 _load_file=nullptr;
                 _uploading_file_content=data;
                 QByteArray filename2=QUrl(filename).fileName().replace(".gcode","."+QStringLiteral(UPLOAD_SUFFIX)).toUpper().toUtf8();
-                GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,filename2,array,_line_number);
+                GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,filename2,array,_line_number,_upload_speed);
                 this->_uploading_file=gcode;
                 _device->AddGCodeCommand(gcode);
                 emit FileListUpdated();
@@ -418,6 +431,33 @@ QByteArray DeviceFilesSystem::GetLocaleDirectory(const QByteArray& subdir){
     return (QStringLiteral(PRINTERS_FOLDER_PATH)+"/"+this->_device->GetDeviceInfo()->GetDeviceName()).toUtf8()+sub;
 }
 
+QJsonDocument DeviceFilesSystem::ToJson()
+{
+    QVariantHash vh;
+    vh.insert("IS_UPLOADING",this->IsStillUploading());
+    vh.insert("UPLOAD_PROGRESS",this->GetUploadProgress());
+    vh.insert("SD_SUPPORTED",this->SdSupported());
+    vh.insert("UPLOAD_SPEED",_upload_speed);
+    return QJsonDocument(QJsonObject::fromVariantHash(vh));
+}
+
+void DeviceFilesSystem::FromJson(QJsonDocument json)
+{
+    if(json.object().contains("UPLOAD_SPEED")){
+        _upload_speed=json.object()["UPLOAD_SPEED"].toInt();
+    }
+}
+
+void DeviceFilesSystem::Save()
+{
+    _device->AddData("FS",ToJson().object());
+}
+
+void DeviceFilesSystem::Load()
+{
+    QJsonDocument documetn=QJsonDocument(_device->GetData("FS"));
+    FromJson(documetn);
+}
 
 void DeviceFilesSystem::Disable()
 {

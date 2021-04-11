@@ -33,16 +33,25 @@ void DeviceInfo::SetDimensions(uint32_t x, uint32_t y, uint32_t z)
 void DeviceInfo::SetNozzleDiameter(float diameter)
 {
     _nozzle=diameter;
+    emit InfoChanged();
 }
 
 void DeviceInfo::SetFilamentMaterial(QByteArray material)
 {
     _filament_material=material;
+    emit InfoChanged();
 }
 
 void DeviceInfo::SetNetworkID(QByteArray network)
 {
     _network_id=network;
+    emit InfoChanged();
+}
+
+void DeviceInfo::SetDeviceType(QByteArray device)
+{
+    _device_type=device;
+    emit InfoChanged();
 }
 
 uint32_t DeviceInfo::GetX() const{
@@ -85,11 +94,17 @@ DeviceInfo::operator QVariantMap() const
     vmap.insert("material",this->_filament_material);
     vmap.insert("nozzle",this->_nozzle);
     vmap.insert("network",this->_network_id);
+    vmap.insert("type",this->_device_type);
     return vmap;
 }
 
 QByteArray DeviceInfo::GetID()const{
     return _id;
+}
+
+QByteArray DeviceInfo::GetDeviceType() const
+{
+    return _device_type;
 }
 
 float DeviceInfo::GetNozzleDiameter()
@@ -124,15 +139,26 @@ void DeviceInfo::SaveChanges()
 
 void DeviceInfo::FromJSON(const QJsonObject &json)
 {
-    this->_name=json["name"].toString().toUtf8();
-    this->_filament_material=json["material"].toString().toUtf8();
-    this->_nozzle=json["nozzle"].toDouble();
-    this->_x=json["x"].toInt();
-    this->_y=json["y"].toInt();
-    this->_z=json["z"].toInt();
-    this->_id=json["_id"].toString().toUtf8();
-    this->_baud_rate=json["baudrate"].toInt();
-    this->_network_id=json["network"].toString().toUtf8();
+    if(json.contains("name"))
+        this->_name=json["name"].toString().toUtf8();
+    if(json.contains("material"))
+        this->_filament_material=json["material"].toString().toUtf8();
+    if(json.contains("nozzle"))
+        this->_nozzle=json["nozzle"].toDouble();
+    if(json.contains("x"))
+        this->_x=json["x"].toInt();
+    if(json.contains("y"))
+        this->_y=json["y"].toInt();
+    if(json.contains("z"))
+        this->_z=json["z"].toInt();
+    if(json.contains("_id"))
+        this->_id=json["_id"].toString().toUtf8();
+    if(json.contains("baudrate"))
+        this->_baud_rate=json["baudrate"].toInt();
+    if(json.contains("network"))
+        this->_network_id=json["network"].toString().toUtf8();
+    if(json.contains("type"))
+        this->_device_type=json["type"].toString().toUtf8();
 
 }
 

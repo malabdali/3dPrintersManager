@@ -4,8 +4,8 @@
 #include "../deviceport.h"
 #include "../device.h"
 #include "../../config.h"
-GCode::UploadFile::UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine):
-    GCodeCommand(device,"M28"),_first_line(firstLine),_file_name(fileName),_file_size(0),_data(data)
+GCode::UploadFile::UploadFile(Device *device, QByteArray fileName, const QByteArrayList& data, quint64 firstLine, unsigned speed):
+    GCodeCommand(device,"M28"),_first_line(firstLine),_file_name(fileName),_file_size(0),_data(data),_speed(speed)
 {
     _resend_tries=RESEND_TRIES;
     _resend=false;
@@ -175,7 +175,10 @@ void GCode::UploadFile::OnAllDataWritten(bool success)
         }
         else if(!_resend)
         {
-            _send_timer->start(_data[_counter].length()/UPLOAD_SEND_WAIT_TIME_DEVIDER);
+            if(_speed>0)
+                _send_timer->start(_data[_counter].length()/_speed);
+            else
+                Send();
         }
 
     }

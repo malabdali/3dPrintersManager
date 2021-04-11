@@ -16,7 +16,7 @@ class GCode::UploadFile : public GCodeCommand
 {
     Q_OBJECT
 public:
-    explicit UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine);
+    explicit UploadFile(Device *device,QByteArray fileName,const QByteArrayList& data,quint64 firstLine,unsigned speed);
 
 signals:
 
@@ -28,6 +28,7 @@ private://fields
     size_t _file_size;
     QByteArrayList _data;
     double _progress;
+    unsigned _speed;
     QTimer* _end_timer,* _send_timer;
     int _resend_tries;
     // GCodeCommand interface

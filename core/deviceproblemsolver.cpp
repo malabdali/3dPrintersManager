@@ -43,6 +43,7 @@ QJsonDocument DeviceProblemSolver::ToJson()
 {
     QVariantHash vh;
     vh.insert("ERROR",ErrorToText());
+    vh.insert("TIME",_last_error_time.toString(Qt::DateFormat::ISODateWithMs));
     return QJsonDocument(QJsonObject::fromVariantHash(vh));
 
 }
@@ -68,6 +69,10 @@ void DeviceProblemSolver::WhenLinesAvailable(QList<QByteArray> lines)
 
 void DeviceProblemSolver::WhenErrorOccured(int error)
 {
+    if(error!=_last_device_error)
+    {
+        _last_error_time=QDateTime::currentDateTime();
+    }
     _last_command_error=GCodeCommand::NoError;
     _last_device_error=Device::Errors::NoError;
     _last_device_error=error;
@@ -158,6 +163,11 @@ void DeviceProblemSolver::CheckCommandError(GCodeCommand *command)
     if(!command->IsSuccess()){
         if(command->GetError()!=GCodeCommand::NoError && command->GetError()!=GCodeCommand::PortClosed && command->GetError()!=GCodeCommand::PortError)
         {
+
+            if(command->GetError()!=_last_command_error)
+            {
+                _last_error_time=QDateTime::currentDateTime();
+            }
             _last_command_error=GCodeCommand::NoError;
             _last_device_error=Device::Errors::NoError;
             _last_command_error=command->GetError();

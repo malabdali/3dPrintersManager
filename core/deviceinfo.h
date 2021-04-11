@@ -12,7 +12,7 @@ class DeviceInfo:public QObject
     Q_OBJECT
 
 private://fields
-    QByteArray _name,_filament_material;
+    QByteArray _name,_filament_material,_device_type;
     uint32_t _baud_rate,_x,_y,_z,_status;
     QByteArray _id,_network_id;
     QNetworkReply* _save_changes_reply;
@@ -27,6 +27,7 @@ public:
     uint32_t GetY()const;
     uint32_t GetZ()const;
     QByteArray GetID()const;
+    QByteArray GetDeviceType()const;
     float GetNozzleDiameter();
     QByteArray GetFilamentMaterial();
     QByteArray GetNetworkID();
@@ -38,6 +39,7 @@ public:
     void SetNozzleDiameter(float diameter);
     void SetFilamentMaterial(QByteArray material);
     void SetNetworkID(QByteArray);
+    void SetDeviceType(QByteArray);
     bool operator==(const DeviceInfo&)const;
     bool operator!=(const DeviceInfo&)const;
     operator QByteArray()const;
