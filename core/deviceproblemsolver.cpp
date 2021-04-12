@@ -138,7 +138,10 @@ QByteArray DeviceProblemSolver::ErrorToText()
         }
     }
     else if(_last_device_error!=Device::Errors::NoError){
-        error=_device->GetDevicePort()->GetTextError().toUtf8();
+        if(!_device->GetDevicePort()->GetTextError().isEmpty())
+            error=_device->GetDevicePort()->GetTextError().toUtf8();
+        else
+            error="";
     }
     return error;
 }
