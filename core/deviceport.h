@@ -13,6 +13,7 @@ class DevicePort : public DeviceComponent
 private://fields
     QByteArrayList _available_lines;
     QByteArray _available_data;
+    QByteArray _error;
     bool _can_read;
     QSerialPort* _serial_port;
     QMutex _mutex;
@@ -32,7 +33,7 @@ public:
     void Clear();
     bool IsOpen();
     int GetError();
-    QString GetTextError();
+    QByteArray GetErrorText();
     Q_INVOKABLE void Close();
     Q_INVOKABLE void Reconnect();
     ~DevicePort();

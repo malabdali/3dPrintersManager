@@ -41,6 +41,7 @@ void DevicePort::Open(QByteArray port, quint64 baud_rate){
     //_serial_port->setCurrentReadChannel(0);
     //_serial_port->setDataTerminalReady(true);
     if(_serial_port->open(QIODevice::ReadWrite)){
+        _error="";
         //_serial_port->setCurrentReadChannel(0);
         _serial_port->setDataTerminalReady(true);
         emit PortOpened(true);
@@ -114,10 +115,10 @@ int DevicePort::GetError()
     return _serial_port->error();
 }
 
-QString DevicePort::GetTextError()
+QByteArray DevicePort::GetErrorText()
 {
     QMutexLocker locker(&_mutex);
-    return _serial_port->errorString();
+    return _error;
 }
 
 
@@ -150,11 +151,14 @@ void DevicePort::Reconnect()
     }
     _reconnect=false;
     if(_serial_port->open(QIODevice::ReadWrite)){
+        _error="";
         _serial_port->setDataTerminalReady(true);
         emit Reconnected(true);
     }
     else
+    {
         emit Reconnected(false);
+    }
 
 
 }
@@ -204,6 +208,12 @@ void DevicePort::OnErrorOccurred(QSerialPort::SerialPortError error)
 {
     if(error!=QSerialPort::SerialPortError::NoError && error!=QSerialPort::SerialPortError::NotOpenError)
     {
+        _mutex.lock();
+        if(!this->_serial_port->errorString().isEmpty())
+            this->_error=this->_serial_port->errorString().toUtf8();
+        else
+            this->_error="";
+        _mutex.unlock();
         Clear();
         emit ErrorOccurred(error);
         if(!_serial_port->isOpen())

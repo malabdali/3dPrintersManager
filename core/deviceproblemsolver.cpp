@@ -138,17 +138,16 @@ QByteArray DeviceProblemSolver::ErrorToText()
         }
     }
     else if(_last_device_error!=Device::Errors::NoError){
-        if(!_device->GetDevicePort()->GetTextError().isEmpty())
-            error=_device->GetDevicePort()->GetTextError().toUtf8();
-        else
-            error="";
+        error=_device->GetDevicePort()->GetErrorText();
     }
     return error;
 }
 
 void DeviceProblemSolver::SolveProblem()
 {
+    qDebug()<<"DeviceProblemSolver::SolveProblem()1";
     if(_last_command_error!=GCodeCommand::NoError){
+        qDebug()<<"DeviceProblemSolver::SolveProblem()2";
         switch (_last_command_error) {
         case GCodeCommand::NoChecksum:
             SolveNoChecksumProblem();
@@ -157,6 +156,7 @@ void DeviceProblemSolver::SolveProblem()
     }
     else if(_last_device_error!=Device::Errors::NoError)
     {
+        qDebug()<<"DeviceProblemSolver::SolveProblem()3";
         _device->GetDevicePort()->Reconnect();
     }
 }
