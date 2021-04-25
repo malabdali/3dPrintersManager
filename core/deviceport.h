@@ -20,6 +20,7 @@ private://fields
     quint64 _writing_data_size;
     int _writing_timer;
     bool _reconnect;
+    bool _is_was_open;
 public:
     explicit DevicePort(class Device* device);
     void Setup()override;

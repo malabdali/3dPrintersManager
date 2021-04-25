@@ -5,6 +5,8 @@
 #include "devicecomponent.h"
 #include <QTimer>
 #include "device.h"
+#include "printcontroller.h"
+#include "./gcode/settemperatures.h"
 
 class DeviceActions : public DeviceComponent
 {
@@ -13,6 +15,7 @@ private://fields
     class Device* _device;
     bool _is_playing,_device_data_loaded;
     QTimer *_reconnect_timer, *_save_device_data_timer, *_stop_timer, *_sd_recheck_timer;
+    GCode::SetTemperatures* _set_temperatures_command;
 public:
     explicit DeviceActions(Device *device);
     void Setup();
@@ -32,7 +35,7 @@ private slots:
     void WhenPrintStatusChanged();
     void WhenDeviceRemoved();
     void WhenDeviceStatusChanged();
-    void WhenDeviceReady();
+    void AfterDataLoaded();
 
 signals:
 

@@ -40,8 +40,9 @@ void DeviceWidget::Update()
         ui->_uploading->setText("");
         ui->_uploading->setVisible(false);
         ui->_uploading_label->setVisible(false);
-        if((_device->GetPrintController()->GetCurrentStatus()==PrintController::HeatUp || _device->GetPrintController()->GetCurrentStatus()==PrintController::Printing)
-                && _device->IsOpen() && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
+        if((_device->GetPrintController()->GetCurrentStatus()==PrintController::HeatUpBed || _device->GetPrintController()->GetCurrentStatus()==PrintController::HeatUpNozzle ||
+            _device->GetPrintController()->GetCurrentStatus()==PrintController::Printing)
+                && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
                 !_device->GetDeviceMonitor()->IsBusy()  )
         {
             ui->_stop_print_button->setVisible(true);
@@ -76,12 +77,7 @@ void DeviceWidget::Update()
 
         if(_device->GetProblemSolver()->IsThereProblem()){
 
-            if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort){
-                _device->ClosePort();
-            }
-            else if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::GCode)
-            {
-            }
+
             ui->_error->setText(_device->GetProblemSolver()->ErrorToText());
             ui->_error_label->setVisible(true);
             ui->_error->setVisible(true);
@@ -233,12 +229,6 @@ void DeviceWidget::WhenDeviceDeleted(Device *dev)
 
 void DeviceWidget::OnErrorOccured()
 {
-    if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort){
-        _device->ClosePort();
-    }
-    else if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::GCode)
-    {
-    }
     ui->_error->setText(_device->GetProblemSolver()->ErrorToText());
     ui->_error_label->setVisible(true);
     ui->_error->setVisible(true);

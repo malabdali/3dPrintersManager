@@ -15,6 +15,7 @@ PrintController::PrintController(Device *dev):DeviceComponent(dev)
     _timer_id=-1;
     _wanted_status=Status::Nothing;
     _continue_print=false;
+    _can_heatup=true;
 }
 
 void PrintController::Setup()
@@ -41,7 +42,7 @@ void PrintController::StartPrint(QByteArray file)
             _printed_bytes=0;
             _total_bytes=0;
             CalculateWantedTempratures(0);
-            SetCurrentStatus(Status::SendHeatUpCommands);
+            SetCurrentStatus(Status::SendHeatUpBedCommands);
             _file=file;
             _wanted_status=Printing;
             emit WantedStatusChanged();
@@ -268,6 +269,16 @@ bool PrintController::IsPrinting()
     return _current_status==Printing || _wanted_status==Printing;
 }
 
+void PrintController::SetHeatupAbility(bool b)
+{
+    _can_heatup=b;
+}
+
+bool PrintController::GetHeatupAbility() const
+{
+    return _can_heatup;
+}
+
 QByteArrayList PrintController::LookForLines(int from, int to, QByteArray command)
 {
     QByteArrayList list=_file_content.mid(from,to-from+1).split('\n');
@@ -320,13 +331,26 @@ void PrintController::PrintUpdate()
             _device->AddGCodeCommand(_preprint_command);
         }
     }
-    if(_current_status==Status::SendHeatUpCommands){
+    if(_current_status==Status::SendHeatUpBedCommands && _can_heatup){
         if(_set_temperatures_command==nullptr){
-            _set_temperatures_command=new GCode::SetTemperatures(_device,_wanted_bed_temprature,_wanted_hottend_temperature);
+            _set_temperatures_command=new GCode::SetTemperatures(_device,_wanted_bed_temprature,-1);
             _device->AddGCodeCommand(_set_temperatures_command);
         }
     }
-    else if(_current_status==Status::HeatUp){
+    else if(_current_status==Status::HeatUpBed){
+        DeviceMonitor* monitor=_device->GetDeviceMonitor();
+        if(_bed_temperature>_wanted_bed_temprature*0.95)
+        {
+            SetCurrentStatus(Status::SendHeatUpNozzleCommands);
+        }
+    }
+    else if(_current_status==Status::SendHeatUpNozzleCommands && _can_heatup){
+        if(_set_temperatures_command==nullptr){
+            _set_temperatures_command=new GCode::SetTemperatures(_device,-1,_wanted_hottend_temperature);
+            _device->AddGCodeCommand(_set_temperatures_command);
+        }
+    }
+    else if(_current_status==Status::HeatUpNozzle){
         DeviceMonitor* monitor=_device->GetDeviceMonitor();
         if(_hotend_temperature>_wanted_hottend_temperature*0.95 && _bed_temperature>_wanted_bed_temprature*0.95)
         {
@@ -383,9 +407,15 @@ void PrintController::SetCurrentStatus(PrintController::Status status)
         case PrintController::Nothing:
             _device->GetDeviceMonitor()->ResetIntervals();
             break;
-        case PrintController::SendHeatUpCommands:
+        case PrintController::SendHeatUpBedCommands:
             break;
-        case PrintController::HeatUp:
+        case PrintController::HeatUpBed:
+            _device->GetDeviceMonitor()->SetUpdateIntervals(60000,3000,60000);
+            break;
+
+        case PrintController::SendHeatUpNozzleCommands:
+            break;
+        case PrintController::HeatUpNozzle:
             _device->GetDeviceMonitor()->SetUpdateIntervals(60000,3000,60000);
             break;
         case PrintController::SendPrintCommand:
@@ -400,8 +430,8 @@ void PrintController::SetCurrentStatus(PrintController::Status status)
         case PrintController::Stopped:
             _device->GetDeviceMonitor()->ResetIntervals();
             break;
-            emit StatusChanged();
         }
+        emit StatusChanged();
     }
 }
 
@@ -419,7 +449,7 @@ void PrintController::WhenCommandFinished(GCodeCommand *command, bool success)
     else if(_preprint_command==command){
         if(success)
         {
-            SetCurrentStatus(SendHeatUpCommands);
+            SetCurrentStatus(SendHeatUpBedCommands);
         }
         _preprint_command=nullptr;
     }
@@ -434,8 +464,10 @@ void PrintController::WhenCommandFinished(GCodeCommand *command, bool success)
     }
     else if(command==_set_temperatures_command){
         if(success){
-            if(_current_status==SendHeatUpCommands)
-                SetCurrentStatus(Status::HeatUp);
+            if(_current_status==SendHeatUpBedCommands)
+                SetCurrentStatus(Status::HeatUpBed);
+            if(_current_status==SendHeatUpNozzleCommands)
+                SetCurrentStatus(Status::HeatUpNozzle);
             else if(_current_status==SendHeatOffCommand)
                 SetCurrentStatus(Status::Stopped);
         }
@@ -470,7 +502,8 @@ void PrintController::WhenMonitorUpdated()
         _total_bytes=monitor->GetTotalBytes();
         this->SetCurrentStatus(Printing);
     }
-    else if(_wanted_status!=Printing && (_current_status==HeatUp||_current_status==SendPrintCommand||_current_status==SendHeatUpCommands)){
+    else if(_wanted_status!=Printing && (_current_status==HeatUpBed||_current_status==SendPrintCommand||_current_status==SendHeatUpBedCommands||
+                                         _current_status==HeatUpNozzle||_current_status==SendHeatUpNozzleCommands)){
         if(_wanted_status!=Stopped)
             StopPrint();
     }
@@ -482,7 +515,13 @@ void PrintController::WhenMonitorUpdated()
 void PrintController::WhenPortClosed()
 {
     if(_wanted_status==Printing)
-        this->SetCurrentStatus(SendHeatUpCommands);
+    {
+        if(_continue_print)
+            this->SetCurrentStatus(Status::PreprintPrepare);
+        else{
+            this->SetCurrentStatus(SendHeatUpBedCommands);
+        }
+    }
 }
 
 void PrintController::WhenPortOpened()

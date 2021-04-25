@@ -68,7 +68,7 @@ signals:
     void SdSupportChanged(bool);
 
 private slots:
-    void WhenDeviceReady(Device::DeviceStatus b);
+    void WhenDeviceStatusChanged(Device::DeviceStatus b);
     void WhenPortClosed();
     void WhenCommandFinished(GCodeCommand* command,bool);
     void WhenStatsUpdated();

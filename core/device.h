@@ -45,6 +45,7 @@ private://fields
     bool _is_ready;
     bool _is_busy;
     bool _want_remove;
+    bool _device_data_loaded;
     QMap<QByteArray,QByteArray> _device_stats;
     //gcode commands
     QList<class GCodeCommand*> _commands;
@@ -74,6 +75,7 @@ public:
     DeviceInfo *GetDeviceInfo();
     DeviceStatus GetStatus()const;
     bool IsOpen()const;
+    bool IsDeviceDataLoaded()const;
     void OpenPort();
     void ClosePort();
     void UpdateDeviceStats();

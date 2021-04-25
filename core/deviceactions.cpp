@@ -6,7 +6,6 @@
 #include <QTimer>
 #include "config.h"
 #include "devicefilessystem.h"
-#include "printcontroller.h"
 DeviceActions::DeviceActions(Device *device) : DeviceComponent(device),_device(device),_reconnect_timer(new QTimer(this)),_save_device_data_timer(new QTimer(this)),
     _stop_timer(new QTimer(this)),_sd_recheck_timer(new QTimer(this))
 {
@@ -38,6 +37,7 @@ void DeviceActions::Play()
     connect(_device->GetPrintController(),&PrintController::StatusChanged,this,&DeviceActions::WhenPrintStatusChanged);
     connect(_device,&Device::StatusChanged,this,&DeviceActions::WhenDeviceStatusChanged);
     connect(_device,&Device::DeviceRemoved,this,&DeviceActions::WhenDeviceRemoved);
+    connect(_device,&Device::AfterDeviceDataLoaded,this,&DeviceActions::AfterDataLoaded);
     _save_device_data_timer->start(SAVE_DEVICE_DATA_EACH);
 }
 
@@ -72,14 +72,24 @@ void DeviceActions::WhenCommandFinished(GCodeCommand *command, bool success)
 {
     if(!_is_playing)
         return;
+    if(_set_temperatures_command==command){
+        _set_temperatures_command=nullptr;
+        if(!success){
+            this->_set_temperatures_command=new GCode::SetTemperatures(_device,0,0);
+        }
+    }
 }
 
 
 void DeviceActions::WhenProblemDetected()
 {
-    _reconnect_timer->stop();
     if(!_is_playing)
         return;
+
+    if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort && _device->IsOpen()){
+        _device->ClosePort();
+    }
+    _reconnect_timer->stop();
     if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort)
     {
         _reconnect_timer->start(ACTION_WAITING_TIME);
@@ -133,7 +143,8 @@ void DeviceActions::StopPrinting()
 
 void DeviceActions::WhenPrintStatusChanged()
 {
-    _device->Save();
+    if(_device_data_loaded)
+        _device->Save();
 }
 
 void DeviceActions::WhenDeviceRemoved()
@@ -145,14 +156,29 @@ void DeviceActions::WhenDeviceStatusChanged()
 {
     if(_device_data_loaded)
         _device->Save();
+    if(_device->GetStatus()==Device::DeviceStatus::Ready && _device_data_loaded)
+    {
+        if(!_device->GetPrintController()->IsPrinting()){
+            this->_set_temperatures_command=new GCode::SetTemperatures(_device,0,0);
+            _device->AddGCodeCommand(_set_temperatures_command);
+        }
+    }
 
     RecheckSDSUpport();
 }
 
-void DeviceActions::WhenDeviceReady()
+
+void DeviceActions::AfterDataLoaded()
 {
-    this->_device->GetFileSystem()->UpdateFileList();
+    if(_device->GetStatus()==Device::DeviceStatus::Ready)
+    {
+        if(!_device->GetPrintController()->IsPrinting()){
+            this->_set_temperatures_command=new GCode::SetTemperatures(_device,0,0);
+            _device->AddGCodeCommand(_set_temperatures_command);
+        }
+    }
 }
+
 
 
 void DeviceActions::Disable()

@@ -26,7 +26,7 @@ DeviceFilesSystem::DeviceFilesSystem(Device *device): DeviceComponent(device)
 
 void DeviceFilesSystem::Setup()
 {
-    QObject::connect(_device,&Device::StatusChanged,this,&DeviceFilesSystem::WhenDeviceReady);
+    QObject::connect(_device,&Device::StatusChanged,this,&DeviceFilesSystem::WhenDeviceStatusChanged);
     QObject::connect(_device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
     QObject::connect(_device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
     QObject::connect(_device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);
@@ -159,7 +159,7 @@ uint64_t DeviceFilesSystem::GetLineNumber()
     return _line_number;
 }
 
-void DeviceFilesSystem::WhenDeviceReady(Device::DeviceStatus status)
+void DeviceFilesSystem::WhenDeviceStatusChanged(Device::DeviceStatus status)
 {
     if(status==Device::DeviceStatus::Ready && _files.size()==0 )
     {
@@ -464,7 +464,7 @@ void DeviceFilesSystem::Disable()
     if(_load_file!=nullptr)
         _load_file->Stop();
     Stop();
-    QObject::disconnect(_device,&Device::StatusChanged,this,&DeviceFilesSystem::WhenDeviceReady);
+    QObject::disconnect(_device,&Device::StatusChanged,this,&DeviceFilesSystem::WhenDeviceStatusChanged);
     QObject::disconnect(_device,&Device::PortClosed,this,&DeviceFilesSystem::WhenPortClosed);
     QObject::disconnect(_device,&Device::CommandFinished,this,&DeviceFilesSystem::WhenCommandFinished);
     QObject::disconnect(_device,&Device::DeviceStatsUpdated,this,&DeviceFilesSystem::WhenStatsUpdated);

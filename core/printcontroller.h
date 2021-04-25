@@ -17,14 +17,16 @@ class PrintController:public DeviceComponent
 public://types
 enum Status:int{
     Nothing=0,
-    SendHeatUpCommands=1,
-    HeatUp=2,
-    SendPrintCommand=3,
-    Printing=4,
-    SendStopCommand=5,
-    SendHeatOffCommand=6,
-    Stopped=7,
-    PreprintPrepare=8
+    SendHeatUpNozzleCommands=1,
+    HeatUpNozzle=2,
+    SendHeatUpBedCommands=3,
+    HeatUpBed=4,
+    SendPrintCommand=5,
+    Printing=6,
+    SendStopCommand=7,
+    SendHeatOffCommand=8,
+    Stopped=9,
+    PreprintPrepare=10
 };
 
 private://fields
@@ -40,6 +42,7 @@ double _wanted_extruder;
 Status _current_status,_wanted_status;
 int _current_line;
 bool _continue_print;
+bool _can_heatup;
 QByteArray _file_content;
 int _timer_id;
 QDateTime _start_printing_time,_finished_printing_time;
@@ -62,6 +65,8 @@ public:
     QByteArray GetMaxAcceleration(int index);
     bool CanContinuePrinting();
     bool IsPrinting();
+    void SetHeatupAbility(bool b);
+    bool GetHeatupAbility()const;
 public:
     void Setup() override;
 signals:

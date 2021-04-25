@@ -9,6 +9,7 @@ DevicePort::DevicePort(Device* device):DeviceComponent(device)
     _can_read=false;
     _writing_timer=-1;
     _reconnect=false;
+    _is_was_open=false;
 
     QObject::connect(_serial_port,&QSerialPort::readyRead,this,&DevicePort::OnAvailableData);
     QObject::connect(_serial_port,&QSerialPort::errorOccurred,this,&DevicePort::OnErrorOccurred);
@@ -44,6 +45,7 @@ void DevicePort::Open(QByteArray port, quint64 baud_rate){
         _error="";
         //_serial_port->setCurrentReadChannel(0);
         _serial_port->setDataTerminalReady(true);
+        _is_was_open=true;
         emit PortOpened(true);
     }
     else
@@ -131,6 +133,7 @@ void DevicePort::Close()
     }
     if(!IsOpen())
         return;
+    _is_was_open=false;
     Clear();
     _serial_port->close();
     emit PortClosed();
@@ -148,6 +151,7 @@ void DevicePort::Reconnect()
     if(IsOpen())
     {
         _serial_port->close();
+        _is_was_open=false;
     }
     _reconnect=false;
     if(_serial_port->open(QIODevice::ReadWrite)){
@@ -216,8 +220,9 @@ void DevicePort::OnErrorOccurred(QSerialPort::SerialPortError error)
         _mutex.unlock();
         Clear();
         emit ErrorOccurred(error);
-        if(!_serial_port->isOpen())
+        if(!_serial_port->isOpen() && _is_was_open)
         {
+            _is_was_open=false;
             emit PortClosed();
         }
     }

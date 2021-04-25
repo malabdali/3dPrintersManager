@@ -28,6 +28,7 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     device_info->setParent(this);
     _is_ready=false;
     _is_busy=false;
+    _device_data_loaded=false;
     _want_remove=false;
     _commands_paused=false;
     _current_command=nullptr;
@@ -148,6 +149,11 @@ bool Device::IsOpen() const
     if(_want_remove)
         return false;
     return _device_port->IsOpen();
+}
+
+bool Device::IsDeviceDataLoaded() const
+{
+    return _device_data_loaded;
 }
 
 void Device::OpenPort(){
@@ -418,6 +424,7 @@ void Device::Load()
 {
     _fileSystem->ReadLocaleFile(DEVICE_DATA_FILE, [this](QByteArray data)->void{
         _device_data=QJsonDocument::fromJson(data);
+        _device_data_loaded=true;
         emit this->DeviceDataLoaded();
         emit AfterDeviceDataLoaded();
     });
