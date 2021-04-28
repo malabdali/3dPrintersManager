@@ -100,7 +100,7 @@ void DeviceWidget::Setup()
         ui->_name->setReadOnly(true);
         ui->_baud_rate->setText(QString::number(_device->GetDeviceInfo()->GetBaudRate()));
         ui->_name->setText(_device->GetDeviceInfo()->GetDeviceName());
-        ui->_device_type->setCurrentText(_device->GetDeviceInfo()->GetDeviceType().isEmpty()?QStringLiteral("UNKNOWN"):QString(_device->GetDeviceInfo()->GetDeviceType()));
+        ui->_device_type->setCurrentText(_device->GetDeviceInfo()->GetDeviceModel().isEmpty()?QStringLiteral("UNKNOWN"):QString(_device->GetDeviceInfo()->GetDeviceModel()));
         ui->_port->setText(this->_device->GetPort());
         ui->_x->setText(QString::number(_device->GetDeviceInfo()->GetX()));
         ui->_y->setText(QString::number(_device->GetDeviceInfo()->GetY()));
@@ -304,7 +304,7 @@ void DeviceWidget::SaveChanges()
     _device->GetDeviceInfo()->SetDimensions(ui->_x->text().toUInt(),ui->_y->text().toUInt(),ui->_z->text().toUInt());
     _device->GetDeviceInfo()->SetNozzleDiameter(ui->_nozzle->text().toFloat());
     _device->GetDeviceInfo()->SetFilamentMaterial(ui->_material->currentText().toUtf8());
-    _device->GetDeviceInfo()->SetDeviceType(ui->_device_type->currentText().toUtf8());
+    _device->GetDeviceInfo()->SetDeviceModel(ui->_device_type->currentText().toUtf8());
 
     _device->ClosePort();
     _device->GetDeviceInfo()->SaveChanges();
@@ -319,7 +319,7 @@ void DeviceWidget::CreateDevice()
     di.SetBaudRate(ui->_baud_rate->text().toUInt());
     di.SetNozzleDiameter(ui->_nozzle->text().toFloat());
     di.SetFilamentMaterial(ui->_material->currentText().toUtf8());
-    di.SetDeviceType(ui->_device_type->currentText().toUtf8());
+    di.SetDeviceModel(ui->_device_type->currentText().toUtf8());
     Devices::GetInstance()->CreateDevice(di);
 }
 

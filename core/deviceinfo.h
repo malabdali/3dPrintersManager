@@ -12,8 +12,8 @@ class DeviceInfo:public QObject
     Q_OBJECT
 
 private://fields
-    QByteArray _name,_filament_material,_device_type;
-    uint32_t _baud_rate,_x,_y,_z,_status;
+    QByteArray _name,_filament_material,_device_type,_device_model,_device_ip;
+    uint32_t _baud_rate,_x,_y,_z,_status,_device_network_port;
     QByteArray _id,_network_id;
     QNetworkReply* _save_changes_reply;
     float _nozzle;
@@ -28,9 +28,13 @@ public:
     uint32_t GetZ()const;
     QByteArray GetID()const;
     QByteArray GetDeviceType()const;
+    QByteArray GetDeviceModel()const;
+    QByteArray GetDeviceIP()const;
+    int GetNetworkPort()const;
     float GetNozzleDiameter();
     QByteArray GetFilamentMaterial();
     QByteArray GetNetworkID();
+
     void SaveChanges();
 
 
@@ -40,6 +44,10 @@ public:
     void SetFilamentMaterial(QByteArray material);
     void SetNetworkID(QByteArray);
     void SetDeviceType(QByteArray);
+    void SetDeviceModel(QByteArray);
+    void SetDeviceIP(QByteArray);
+    void SetNetworkPort(int);
+
     bool operator==(const DeviceInfo&)const;
     bool operator!=(const DeviceInfo&)const;
     operator QByteArray()const;
@@ -48,6 +56,10 @@ public:
     void FromJSON(const QJsonObject& json);
 
     ~DeviceInfo();
+
+    struct Types{
+        const static QByteArray FDM,SLA;
+    };
 
 
 signals:

@@ -60,6 +60,36 @@ Device *Devices::GetDeviceByPort(const QByteArray &port) const
     return *res;
 }
 
+Device *Devices::GetDeviceByIP(const QByteArray &ip) const
+{
+    auto res=std::find_if(_devices.begin(),_devices.end(),[ip](Device* dev){return ip==dev->GetDeviceInfo()->GetDeviceIP();});
+    if(res!=_devices.end())
+        return *res;
+    else return nullptr;
+}
+
+QList<Device *> Devices::GetDevicesByType(QByteArray type)
+{
+    QList<Device*> devices;
+    for(Device* dev : _devices){
+        if(dev->GetDeviceInfo()->GetDeviceType()==type){
+            devices.append(dev);
+        }
+    }
+    return devices;
+}
+
+QList<Device *> Devices::GetDevicesByModel(QByteArray model)
+{
+    QList<Device*> devices;
+    for(Device* dev : _devices){
+        if(dev->GetDeviceInfo()->GetDeviceModel()==model){
+            devices.append(dev);
+        }
+    }
+    return devices;
+}
+
 Device *Devices::GetDevice(const DeviceInfo* name)const{
     auto res=std::find_if(this->_devices.begin(),this->_devices.end(),[&name](Device* dev)->bool{
             return dev->GetDeviceInfo()->GetDeviceName()==*name;

@@ -29,6 +29,7 @@ SOURCES += \
     core/deviceportdetector.cpp \
     core/deviceproblemsolver.cpp \
     core/devices.cpp \
+    core/fdmdevice.cpp \
     core/fileinfo.cpp \
     core/gcode/deletefile.cpp \
     core/gcode/endstopsstates.cpp \
@@ -75,6 +76,7 @@ HEADERS += \
     core/deviceportdetector.h \
     core/deviceproblemsolver.h \
     core/devices.h \
+    core/fdmdevice.h \
     core/fileinfo.h \
     core/gcode/deletefile.h \
     core/gcode/endstopsstates.h \

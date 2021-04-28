@@ -492,7 +492,7 @@
                <string notr="true">color: rgb(59, 208, 18);</string>
               </property>
               <property name="text">
-               <string>Device Type</string>
+               <string>Device Model</string>
               </property>
               <property name="textFormat">
                <enum>Qt::PlainText</enum>

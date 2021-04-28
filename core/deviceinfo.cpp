@@ -3,6 +3,8 @@
 #include <QVariantMap>
 #include "remoteserver.h"
 
+const QByteArray DeviceInfo::Types::FDM="FDM";
+const QByteArray DeviceInfo::Types::SLA="SLA";
 
 DeviceInfo::DeviceInfo(QByteArray name,QObject* parent):_name(name),QObject(parent)
 {
@@ -54,6 +56,23 @@ void DeviceInfo::SetDeviceType(QByteArray device)
     emit InfoChanged();
 }
 
+void DeviceInfo::SetDeviceModel(QByteArray model)
+{
+    _device_model=model;
+    emit InfoChanged();
+}
+
+void DeviceInfo::SetDeviceIP(QByteArray ip)
+{
+    _device_ip=ip;
+    emit InfoChanged();
+}
+
+void DeviceInfo::SetNetworkPort(int port)
+{
+    _device_network_port=port;
+}
+
 uint32_t DeviceInfo::GetX() const{
     return _x;
 }
@@ -95,6 +114,9 @@ DeviceInfo::operator QVariantMap() const
     vmap.insert("nozzle",this->_nozzle);
     vmap.insert("network",this->_network_id);
     vmap.insert("type",this->_device_type);
+    vmap.insert("model",this->_device_model);
+    vmap.insert("ip",this->_device_ip);
+    vmap.insert("port",this->_device_network_port);
     return vmap;
 }
 
@@ -105,6 +127,21 @@ QByteArray DeviceInfo::GetID()const{
 QByteArray DeviceInfo::GetDeviceType() const
 {
     return _device_type;
+}
+
+QByteArray DeviceInfo::GetDeviceModel() const
+{
+    return _device_model;
+}
+
+QByteArray DeviceInfo::GetDeviceIP() const
+{
+    return _device_ip;
+}
+
+int DeviceInfo::GetNetworkPort() const
+{
+    return _device_network_port;
 }
 
 float DeviceInfo::GetNozzleDiameter()
@@ -159,6 +196,12 @@ void DeviceInfo::FromJSON(const QJsonObject &json)
         this->_network_id=json["network"].toString().toUtf8();
     if(json.contains("type"))
         this->_device_type=json["type"].toString().toUtf8();
+    if(json.contains("model"))
+        this->_device_model=json["model"].toString().toUtf8();
+    if(json.contains("ip"))
+        this->_device_ip=json["ip"].toString().toUtf8();
+    if(json.contains("port"))
+        this->_device_network_port=json["port"].toString().toUInt();
 
 }
 

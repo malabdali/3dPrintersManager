@@ -24,6 +24,9 @@ public:
     Device *GetDevice(const DeviceInfo *name)const;
     Device *GetDevice(const QByteArray &name)const;
     Device *GetDeviceByPort(const QByteArray& port)const;
+    Device *GetDeviceByIP(const QByteArray& port)const;
+    QList<Device *> GetDevicesByType(QByteArray);
+    QList<Device *> GetDevicesByModel(QByteArray);
     void DetectPortAndConnectForAllDevices(bool=false);
     void LoadDevicesFromRemoteServer();
     QList<Device *> GetAllDevices();
