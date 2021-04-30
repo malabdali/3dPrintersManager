@@ -19,10 +19,11 @@
 #include "printcontroller.h"
 #include "camera.h"
 
-Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),_port_thread(new QThread()),
-    _fileSystem(new DeviceFilesSystem(this)),_device_port(new DevicePort(this)),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this)),
+Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(""),
+    _fileSystem(new DeviceFilesSystem(this)),_device_info(device_info),_problem_solver(new DeviceProblemSolver(this)),
     _device_monitor(new DeviceMonitor(this)),_device_actions(new DeviceActions(this)),_print_controller(new PrintController(this)),_camera(new Camera(this))
 {
+    qDebug()<<"start create ";
     _port_detector=nullptr;
     qRegisterMetaType<Errors>();
     device_info->setParent(this);
@@ -33,9 +34,20 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _commands_paused=false;
     _current_command=nullptr;
     _network_reply=nullptr;
-    _port_thread->start();
-    _device_port->setParent(nullptr);
-    _device_port->moveToThread(_port_thread);
+    if(_device_info->GetConnectionType()==DeviceInfo::Serial)
+    {
+        _port_thread=new QThread();
+        _port_thread->start();
+        _device_port=new DevicePort(this);
+        _device_port->setParent(nullptr);
+        _device_port->moveToThread(_port_thread);
+        _device_port->Setup();
+        QObject::connect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
+        QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);
+        QObject::connect(_device_port,&DevicePort::PortOpened,this,&Device::OnOpen);
+        QObject::connect(_device_port,&DevicePort::Reconnected,this,&Device::OnOpen);
+        QObject::connect(_port_thread,&QThread::finished,this,&Device::CompleteRemove);
+    }
     _last_command_time_finished=std::chrono::steady_clock::now();
     _fileSystem->Initiate();
     _delay_command_state=false;
@@ -44,16 +56,10 @@ Device::Device(DeviceInfo* device_info,QObject *parent) : QObject(parent),_port(
     _device_actions->Setup();
     _device_monitor->Setup();
     _fileSystem->Setup();
-    _device_port->Setup();
     _problem_solver->Setup();
     _print_controller->Setup();
     _camera->Setup();
 
-    QObject::connect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
-    QObject::connect(_device_port,&DevicePort::PortClosed,this,&Device::OnClosed);
-    QObject::connect(_device_port,&DevicePort::PortOpened,this,&Device::OnOpen);
-    QObject::connect(_device_port,&DevicePort::Reconnected,this,&Device::OnOpen);
-    QObject::connect(_port_thread,&QThread::finished,this,&Device::CompleteRemove);
 
 
 }
@@ -126,17 +132,22 @@ void Device::DelayCommandCallback()
 
 void Device::CompleteRemove()
 {
-    if(_current_command==nullptr && !IsOpen()){
-        if(_port_thread->isRunning())
-        {
-            _port_thread->exit(0);
-        }
-        else{
-            _port_thread->deleteLater();
-            this->deleteLater();
-        }
+    if(_device_info->GetConnectionType()==DeviceInfo::Serial)
+    {
+        if(_current_command==nullptr && !IsOpen()){
+            if(_port_thread->isRunning())
+            {
+                _port_thread->exit(0);
+            }
+            else{
+                _port_thread->deleteLater();
+                this->deleteLater();
+            }
 
+        }
     }
+    else
+        this->deleteLater();
 }
 
 
@@ -148,7 +159,10 @@ bool Device::IsOpen() const
 {
     if(_want_remove)
         return false;
-    return _device_port->IsOpen();
+    if(_device_info->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
+        return _device_port->IsOpen();
+    else
+        return false;
 }
 
 bool Device::IsDeviceDataLoaded() const
@@ -157,26 +171,38 @@ bool Device::IsDeviceDataLoaded() const
 }
 
 void Device::OpenPort(){
-    if(_device_port->IsOpen())
-        ClosePort();
-    if(!this->_port.isEmpty())
+
+    if(_device_info->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
     {
-        _device_port->Open(_port,_device_info->GetBaudRate());
+        if(_device_port->IsOpen())
+            ClosePort();
+        if(!this->_port.isEmpty())
+        {
+            _device_port->Open(_port,_device_info->GetBaudRate());
+        }
     }
 }
 
 void Device::ClosePort(){
-    _device_port->Close();
+
+    if(_device_info->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
+    {
+        _device_port->Close();
+    }
 }
 
 void Device::UpdateDeviceStats(){
-    if(_device_port->IsOpen())
+
+    if(_device_info->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
     {
-        GCode::DeviceStats* ds=new GCode::DeviceStats(const_cast<Device*>(this));
-        QObject::connect(ds,&GCode::DeviceStats::Finished,this,&Device::WhenStatsUpdated);
-        ds->setParent(nullptr);
-        ds->moveToThread(_port_thread);
-        ds->Start();
+        if(_device_port->IsOpen())
+        {
+            GCode::DeviceStats* ds=new GCode::DeviceStats(const_cast<Device*>(this));
+            QObject::connect(ds,&GCode::DeviceStats::Finished,this,&Device::WhenStatsUpdated);
+            ds->setParent(nullptr);
+            ds->moveToThread(_port_thread);
+            ds->Start();
+        }
     }
 }
 
@@ -241,7 +267,9 @@ void Device::PlayCommands()
 
 void Device::StartCommand(GCodeCommand *command)
 {
-    _device_port->Clear();
+
+    if(_device_info->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
+        _device_port->Clear();
     _current_command=command;
     command->setParent(nullptr);
     command->moveToThread(_port_thread);
@@ -342,7 +370,7 @@ void Device::StartNextCommand()
 void Device::OnDetectPort(QByteArray port)
 {
     this->SetPort(port);
-     _port_detector->deleteLater();
+    _port_detector->deleteLater();
     _port_detector=nullptr;
     CalculateAndSetStatus();
     if(port.isEmpty()){
@@ -409,13 +437,18 @@ Camera *Device::GetCamera()
 
 void Device::Remove()
 {
-
-    QObject::disconnect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
+    if(_device_info->GetConnectionType()==DeviceInfo::Serial)
+    {
+        QObject::disconnect(_device_port,&DevicePort::ErrorOccurred,this,&Device::OnErrorOccurred);
+    }
     emit DeviceRemoved();
     _want_remove=true;
     PauseCommands();
     ClearCommands();
-    ClosePort();
+    if(_device_info->GetConnectionType()==DeviceInfo::Serial)
+    {
+        ClosePort();
+    }
     if(_current_command==nullptr)
         CompleteRemove();
 }
@@ -442,7 +475,7 @@ void Device::Save()
             _network_reply=RemoteServer::GetInstance()->SendUpdateQuery([this](QNetworkReply* reply)->void{
                     _network_reply=nullptr;
                     reply->deleteLater();
-            },DEVICES_TABLE,this->_device_data.object().toVariantMap(),this->_device_info->GetID());
+        },DEVICES_TABLE,this->_device_data.object().toVariantMap(),this->_device_info->GetID());
             emit DataSaved();
         }
     });

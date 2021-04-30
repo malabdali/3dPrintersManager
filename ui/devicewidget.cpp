@@ -87,6 +87,7 @@ void DeviceWidget::Update()
             ui->_error->setVisible(false);
         }
     }
+
 }
 
 DeviceWidget::~DeviceWidget()
@@ -100,13 +101,15 @@ void DeviceWidget::Setup()
         ui->_name->setReadOnly(true);
         ui->_baud_rate->setText(QString::number(_device->GetDeviceInfo()->GetBaudRate()));
         ui->_name->setText(_device->GetDeviceInfo()->GetDeviceName());
-        ui->_device_type->setCurrentText(_device->GetDeviceInfo()->GetDeviceModel().isEmpty()?QStringLiteral("UNKNOWN"):QString(_device->GetDeviceInfo()->GetDeviceModel()));
+        ui->_device_model->setCurrentText(_device->GetDeviceInfo()->GetDeviceModel().isEmpty()?QStringLiteral("UNKNOWN"):QString(_device->GetDeviceInfo()->GetDeviceModel()));
         ui->_port->setText(this->_device->GetPort());
         ui->_x->setText(QString::number(_device->GetDeviceInfo()->GetX()));
         ui->_y->setText(QString::number(_device->GetDeviceInfo()->GetY()));
         ui->_z->setText(QString::number(_device->GetDeviceInfo()->GetZ()));
         ui->_nozzle->setText(QString::number(_device->GetDeviceInfo()->GetNozzleDiameter()));
         ui->_material->setCurrentText(_device->GetDeviceInfo()->GetFilamentMaterial());
+        ui->_connection_type->setCurrentIndex(_device->GetDeviceInfo()->GetConnectionType()-1);
+        ui->_device_type->setCurrentText(_device->GetDeviceInfo()->GetDeviceType());
         ui->_status->setVisible(true);
         ui->_status_label->setVisible(true);
         ui->_save_changes_button->setVisible(false);
@@ -119,6 +122,10 @@ void DeviceWidget::Setup()
         ui->_error->setVisible(false);
         ui->_stop_print_button->setVisible(false);
         ui->_continue_print_button->setVisible(false);
+        ui->_connection_type->setEnabled(false);
+        ui->_connection_type_label->setEnabled(false);
+        ui->_device_type->setEnabled(false);
+        ui->_device_model->setEnabled(false);
 
         // device events
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged,Qt::ConnectionType::QueuedConnection);
@@ -126,8 +133,8 @@ void DeviceWidget::Setup()
         QObject::connect(this->_device,&Device::CommandStarted,this,&DeviceWidget::OnCommandStarted);
         QObject::connect(this->_device,&Device::DetectPortSucceed,this,&DeviceWidget::OnDetectPort);
         QObject::connect(this->_device,&Device::DetectPortFailed,this,&DeviceWidget::OnDetectPort);
-        QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnPortConnected);
-        QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnPortDisconnected);
+        QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnConnected);
+        QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnDisconnected);
         QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::ProblemDetected,this,&DeviceWidget::OnErrorOccured);
         QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceWidget::OnErrorSolved);
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::Saved,this,&DeviceWidget::WhenDeviceInfoSaved);
@@ -170,9 +177,12 @@ void DeviceWidget::Setup()
         QObject::connect(ui->_x,&QLineEdit::textEdited,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_y,&QLineEdit::textEdited,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_z,&QLineEdit::textEdited,this,&DeviceWidget::WhenEditValues);
+        QObject::connect(ui->_ip_port,&QLineEdit::textEdited,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_nozzle,&QLineEdit::textEdited,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_material,&QComboBox::currentTextChanged,this,&DeviceWidget::WhenEditValues);
+        QObject::connect(ui->_device_model,&QComboBox::currentTextChanged,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_device_type,&QComboBox::currentTextChanged,this,&DeviceWidget::WhenEditValues);
+        QObject::connect(ui->_connection_type,&QComboBox::currentTextChanged,this,&DeviceWidget::WhenEditValues);
         QObject::connect(ui->_save_changes_button,&QPushButton::clicked,this,&DeviceWidget::SaveChanges);
         QObject::connect(ui->_create_button,&QPushButton::clicked,this,&DeviceWidget::CreateDevice);
         QObject::connect(ui->_delete_button,&QPushButton::clicked,this,&DeviceWidget::DeleteDevice);
@@ -185,6 +195,39 @@ void DeviceWidget::Setup()
                 this, SLOT(ShowContextMenu(const QPoint &)));
     }
 
+    RefreshFieldsDisplay();
+
+
+}
+
+void DeviceWidget::RefreshFieldsDisplay()
+{
+
+    if(ui->_connection_type->currentIndex()==DeviceInfo::ConnectionType::Serial-1){
+        ui->_port->setVisible(true);
+        ui->_port_label->setVisible(true);
+        ui->_baud_rate->setVisible(true);
+        ui->_baud_rate_label->setVisible(true);
+        ui->_ip_port_label->setVisible(false);
+        ui->_ip_port->setVisible(false);
+    }
+    else{
+        ui->_port->setVisible(false);
+        ui->_port_label->setVisible(false);
+        ui->_ip_port_label->setVisible(true);
+        ui->_ip_port->setVisible(true);
+        ui->_baud_rate->setVisible(false);
+        ui->_baud_rate_label->setVisible(false);
+    }
+
+    if(ui->_device_type->currentText()==DeviceInfo::Types::FDM){
+        ui->_nozzle->setVisible(true);
+        ui->_nozzle_label->setVisible(true);
+    }
+    else{
+        ui->_nozzle->setVisible(false);
+        ui->_nozzle_label->setVisible(false);
+    }
 
 }
 
@@ -240,7 +283,7 @@ void DeviceWidget::OnErrorSolved()
     ui->_error->setVisible(false);
 }
 
-void DeviceWidget::OnPortConnected()
+void DeviceWidget::OnConnected()
 {
     ui->_icon->setStyleSheet("background-color: rgb(20, 255, 20);");
     ui->_open_port_button->setVisible(false);
@@ -250,7 +293,7 @@ void DeviceWidget::OnPortConnected()
     ui->_detect_port_button->setVisible(false);
 }
 
-void DeviceWidget::OnPortDisconnected()
+void DeviceWidget::OnDisconnected()
 {
     ui->_icon->setStyleSheet("background-color: rgb(255, 20, 20);");
     ui->_open_port_button->setVisible(true);
@@ -295,6 +338,8 @@ void DeviceWidget::WhenEditValues()
             ui->_create_button->setEnabled(false);
         }
     }
+
+    RefreshFieldsDisplay();
 }
 
 void DeviceWidget::SaveChanges()
@@ -304,7 +349,13 @@ void DeviceWidget::SaveChanges()
     _device->GetDeviceInfo()->SetDimensions(ui->_x->text().toUInt(),ui->_y->text().toUInt(),ui->_z->text().toUInt());
     _device->GetDeviceInfo()->SetNozzleDiameter(ui->_nozzle->text().toFloat());
     _device->GetDeviceInfo()->SetFilamentMaterial(ui->_material->currentText().toUtf8());
-    _device->GetDeviceInfo()->SetDeviceModel(ui->_device_type->currentText().toUtf8());
+    _device->GetDeviceInfo()->SetDeviceModel(ui->_device_model->currentText().toUtf8());
+    if(ui->_ip_port->text().contains(":")){
+        _device->GetDeviceInfo()->SetDeviceIP(ui->_ip_port->text().split(':')[0].toUtf8());
+        _device->GetDeviceInfo()->SetNetworkPort(ui->_ip_port->text().split(':')[1].toUInt());
+    }
+    _device->GetDeviceInfo()->SetConnctionType((DeviceInfo::ConnectionType)(ui->_connection_type->currentIndex()+1));
+    _device->GetDeviceInfo()->SetDeviceType(ui->_device_type->currentText().toUtf8());
 
     _device->ClosePort();
     _device->GetDeviceInfo()->SaveChanges();
@@ -319,7 +370,13 @@ void DeviceWidget::CreateDevice()
     di.SetBaudRate(ui->_baud_rate->text().toUInt());
     di.SetNozzleDiameter(ui->_nozzle->text().toFloat());
     di.SetFilamentMaterial(ui->_material->currentText().toUtf8());
-    di.SetDeviceModel(ui->_device_type->currentText().toUtf8());
+    di.SetDeviceModel(ui->_device_model->currentText().toUtf8());
+    if(ui->_ip_port->text().contains(":")){
+        di.SetDeviceIP(ui->_ip_port->text().split(':')[0].toUtf8());
+        di.SetNetworkPort(ui->_ip_port->text().split(':')[1].toUInt());
+    }
+    di.SetConnctionType((DeviceInfo::ConnectionType)(ui->_connection_type->currentIndex()+1));
+    di.SetDeviceType(ui->_device_type->currentText().toUtf8());
     Devices::GetInstance()->CreateDevice(di);
 }
 

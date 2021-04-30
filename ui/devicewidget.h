@@ -26,6 +26,7 @@ public:
 
 private://methods
     void Setup();
+    void RefreshFieldsDisplay();
     void contextMenuEvent(QContextMenuEvent *event) override;
 private slots:
     void OnDeviceInfoChanged();
@@ -35,8 +36,8 @@ private slots:
     void WhenDeviceDeleted(Device* dev);
     void OnErrorOccured();
     void OnErrorSolved();
-    void OnPortConnected();
-    void OnPortDisconnected();
+    void OnConnected();
+    void OnDisconnected();
     void OnDetectPort();
     void WhenEditValues();
     void SaveChanges();

@@ -1,3 +1,6 @@
+
+
+
 #include "deviceinfo.h"
 #include <QString>
 #include <QVariantMap>
@@ -71,6 +74,14 @@ void DeviceInfo::SetDeviceIP(QByteArray ip)
 void DeviceInfo::SetNetworkPort(int port)
 {
     _device_network_port=port;
+    emit InfoChanged();
+}
+
+void DeviceInfo::SetConnctionType(DeviceInfo::ConnectionType ct)
+{
+    _connection_type=ct;
+    emit InfoChanged();
+
 }
 
 uint32_t DeviceInfo::GetX() const{
@@ -117,6 +128,7 @@ DeviceInfo::operator QVariantMap() const
     vmap.insert("model",this->_device_model);
     vmap.insert("ip",this->_device_ip);
     vmap.insert("port",this->_device_network_port);
+    vmap.insert("connection_type",this->_connection_type);
     return vmap;
 }
 
@@ -157,6 +169,11 @@ QByteArray DeviceInfo::GetFilamentMaterial()
 QByteArray DeviceInfo::GetNetworkID()
 {
     return _network_id;
+}
+
+DeviceInfo::ConnectionType DeviceInfo::GetConnectionType()
+{
+    return _connection_type;
 }
 
 void DeviceInfo::SaveChanges()
@@ -201,7 +218,9 @@ void DeviceInfo::FromJSON(const QJsonObject &json)
     if(json.contains("ip"))
         this->_device_ip=json["ip"].toString().toUtf8();
     if(json.contains("port"))
-        this->_device_network_port=json["port"].toString().toUInt();
+        this->_device_network_port=json["port"].toInt();
+    if(json.contains("connection_type"))
+        this->_connection_type=(ConnectionType)json["connection_type"].toInt();
 
 }
 

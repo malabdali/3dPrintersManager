@@ -54,7 +54,12 @@ void Devices::RemoveDevice(const DeviceInfo *name)
 
 Device *Devices::GetDeviceByPort(const QByteArray &port) const
 {
-    auto res=std::find_if(this->_devices.begin(),this->_devices.end(),[&port](Device* dev)->bool{return dev->GetPort()==port;});
+    auto res=std::find_if(this->_devices.begin(),this->_devices.end(),[&port](Device* dev)->bool{
+            if(dev->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
+                return dev->GetPort()==port;
+            else
+                return false;
+    });
     if(res==this->_devices.end())
         return nullptr;
     return *res;
@@ -62,7 +67,11 @@ Device *Devices::GetDeviceByPort(const QByteArray &port) const
 
 Device *Devices::GetDeviceByIP(const QByteArray &ip) const
 {
-    auto res=std::find_if(_devices.begin(),_devices.end(),[ip](Device* dev){return ip==dev->GetDeviceInfo()->GetDeviceIP();});
+    auto res=std::find_if(_devices.begin(),_devices.end(),[ip](Device* dev){
+            if(dev->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::Network)
+                return ip==dev->GetDeviceInfo()->GetDeviceIP();
+            return false;
+    });
     if(res!=_devices.end())
         return *res;
     else return nullptr;
@@ -109,10 +118,13 @@ void Devices::DetectPortAndConnectForAllDevices(bool force_detect_all_ports)
 {
     _detect_ports_wait_list.clear();
     for(Device* dev : _devices){
-        if(dev->GetPort().isEmpty() || force_detect_all_ports)
-            _detect_ports_wait_list.append(dev);
-        else
-            dev->OpenPort();
+        if(dev->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
+        {
+            if(dev->GetPort().isEmpty() || force_detect_all_ports)
+                _detect_ports_wait_list.append(dev);
+            else
+                dev->OpenPort();
+        }
     }
     if(_detect_ports_wait_list.length()>0)
     {
