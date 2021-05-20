@@ -40,15 +40,17 @@ void DeviceWidget::Update()
         ui->_uploading->setText("");
         ui->_uploading->setVisible(false);
         ui->_uploading_label->setVisible(false);
-        if((_device->GetPrintController()->GetCurrentStatus()==PrintController::HeatUpBed || _device->GetPrintController()->GetCurrentStatus()==PrintController::HeatUpNozzle ||
-            _device->GetPrintController()->GetCurrentStatus()==PrintController::Printing)
-                && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
+        if(_device->GetPrintController()->IsPrinting()  && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
                 !_device->GetDeviceMonitor()->IsBusy()  )
         {
             ui->_stop_print_button->setVisible(true);
+            this->ui->_pause_print_button->setVisible(true);
         }
         else
+        {
             ui->_stop_print_button->setVisible(false);
+            this->ui->_pause_print_button->setVisible(false);
+        }
         if(_device->GetFileSystem()->IsStillUploading() && _device->GetStatus()==Device::DeviceStatus::Ready)
         {
             ui->_uploading->setVisible(true);
@@ -98,6 +100,9 @@ DeviceWidget::~DeviceWidget()
 void DeviceWidget::Setup()
 {
     if(this->_device){
+        if(_device->GetDeviceInfo()->GetDeviceType()==DeviceInfo::Types::SLA){
+            ui->_icon->setPixmap(QPixmap(":/icon/images/SLAPrinter.png"));
+        }
         ui->_name->setReadOnly(true);
         ui->_baud_rate->setText(QString::number(_device->GetDeviceInfo()->GetBaudRate()));
         ui->_name->setText(_device->GetDeviceInfo()->GetDeviceName());
@@ -106,6 +111,7 @@ void DeviceWidget::Setup()
         ui->_x->setText(QString::number(_device->GetDeviceInfo()->GetX()));
         ui->_y->setText(QString::number(_device->GetDeviceInfo()->GetY()));
         ui->_z->setText(QString::number(_device->GetDeviceInfo()->GetZ()));
+        ui->_ip_port->setText(QString("%1:%2").arg(QString::fromUtf8(_device->GetDeviceInfo()->GetDeviceIP())).arg(_device->GetDeviceInfo()->GetNetworkPort()));
         ui->_nozzle->setText(QString::number(_device->GetDeviceInfo()->GetNozzleDiameter()));
         ui->_material->setCurrentText(_device->GetDeviceInfo()->GetFilamentMaterial());
         ui->_connection_type->setCurrentIndex(_device->GetDeviceInfo()->GetConnectionType()-1);
@@ -116,16 +122,28 @@ void DeviceWidget::Setup()
         ui->_create_button->setVisible(false);
         ui->_delete_button->setVisible(true);
         ui->_detect_port_button->setVisible(true);
-        ui->_open_port_button->setVisible(false);
+        if( _device->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
+            ui->_open_port_button->setVisible(false);
         ui->_close_port_button->setVisible(false);
         ui->_error_label->setVisible(false);
         ui->_error->setVisible(false);
         ui->_stop_print_button->setVisible(false);
+        this->ui->_pause_print_button->setVisible(false);
         ui->_continue_print_button->setVisible(false);
         ui->_connection_type->setEnabled(false);
         ui->_connection_type_label->setEnabled(false);
         ui->_device_type->setEnabled(false);
         ui->_device_model->setEnabled(false);
+        if(!(_device->GetDeviceMonitor()->GetMonitorOptions()&DeviceMonitor::HotendAndBedTemperature)){
+            ui->_hotend_temperature_->setVisible(false);
+            ui->_hotend_temperature_label->setVisible(false);
+            ui->_bed_temperature->setVisible(false);
+            ui->_bed_temperature_label->setVisible(false);
+        }
+
+        if(_device->GetDeviceInfo()->GetConnectionType()!=DeviceInfo::ConnectionType::Serial)
+            ui->_detect_port_button->setVisible(false);
+
 
         // device events
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::InfoChanged,this,&DeviceWidget::OnDeviceInfoChanged,Qt::ConnectionType::QueuedConnection);
@@ -133,8 +151,8 @@ void DeviceWidget::Setup()
         QObject::connect(this->_device,&Device::CommandStarted,this,&DeviceWidget::OnCommandStarted);
         QObject::connect(this->_device,&Device::DetectPortSucceed,this,&DeviceWidget::OnDetectPort);
         QObject::connect(this->_device,&Device::DetectPortFailed,this,&DeviceWidget::OnDetectPort);
-        QObject::connect(this->_device,&Device::PortOpened,this,&DeviceWidget::OnConnected);
-        QObject::connect(this->_device,&Device::PortClosed,this,&DeviceWidget::OnDisconnected);
+        QObject::connect(this->_device,&Device::Opened,this,&DeviceWidget::OnConnected);
+        QObject::connect(this->_device,&Device::Closed,this,&DeviceWidget::OnDisconnected);
         QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::ProblemDetected,this,&DeviceWidget::OnErrorOccured);
         QObject::connect(this->_device->GetProblemSolver(),&DeviceProblemSolver::SolveFinished,this,&DeviceWidget::OnErrorSolved);
         QObject::connect(this->_device->GetDeviceInfo(),&DeviceInfo::Saved,this,&DeviceWidget::WhenDeviceInfoSaved);
@@ -160,6 +178,7 @@ void DeviceWidget::Setup()
         ui->_bed_temperature->setVisible(false);
         ui->_bed_temperature_label->setVisible(false);
         ui->_stop_print_button->setVisible(false);
+        this->ui->_pause_print_button->setVisible(false);
         ui->_continue_print_button->setVisible(false);
         QObject::connect(Devices::GetInstance(),&Devices::DeviceCreated,this,&DeviceWidget::WhenDeviceCreated);
 
@@ -244,6 +263,7 @@ void DeviceWidget::OnDeviceInfoChanged()
     ui->_x->setText(QString::number(_device->GetDeviceInfo()->GetX()));
     ui->_y->setText(QString::number(_device->GetDeviceInfo()->GetY()));
     ui->_z->setText(QString::number(_device->GetDeviceInfo()->GetZ()));
+    ui->_ip_port->setText(QString("%1:%2").arg(QString::fromUtf8(_device->GetDeviceInfo()->GetDeviceIP())).arg(_device->GetDeviceInfo()->GetNetworkPort()));
 }
 
 void DeviceWidget::OnCommandFinished(const GCodeCommand *function, bool b)
@@ -298,7 +318,8 @@ void DeviceWidget::OnDisconnected()
     ui->_icon->setStyleSheet("background-color: rgb(255, 20, 20);");
     ui->_open_port_button->setVisible(true);
     ui->_close_port_button->setVisible(false);
-    ui->_detect_port_button->setVisible(true);
+    if(_device->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::Serial)
+        ui->_detect_port_button->setVisible(true);
     if(_serial_widget)
         _serial_widget->close();
     if(_files_widget)
@@ -309,7 +330,7 @@ void DeviceWidget::OnDetectPort()
 {
     ui->_port->setText(this->_device->GetPort());
     ui->_detect_port_button->setVisible(true);
-    if(!this->_device->GetPort().isEmpty())
+    if(!this->_device->GetPort().isEmpty() || _device->GetDeviceInfo()->GetConnectionType()!=DeviceInfo::ConnectionType::Serial)
     {
         ui->_open_port_button->setVisible(true);
     }
@@ -357,7 +378,7 @@ void DeviceWidget::SaveChanges()
     _device->GetDeviceInfo()->SetConnctionType((DeviceInfo::ConnectionType)(ui->_connection_type->currentIndex()+1));
     _device->GetDeviceInfo()->SetDeviceType(ui->_device_type->currentText().toUtf8());
 
-    _device->ClosePort();
+    _device->Close();
     _device->GetDeviceInfo()->SaveChanges();
 }
 
@@ -395,16 +416,14 @@ void DeviceWidget::DetectPort()
 void DeviceWidget::OpenPort()
 {
     if(!_device->IsOpen())
-        this->_device->OpenPort();
-    else
-        this->_device->GetDevicePort()->Reconnect();
+        this->_device->Open();
     ui->_open_port_button->setVisible(false);
 
 }
 
 void DeviceWidget::ClosePort()
 {
-    this->_device->ClosePort();
+    this->_device->Close();
 }
 
 void DeviceWidget::WhenDeviceInfoSaved(bool res)
@@ -412,7 +431,7 @@ void DeviceWidget::WhenDeviceInfoSaved(bool res)
     if(res)
     {
         ui->_save_changes_button->setVisible(false);
-        _device->OpenPort();
+        _device->Open();
     }
     else
         ui->_save_changes_button->setVisible(true);
@@ -532,6 +551,7 @@ void DeviceWidget::on__stop_print_button_clicked()
 {
     _device->GetPrintController()->StopPrint();
     this->ui->_stop_print_button->setVisible(false);
+    this->ui->_pause_print_button->setVisible(false);
 }
 
 void DeviceWidget::on__continue_print_button_clicked()
@@ -553,4 +573,11 @@ void DeviceWidget::on__camera_settings_action_triggered()
     _camera_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _camera_widget->show();
     QObject::connect(_camera_widget,&QWidget::destroyed,this,[this]{_camera_widget=nullptr;});
+}
+
+void DeviceWidget::on__pause_print_button_clicked()
+{
+    _device->GetPrintController()->PausePrint();
+    this->ui->_stop_print_button->setVisible(false);
+    this->ui->_pause_print_button->setVisible(false);
 }

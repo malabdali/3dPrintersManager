@@ -1,12 +1,13 @@
 #include "deviceproblemsolver.h"
 #include "device.h"
 #include "deviceport.h"
+#include "deviceconnection.h"
 #include "gcodecommand.h"
 #include <QVariantHash>
 DeviceProblemSolver::DeviceProblemSolver(Device *device):DeviceComponent(device)
 {
     _last_command_error=GCodeCommand::NoError;
-    _last_device_error=Device::Errors::NoError;
+    _last_device_error=-1;
 
 }
 
@@ -15,7 +16,7 @@ DeviceProblemSolver::SolvingType DeviceProblemSolver::GetSolvingType()const
     if(_last_command_error!=GCodeCommand::NoError){
         return SolvingType::GCode;
     }
-    else if(_last_device_error!=Device::Errors::NoError)
+    else if(_last_device_error!=-1)
     {
         return SolvingType::OpenPort;
     }
@@ -27,15 +28,15 @@ void DeviceProblemSolver::Setup()
 {
     QObject::connect(_device,&Device::CommandFinished,this,&DeviceProblemSolver::WhenCommandFinished);
     QObject::connect(_device,&Device::CommandStarted,this,&DeviceProblemSolver::WhenCommandStarted);
-    QObject::connect(_device,&Device::PortClosed,this,&DeviceProblemSolver::WhenPortClosed);
-    QObject::connect(_device,&Device::PortOpened,this,&DeviceProblemSolver::WhenPortOpened);
+    QObject::connect(_device,&Device::Closed,this,&DeviceProblemSolver::WhenPortClosed);
+    QObject::connect(_device,&Device::Opened,this,&DeviceProblemSolver::WhenPortOpened);
     QObject::connect(_device,&Device::DeviceStatsUpdateFailed,this,&DeviceProblemSolver::WhenStatsUpdateFailed);
     QObject::connect(_device,&Device::ErrorOccurred,this,&DeviceProblemSolver::WhenErrorOccured);
     QObject::connect(_device,&Device::BeforeSaveDeviceData,this,&DeviceProblemSolver::Save);
 }
 
 bool DeviceProblemSolver::IsThereProblem(){
-    return _last_command_error!=GCodeCommand::NoError || _last_device_error!=Device::Errors::NoError;
+    return _last_command_error!=GCodeCommand::NoError || _last_device_error!=-1;
 
 }
 
@@ -48,15 +49,10 @@ QJsonDocument DeviceProblemSolver::ToJson()
 
 }
 
-void DeviceProblemSolver::FromJson(QJsonDocument *json)
-{
-
-}
-
 void DeviceProblemSolver::WhenLinesAvailable(QList<QByteArray> lines)
 {
-    while(_device->GetDevicePort()->IsThereAvailableLines()){
-        QByteArray data=_device->GetDevicePort()->ReadLine();
+    while(_device->GetDeviceConnection()->IsThereAvailableLines()){
+        QByteArray data=_device->GetDeviceConnection()->ReadLine();
         if(data.contains("ok"))
         {
             if(_commands_was_played)
@@ -74,7 +70,6 @@ void DeviceProblemSolver::WhenErrorOccured(int error)
         _last_error_time=QDateTime::currentDateTime();
     }
     _last_command_error=GCodeCommand::NoError;
-    _last_device_error=Device::Errors::NoError;
     _last_device_error=error;
     emit ProblemDetected();
 }
@@ -106,7 +101,7 @@ void DeviceProblemSolver::WhenStatsUpdateFailed(GCodeCommand *command)
     CheckCommandError(command);
 }
 
-QByteArray DeviceProblemSolver::ErrorToText()
+QByteArray DeviceProblemSolver::ErrorToText()const
 {
     QByteArray error="";
     if(_last_command_error!=GCodeCommand::NoError){
@@ -137,8 +132,8 @@ QByteArray DeviceProblemSolver::ErrorToText()
 
         }
     }
-    else if(_last_device_error!=Device::Errors::NoError){
-        error=_device->GetDevicePort()->GetErrorText();
+    else if(_last_device_error!=-1){
+        error=_device->GetDeviceConnection()->GetErrorText();
     }
     return error;
 }
@@ -152,9 +147,9 @@ void DeviceProblemSolver::SolveProblem()
             break;
         }
     }
-    else if(_last_device_error!=Device::Errors::NoError)
+    else if(_last_device_error!=-1)
     {
-        _device->GetDevicePort()->Reconnect();
+        _device->GetDeviceConnection()->Open();
     }
 }
 
@@ -169,7 +164,7 @@ void DeviceProblemSolver::CheckCommandError(GCodeCommand *command)
                 _last_error_time=QDateTime::currentDateTime();
             }
             _last_command_error=GCodeCommand::NoError;
-            _last_device_error=Device::Errors::NoError;
+            _last_device_error=-1;
             _last_command_error=command->GetError();
             emit ProblemDetected();
         }
@@ -180,16 +175,21 @@ void DeviceProblemSolver::SolveNoChecksumProblem()
 {
     _commands_was_played=_device->CommandsIsPlayed();
     _device->PauseCommands();
-    QObject::connect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&DeviceProblemSolver::WhenLinesAvailable);
-    _device->GetDevicePort()->Write("M29 \n");
+    QObject::connect(_device->GetDeviceConnection(),&DevicePort::NewLinesAvailable,this,&DeviceProblemSolver::WhenLinesAvailable);
+    _device->GetDeviceConnection()->Write("M29 \n");
 }
 
 void DeviceProblemSolver::WhenProblemSolved()
 {
     _last_command_error=GCodeCommand::NoError;
-    _last_device_error=Device::Errors::NoError;
-    QObject::disconnect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&DeviceProblemSolver::WhenLinesAvailable);
+    _last_device_error=-1;
+    QObject::disconnect(_device->GetDeviceConnection(),&DevicePort::NewLinesAvailable,this,&DeviceProblemSolver::WhenLinesAvailable);
     emit SolveFinished();
+}
+
+void DeviceProblemSolver::FromJson(QJsonDocument json)
+{
+
 }
 
 void DeviceProblemSolver::Save()
@@ -210,8 +210,8 @@ void DeviceProblemSolver::Disable()
 {
     QObject::disconnect(_device,&Device::CommandFinished,this,&DeviceProblemSolver::WhenCommandFinished);
     QObject::disconnect(_device,&Device::CommandStarted,this,&DeviceProblemSolver::WhenCommandStarted);
-    QObject::disconnect(_device,&Device::PortClosed,this,&DeviceProblemSolver::WhenPortClosed);
-    QObject::disconnect(_device,&Device::PortOpened,this,&DeviceProblemSolver::WhenPortOpened);
+    QObject::disconnect(_device,&Device::Closed,this,&DeviceProblemSolver::WhenPortClosed);
+    QObject::disconnect(_device,&Device::Opened,this,&DeviceProblemSolver::WhenPortOpened);
     QObject::disconnect(_device,&Device::DeviceStatsUpdateFailed,this,&DeviceProblemSolver::WhenStatsUpdateFailed);
     QObject::disconnect(_device,&Device::ErrorOccurred,this,&DeviceProblemSolver::WhenErrorOccured);
     QObject::disconnect(_device,&Device::BeforeSaveDeviceData,this,&DeviceProblemSolver::Save);

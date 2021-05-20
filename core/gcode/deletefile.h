@@ -15,9 +15,8 @@ class GCode::DeleteFile : public GCodeCommand
 private://fields
 QByteArray _file;
 bool _is_success;
-std::function<void(bool)> _callback;
 public:
-    explicit DeleteFile(Device *device, std::function<void (bool)> callback,QByteArray fileName);
+    explicit DeleteFile(Device *device,QByteArray fileName);
 
 signals:
 

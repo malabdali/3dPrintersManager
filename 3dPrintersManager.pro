@@ -19,9 +19,11 @@ SOURCES += \
     config.h \
     core/camera.cpp \
     core/camerasmanager.cpp \
+    core/chitugcodecommand.cpp \
     core/device.cpp \
     core/deviceactions.cpp \
     core/devicecomponent.cpp \
+    core/deviceconnection.cpp \
     core/devicefilessystem.cpp \
     core/deviceinfo.cpp \
     core/devicemonitor.cpp \
@@ -29,7 +31,21 @@ SOURCES += \
     core/deviceportdetector.cpp \
     core/deviceproblemsolver.cpp \
     core/devices.cpp \
+    core/devices/fdmdevicemonitor.cpp \
+    core/devices/fdmprintcontroller.cpp \
+    core/devices/sladevicemonitor.cpp \
+    core/devices/slaprintcontroller.cpp \
+    core/deviceudp.cpp \
+    core/devices/fdmdevice.cpp \
+    core/devices/fdmfilessystem.cpp \
     core/fileinfo.cpp \
+    core/gcode/CHITU/chitudeletefile.cpp \
+    core/gcode/CHITU/chitudevicestats.cpp \
+    core/gcode/CHITU/chitufileslist.cpp \
+    core/gcode/CHITU/chituprintingstats.cpp \
+    core/gcode/CHITU/chituresumepauseprint.cpp \
+    core/gcode/CHITU/chitustartstopprint.cpp \
+    core/gcode/CHITU/chituuploadfile.cpp \
     core/gcode/deletefile.cpp \
     core/gcode/endstopsstates.cpp \
     core/gcode/fileslist.cpp \
@@ -46,11 +62,13 @@ SOURCES += \
     core/gcodecommand.cpp \
     core/printcontroller.cpp \
     core/remoteserver.cpp \
+    core/devices/sladevice.cpp \
+    core/devices/slafilessystem.cpp \
     core/system.cpp \
     core/tasks/printtask.cpp \
     core/tasks/task.cpp \
     core/tasks/tasksmanager.cpp \
-    core/utilities/loadgcodefuture.cpp \
+    core/utilities/loadprintablefuture.cpp \
     main.cpp \
     ui/camerawidget.cpp \
     ui/deviceswidget.cpp \
@@ -65,9 +83,11 @@ SOURCES += \
 HEADERS += \
     core/camera.h \
     core/camerasmanager.h \
+    core/chitugcodecommand.h \
     core/device.h \
     core/deviceactions.h \
     core/devicecomponent.h \
+    core/deviceconnection.h \
     core/devicefilessystem.h \
     core/deviceinfo.h \
     core/devicemonitor.h \
@@ -75,7 +95,21 @@ HEADERS += \
     core/deviceportdetector.h \
     core/deviceproblemsolver.h \
     core/devices.h \
+    core/devices/fdmdevicemonitor.h \
+    core/devices/fdmprintcontroller.h \
+    core/devices/sladevicemonitor.h \
+    core/devices/slaprintcontroller.h \
+    core/deviceudp.h \
+    core/devices/fdmdevice.h \
+    core/devices/fdmfilessystem.h \
     core/fileinfo.h \
+    core/gcode/CHITU/chitudeletefile.h \
+    core/gcode/CHITU/chitudevicestats.h \
+    core/gcode/CHITU/chitufileslist.h \
+    core/gcode/CHITU/chituprintingstats.h \
+    core/gcode/CHITU/chituresumepauseprint.h \
+    core/gcode/CHITU/chitustartstopprint.h \
+    core/gcode/CHITU/chituuploadfile.h \
     core/gcode/deletefile.h \
     core/gcode/endstopsstates.h \
     core/gcode/fileslist.h \
@@ -92,11 +126,13 @@ HEADERS += \
     core/gcodecommand.h \
     core/printcontroller.h \
     core/remoteserver.h \
+    core/devices/sladevice.h \
+    core/devices/slafilessystem.h \
     core/system.h \
     core/tasks/printtask.h \
     core/tasks/task.h \
     core/tasks/tasksmanager.h \
-    core/utilities/loadgcodefuture.h \
+    core/utilities/loadprintablefuture.h \
     ui/camerawidget.h \
     ui/deviceswidget.h \
     ui/devicewidget.h \

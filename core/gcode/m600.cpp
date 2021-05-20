@@ -8,7 +8,7 @@ GCode::M600::M600(Device *device):GCodeCommand(device,"M600")
 
 void GCode::M600::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M600 \n"));
+    _device->GetDeviceConnection()->Write(QByteArray("M600 \n"));
 }
 
 void GCode::M600::InsideStop()

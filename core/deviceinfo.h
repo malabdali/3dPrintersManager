@@ -17,7 +17,9 @@ public://types
     };
     enum ConnectionType{
         Serial=1,
-        Network=2
+        UDP=2,
+        TCP=3,
+        API=4
     };
 
 private://fields

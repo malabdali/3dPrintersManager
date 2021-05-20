@@ -1,7 +1,7 @@
 #include "serialwidget.h"
 #include "ui_serialwidget.h"
 #include "../core/device.h"
-#include "../core/deviceport.h"
+#include "../core/deviceconnection.h"
 #include <QString>
 
 SerialWidget::SerialWidget(Device *dev, QWidget *parent) :
@@ -9,8 +9,8 @@ SerialWidget::SerialWidget(Device *dev, QWidget *parent) :
     ui(new Ui::SerialWidget)
 {
     ui->setupUi(this);
-    QObject::connect(_device->GetDevicePort(),&DevicePort::NewLinesAvailable,this,&SerialWidget::WhenDataAvailable);
-    QObject::connect(_device->GetDevicePort(),&DevicePort::DataWritten,this,&SerialWidget::WhenDataWritten);
+    QObject::connect(_device->GetDeviceConnection(),&DeviceConnection::NewLinesAvailable,this,&SerialWidget::WhenDataAvailable);
+    QObject::connect(_device->GetDeviceConnection(),&DeviceConnection::DataWritten,this,&SerialWidget::WhenDataWritten);
 }
 
 SerialWidget::~SerialWidget()
@@ -50,8 +50,8 @@ void SerialWidget::Send()
     ui->_send_button->setEnabled(false);
     ui->_gcode_input->setEnabled(false);
     QByteArray ba="";
-    ba=ui->_gcode_input->text().toUtf8().toUpper()+" \n";
-    _device->GetDevicePort()->Write(ba);
+    ba=ui->_gcode_input->text().toUtf8()+" \n";
+    _device->GetDeviceConnection()->Write(ba);
     ui->_gcode_input->setText("");
     ui->_serial_output->setTextColor(QColor(250,150,50));
     ui->_serial_output->insertPlainText(ba);

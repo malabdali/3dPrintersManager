@@ -5,66 +5,36 @@
 #include <QSerialPort>
 #include <QMutex>
 #include <QMutexLocker>
-#include "devicecomponent.h"
+#include "deviceconnection.h"
 
-class DevicePort : public DeviceComponent
+class DevicePort : public DeviceConnection
 {
     Q_OBJECT
 private://fields
-    QByteArrayList _available_lines;
-    QByteArray _available_data;
-    QByteArray _error;
-    bool _can_read;
-    QSerialPort* _serial_port;
-    QMutex _mutex;
-    quint64 _writing_data_size;
-    int _writing_timer;
-    bool _reconnect;
-    bool _is_was_open;
+    QSerialPort* _port;
 public:
     explicit DevicePort(class Device* device);
-    void Setup()override;
-    Q_INVOKABLE void Write(QByteArray bytes);
-    Q_INVOKABLE void Open(QByteArray port,quint64 baud_rate);
-    QByteArray ReadLine();
-    QList<QByteArray> ReadAllLines();
-    uint32_t LinesCount();
-    QByteArray PeakLine(int i);
-    bool IsThereAvailableLines();
-    void Clear();
-    bool IsOpen();
-    int GetError();
-    QByteArray GetErrorText();
-    Q_INVOKABLE void Close();
-    Q_INVOKABLE void Reconnect();
-    ~DevicePort();
+    Q_INVOKABLE void Open()override;
+    bool IsOpen()override;
+    Q_INVOKABLE void Close()override;
+    //Q_INVOKABLE void Reconnect()override;
+    ~DevicePort()override;
 
-
-signals:
-    void NewLinesAvailable(QByteArrayList);
-    void DataWritten(bool);
-    void ErrorOccurred(int);
-    void PortOpened(bool);
-    void PortClosed();
-    void Reconnected(bool);
 private slots:
     void OnAvailableData();
-    void OnErrorOccurred(QSerialPort::SerialPortError);
+    void OnErrorOccurred(int);
     void OnDataWritten(quint64);
-    void InsideWrite(QByteArray);
-    void timerEvent(QTimerEvent *event) override;
-    void WhenDeviceRemoved();
 private://methods
-    void SerialInputFilter(QByteArrayList& list);
-    void CallFunction(QByteArray function);
-    void CallFunction(QByteArray function,QGenericArgument argument);
-    void CallFunction(QByteArray function,QGenericArgument argument1,QGenericArgument argument2);
 
 
 
     // DeviceComponent interface
 public:
     void Disable() override;
+
+    // DeviceConnection interface
+protected:
+    void WriteFunction(const QByteArray &) override;
 };
 
 #endif // DEVICEPORT_H

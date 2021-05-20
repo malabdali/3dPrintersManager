@@ -31,7 +31,7 @@ void GCode::UploadFile::InsideStart()
     {
         _file_size+=ba.mid(ba.indexOf(" "),ba.indexOf("*")-ba.indexOf(" ")+1).length();
     }
-    _device->GetDevicePort()->Write(QByteArray("M28 ")+_file_name+"\n");
+    _device->GetDeviceConnection()->Write(QByteArray("M28 ")+_file_name+"\n");
 }
 
 void GCode::UploadFile::InsideStop()
@@ -72,23 +72,23 @@ void GCode::UploadFile::Resend()
 {
     _wait_resend=false;
     _resend=false;
-    this->_device->GetDevicePort()->Write(_data[++_counter]);
+    this->_device->GetDeviceConnection()->Write(_data[++_counter]);
 }
 
 void GCode::UploadFile::Send()
 {
     if((uint32_t)_data.length()<=(_counter+1)){
-        this->_device->GetDevicePort()->Write(_data[_data.length()-1]);
+        this->_device->GetDeviceConnection()->Write(_data[_data.length()-1]);
         return;
     }
     _progress=((double)this->_counter/(double)this->_data.length())*100.0;
-    this->_device->GetDevicePort()->Write(_data[++_counter]);
+    this->_device->GetDeviceConnection()->Write(_data[++_counter]);
 }
 
 void GCode::UploadFile::Send29()
 {
     _upload_stage=false;
-    _device->GetDevicePort()->Write("M29\n");
+    _device->GetDeviceConnection()->Write("M29\n");
 }
 
 void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
@@ -108,7 +108,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
     }
     else if(ba.contains("ok") && _open_success && !_upload_stage && _counter==0){
         _upload_stage=true;
-        this->_device->GetDevicePort()->Write(_data[0]);
+        this->_device->GetDeviceConnection()->Write(_data[0]);
     }
     else if((uint32_t)_data.length()<=(_counter+1) && ba.contains("ok") && _upload_stage)
     {
@@ -131,7 +131,7 @@ void GCode::UploadFile::OnAvailableData(const QByteArray &ba)
                 return;
             }
         }
-        _device->GetDevicePort()->Clear();
+        _device->GetDeviceConnection()->Clear();
         if(_send_timer->isActive())_send_timer->stop();
         _resend=true;
         uint32_t ln=ba.mid(8).simplified().trimmed().toUInt()-_first_line;

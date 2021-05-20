@@ -58,6 +58,7 @@ private slots:
     void on__stop_print_button_clicked();
     void on__continue_print_button_clicked();
     void on__camera_settings_action_triggered();
+    void on__pause_print_button_clicked();
 };
 
 #endif // DEVICEWIDGET_H

@@ -12,7 +12,7 @@ GCode::LineNumber::LineNumber(Device *device):GCodeCommand(device,"M20")
 
 void GCode::LineNumber::InsideStart()
 {
-    _device->GetDevicePort()->Write("M28 lnt.txt\n");
+    _device->GetDeviceConnection()->Write("M28 lnt.txt\n");
 }
 
 void GCode::LineNumber::InsideStop()
@@ -32,7 +32,7 @@ void GCode::LineNumber::OnAvailableData(const QByteArray &ba)
         if(_29_sent)
             Finish(true);
         else if(_is_open)
-            this->_device->GetDevicePort()->Write("test\n");
+            this->_device->GetDeviceConnection()->Write("test\n");
         else if(_is_fail)
             Finish(false);
     }
@@ -42,7 +42,7 @@ void GCode::LineNumber::OnAvailableData(const QByteArray &ba)
     else if(ba.contains("Resend: ")){
         _line_number=ba.mid(8).simplified().trimmed().toUInt();
         _29_sent=true;
-        _device->GetDevicePort()->Write("M29 \n");
+        _device->GetDeviceConnection()->Write("M29 \n");
     }
 
     else{

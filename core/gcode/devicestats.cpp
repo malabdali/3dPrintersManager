@@ -13,7 +13,7 @@ QMap<QByteArray, QByteArray> GCode::DeviceStats::GetStats()
 
 void GCode::DeviceStats::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M115 \n"));
+    _device->GetDeviceConnection()->Write(QByteArray("M115 \n"));
 }
 
 void GCode::DeviceStats::InsideStop()

@@ -43,21 +43,21 @@ GCode::PrePrint::PrePrint(Device* device,int fanSpeed,QByteArray acceleration,QB
 void GCode::PrePrint::InsideStart()
 {
     if(!_fan_speed_finished)
-        _device->GetDevicePort()->Write(QByteArray("M106 S"+QByteArray::number(_fan_speed)+"\n"));
+        _device->GetDeviceConnection()->Write(QByteArray("M106 S"+QByteArray::number(_fan_speed)+"\n"));
     else if(!_e_absolute_finished)
-        _device->GetDevicePort()->Write(QByteArray("M82 \n"));
+        _device->GetDeviceConnection()->Write(QByteArray("M82 \n"));
     else if(!_e_position_finished)
-        _device->GetDevicePort()->Write(QByteArray("G92 E"+QByteArray::number(_e_position)+"\n"));
+        _device->GetDeviceConnection()->Write(QByteArray("G92 E"+QByteArray::number(_e_position)+"\n"));
     else if(!_max_acceleration_finished)
-        _device->GetDevicePort()->Write(QByteArray("M201 "+this->_max_acceleration_m201+"\n"));
+        _device->GetDeviceConnection()->Write(QByteArray("M201 "+this->_max_acceleration_m201+"\n"));
     else if(!_max_feedrate_finished)
-        _device->GetDevicePort()->Write(QByteArray("M203 "+this->_maximum_feedrate_m203+"\n"));
+        _device->GetDeviceConnection()->Write(QByteArray("M203 "+this->_maximum_feedrate_m203+"\n"));
     else if(!_acceleration_finished)
-        _device->GetDevicePort()->Write(QByteArray("M204 "+this->_acceleration_m204+"\n"));
+        _device->GetDeviceConnection()->Write(QByteArray("M204 "+this->_acceleration_m204+"\n"));
     else if(!_jerk_finished)
-        _device->GetDevicePort()->Write(QByteArray("M205 "+_jerk_limits_m205+"\n"));
+        _device->GetDeviceConnection()->Write(QByteArray("M205 "+_jerk_limits_m205+"\n"));
     else if(!_go_home_finished)
-        _device->GetDevicePort()->Write(QByteArray("G28 \n"));
+        _device->GetDeviceConnection()->Write(QByteArray("G28 \n"));
 
 
 
@@ -74,30 +74,30 @@ void GCode::PrePrint::OnAvailableData(const QByteArray &ba)
     if(ba.toLower().startsWith("ok")){
         if(!_fan_speed_finished){
             _fan_speed_finished=true;
-            _device->GetDevicePort()->Write(QByteArray("M82 \n"));
+            _device->GetDeviceConnection()->Write(QByteArray("M82 \n"));
         }
         else if(!_e_absolute_finished){
             _e_absolute_finished=true;
-            _device->GetDevicePort()->Write(QByteArray("G92 E"+QByteArray::number(_e_position)+"\n"));
+            _device->GetDeviceConnection()->Write(QByteArray("G92 E"+QByteArray::number(_e_position)+"\n"));
         }
         else if(!_e_position_finished){
             _e_position_finished=true;
-            _device->GetDevicePort()->Write(QByteArray("M201 "+this->_max_acceleration_m201+"\n"));
+            _device->GetDeviceConnection()->Write(QByteArray("M201 "+this->_max_acceleration_m201+"\n"));
         }
         else if(!_max_acceleration_finished){
             _max_acceleration_finished=true;
-            _device->GetDevicePort()->Write(QByteArray("M203 "+this->_maximum_feedrate_m203+"\n"));
+            _device->GetDeviceConnection()->Write(QByteArray("M203 "+this->_maximum_feedrate_m203+"\n"));
         }
         else if(!_max_feedrate_finished){
             _max_feedrate_finished=true;
-            _device->GetDevicePort()->Write(QByteArray("M204 "+this->_acceleration_m204+"\n"));
+            _device->GetDeviceConnection()->Write(QByteArray("M204 "+this->_acceleration_m204+"\n"));
         }
         else if(!_acceleration_finished){
             _acceleration_finished=true;
-            _device->GetDevicePort()->Write(QByteArray("M205 "+_jerk_limits_m205+"\n"));
+            _device->GetDeviceConnection()->Write(QByteArray("M205 "+_jerk_limits_m205+"\n"));
         }
         else if(!_jerk_finished){
-            _device->GetDevicePort()->Write(QByteArray("G28 \n"));
+            _device->GetDeviceConnection()->Write(QByteArray("G28 \n"));
             _jerk_finished=true;
             _go_home_finished=true;
             Finish(true);

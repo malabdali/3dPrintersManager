@@ -33,7 +33,7 @@ bool GCode::PrintingStats::IsPrinting()
 
 void GCode::PrintingStats::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M27 \n"));
+    _device->GetDeviceConnection()->Write(QByteArray("M27 \n"));
 }
 
 void GCode::PrintingStats::InsideStop()

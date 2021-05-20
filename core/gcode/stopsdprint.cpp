@@ -8,7 +8,7 @@ GCode::StopSDPrint::StopSDPrint(Device *device):GCodeCommand(device,"M524")
 
 void GCode::StopSDPrint::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M524 \n"));
+    _device->GetDeviceConnection()->Write(QByteArray("M524 \n"));
 }
 
 void GCode::StopSDPrint::InsideStop()

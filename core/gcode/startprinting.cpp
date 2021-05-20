@@ -19,7 +19,7 @@ QByteArray GCode::StartPrinting::GetFileName() const
 
 void GCode::StartPrinting::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M23 ")+_file_name+"\n");
+    _device->GetDeviceConnection()->Write(QByteArray("M23 ")+_file_name+"\n");
 }
 
 void GCode::StartPrinting::InsideStop()
@@ -41,9 +41,9 @@ void GCode::StartPrinting::OnAvailableData(const QByteArray &ba)
             if(_file_selected)
             {
                 if(_line_number==0)
-                    _device->GetDevicePort()->Write(QByteArray("M24 ")+"\n");
+                    _device->GetDeviceConnection()->Write(QByteArray("M24 ")+"\n");
                 else
-                    _device->GetDevicePort()->Write(QByteArray("M24 ")+"S"+QByteArray::number(_line_number)+" T"+QByteArray::number(_elapsed_time)+" "+"\n");
+                    _device->GetDeviceConnection()->Write(QByteArray("M24 ")+"S"+QByteArray::number(_line_number)+" T"+QByteArray::number(_elapsed_time)+" "+"\n");
                 _m24_sent=true;
             }
             else{

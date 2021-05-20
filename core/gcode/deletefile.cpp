@@ -1,16 +1,15 @@
 #include "deletefile.h"
 #include "../device.h"
-#include "../deviceport.h"
+#include "../deviceconnection.h"
 
-GCode::DeleteFile::DeleteFile(Device *device, std::function<void(bool)> callback, QByteArray fileName) :GCodeCommand(device,"M30"),
-    _callback(callback),_file(fileName)
+GCode::DeleteFile::DeleteFile(Device *device, QByteArray fileName) :GCodeCommand(device,"M30"), _file(fileName)
 {
-
+    _is_success=false;
 }
 
 void GCode::DeleteFile::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M30 ")+_file+"\n");
+    _device->GetDeviceConnection()->Write(QByteArray("M30 ")+_file+"\n");
 }
 
 void GCode::DeleteFile::InsideStop()

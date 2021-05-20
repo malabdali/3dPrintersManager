@@ -1,6 +1,6 @@
 #include "endstopsstates.h"
 #include "../device.h"
-#include "../deviceport.h"
+#include "../deviceconnection.h"
 #include <regex>
 
 GCode::EndstopsStates::EndstopsStates(Device *device):GCodeCommand(device,"M119")
@@ -16,7 +16,7 @@ bool GCode::EndstopsStates::FilamentExist() const
 
 void GCode::EndstopsStates::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M119 \n"));
+    _device->GetDeviceConnection()->Write(QByteArray("M119 \n"));
 }
 
 void GCode::EndstopsStates::InsideStop()

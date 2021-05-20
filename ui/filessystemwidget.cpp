@@ -3,7 +3,7 @@
 #include <QFileDialog>
 #include <QPair>
 #include "../core/devicefilessystem.h"
-#include "../core/utilities/loadgcodefuture.h"
+#include "../core/utilities/loadprintablefuture.h"
 #include "../core/gcode/startprinting.h"
 #include "../core/printcontroller.h"
 #include "../core/fileinfo.h"
@@ -154,13 +154,13 @@ void FilesSystemWidget::on__upload_file_button_clicked()
     }
     QFileDialog fd;
     fd.setFileMode(QFileDialog::FileMode::ExistingFiles);
-    fd.setNameFilter("*.GCO *.gcode *.G");
+    fd.setNameFilter("*.GCO *.gcode *.G *.ctb");
     if(fd.exec()){
         if(fd.selectedFiles().length()>0)
         {
             for(QString f:fd.selectedFiles())
             {
-                QByteArray fileName=QUrl(f).fileName().replace("gcode",UPLOAD_SUFFIX).toUpper().toUtf8();
+                QByteArray fileName=QUrl(f).fileName().replace(QRegularExpression(R"(\.\w+$)"),"."+_device->GetFileSystem()->GetFileExtension()).toUpper().toUtf8();
                 if(!ui->_overwrite_checkbox->isChecked() && _device->GetFileSystem()->GetFileList().contains(FileInfo(fileName)))
                     continue;
                 _device->GetFileSystem()->UploadFile(f.toUtf8());

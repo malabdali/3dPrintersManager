@@ -12,14 +12,21 @@
 class DeviceMonitor : public DeviceComponent
 {
     Q_OBJECT
-private://fields
-    class GCode::PrintingStats* _printing_stats;
-    class GCode::ReportTemperature* _report_temprature;
-    class GCode::EndstopsStates* _end_stops;
+public://types
+
+    enum MonitorOptions{
+        PrintProgress=0x0001,
+        HotendAndBedTemperature=0x0002,
+        FilamentRunout=0x0004,
+    };
+
+protected://fields
     QMap<QByteArray,QByteArray> _data;
     bool _wait_device_stats;
     int _printing_stat_timer,_temperatures_timer,_endstops_timer,_monitor_timer;
     int _printing_stat_interval,_temperatures_interval,_endstops_interval;
+    int _monitor_options;
+    bool _is_baused;
     std::chrono::time_point<std::chrono::steady_clock> _last_update_during_busy;
 public:
     explicit DeviceMonitor(Device *dev);
@@ -39,22 +46,17 @@ public:
     void SetUpdateIntervals(uint printingStats,uint temperatures,uint endStops);
     void ResetIntervals();
     void Reset();
-    void Update();
-    QJsonDocument ToJson() const;
-    void FromJson(QJsonDocument json);
-    void Save();
-    void Load();
-    void Pause();
-    void Play();
+    virtual void Update()=0;
+    QJsonDocument ToJson() override;
+    void FromJson(QJsonDocument json)override;
+    void Save()override;
+    void Load()override;
+    virtual void Pause();
+    virtual void Play();
+    void SetMonitorOptions(int options);
+    int GetMonitorOptions();
 
 
-private:
-    void timerEvent(QTimerEvent *event) override;
-    void WhenDeviceStatsUpdated(GCodeCommand*);
-    bool ReadTemperatureStats(QByteArray& ba);
-    bool CommandReader(GCodeCommand*);
-private slots:
-    void WhenCommandFinished(GCodeCommand* , bool);
 
 signals:
     void updated();

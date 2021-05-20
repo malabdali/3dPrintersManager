@@ -24,9 +24,7 @@ public:
     explicit DeviceProblemSolver(class Device *device = nullptr);
     SolvingType GetSolvingType()const;
     bool IsThereProblem();
-    QJsonDocument ToJson();
-    void FromJson(QJsonDocument* json);
-    QByteArray ErrorToText();
+    QByteArray ErrorToText()const ;
 
 signals:
     void ProblemDetected();
@@ -47,8 +45,10 @@ public slots:
 private://methods
     void SolveNoChecksumProblem();
     void WhenProblemSolved();
-    void Save();
-    void Load();
+    QJsonDocument ToJson() override;
+    void FromJson(QJsonDocument json) override;
+    void Save()override;
+    void Load()override;
 
 
     // DeviceComponent interface

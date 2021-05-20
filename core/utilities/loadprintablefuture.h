@@ -7,7 +7,7 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include <functional>
 
-class LoadGCodeFuture : public QObject
+class LoadPrintableFuture : public QObject
 {
     Q_OBJECT
 private:
@@ -17,11 +17,13 @@ private:
     QString _file_name;
     std::function<void(QList<QByteArray>,QByteArray)> _callback;
     quint64 _offset;
+    int _chunkSize;
 public:
-    explicit LoadGCodeFuture(QString file,std::function<void(QList<QByteArray>,QByteArray)> callback,quint64 offset=1,QObject *parent = nullptr);
+    explicit LoadPrintableFuture(QString file,std::function<void(QList<QByteArray>,QByteArray)> callback,quint64 offset=1,bool isGcode=false,int chunkSize=0,QObject *parent = nullptr);
     void Stop();
 private://methods
-    QList<QByteArray> LoadFile();
+    QList<QByteArray> LoadGCodeFile();
+    QList<QByteArray> LoadBinaryFile();
 
 signals:
 private slots:

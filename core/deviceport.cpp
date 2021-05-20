@@ -2,127 +2,51 @@
 #include "device.h"
 #include "../config.h"
 #include <QTimerEvent>
-DevicePort::DevicePort(Device* device):DeviceComponent(device)
+#include "deviceinfo.h"
+#include <QUdpSocket>
+DevicePort::DevicePort(Device* device):DeviceConnection(device)
 {
-    _serial_port=new QSerialPort(this);
-    _writing_data_size=0;
-    _can_read=false;
-    _writing_timer=-1;
-    _reconnect=false;
-    _is_was_open=false;
-
-    QObject::connect(_serial_port,&QSerialPort::readyRead,this,&DevicePort::OnAvailableData);
-    QObject::connect(_serial_port,&QSerialPort::errorOccurred,this,&DevicePort::OnErrorOccurred);
-    QObject::connect(_serial_port,&QSerialPort::bytesWritten,this,&DevicePort::OnDataWritten);
-    QObject::connect(_device,&Device::destroyed,this,&DevicePort::WhenDeviceRemoved,Qt::ConnectionType::DirectConnection);
+    _port=new QSerialPort(this);
+    QObject::connect(_port,&QSerialPort::errorOccurred,this,&DevicePort::OnErrorOccurred);
+    QObject::connect(_port,&QSerialPort::readyRead,this,&DevicePort::OnAvailableData);
+    QObject::connect(_port,&QSerialPort::bytesWritten,this,&DevicePort::OnDataWritten);
 
 }
 
-
-void DevicePort::Write(QByteArray bytes)
-{
-    _mutex.lock();
-    _can_read=true;
-    _writing_data_size=bytes.length();
-    _mutex.unlock();
-    CallFunction("InsideWrite",Q_ARG(QByteArray,bytes));
-}
-
-void DevicePort::Open(QByteArray port, quint64 baud_rate){
+void DevicePort::Open(){
+    if(_device->GetPort().isEmpty()){
+        emit Opened(false);
+        return ;
+    }
     if(QThread::currentThread()!=this->thread())
     {
-        CallFunction("Open",Q_ARG(QByteArray,port),Q_ARG(quint64,baud_rate));
+        CallFunction("Open");
         return;
     }
-    if(_serial_port->isOpen())
+    if(_port->isOpen())
         return;
     Clear();
-    _serial_port->setBaudRate(baud_rate);
-    _serial_port->setPortName(port);
-    //_serial_port->setCurrentReadChannel(0);
-    //_serial_port->setDataTerminalReady(true);
-    if(_serial_port->open(QIODevice::ReadWrite)){
-        _error="";
+    _port->setBaudRate(_device->GetDeviceInfo()->GetBaudRate());
+    _port->setPortName(_device->GetPort());
+    if(_port->open(QIODevice::ReadWrite)){
+        _error_text="";
+        _error=-1;
         //_serial_port->setCurrentReadChannel(0);
-        _serial_port->setDataTerminalReady(true);
+        _port->setDataTerminalReady(true);
         _is_was_open=true;
-        emit PortOpened(true);
+        emit Opened(true);
     }
     else
     {
-        emit PortOpened(false);
-    }
-}
-
-QByteArray DevicePort::ReadLine()
-{
-    QMutexLocker locker(&_mutex);
-    if(_available_lines.length()>0)
-        return _available_lines.takeAt(0);
-    else
-        return "";
-}
-
-QList<QByteArray> DevicePort::ReadAllLines()
-{
-    QMutexLocker locker(&_mutex);
-    QList<QByteArray> allLines;
-    allLines=std::move(_available_lines);
-    return allLines;
-}
-
-uint32_t DevicePort::LinesCount()
-{
-    return _available_lines.length();
-}
-
-QByteArray DevicePort::PeakLine(int i)
-{
-    QMutexLocker locker(&_mutex);
-    if(_available_lines.length()>i)
-        return _available_lines.at(i);
-    else
-        return "";
-}
-
-bool DevicePort::IsThereAvailableLines()
-{
-    QMutexLocker locker(&_mutex);
-    return _available_lines.length()>0;
-}
-
-void DevicePort::Clear()
-{
-    QMutexLocker locker(&_mutex);
-    _available_data.clear();
-    _available_lines.clear();
-    _can_read=false;
-    _writing_data_size=0;
-    if(_writing_timer!=-1)
-    {
-        killTimer(_writing_timer);
-        _writing_timer=-1;
+        emit Opened(false);
     }
 }
 
 bool DevicePort::IsOpen()
 {
     QMutexLocker locker(&_mutex);
-    return _serial_port->isOpen();
+    return _port->isOpen();
 }
-
-int DevicePort::GetError()
-{
-    QMutexLocker locker(&_mutex);
-    return _serial_port->error();
-}
-
-QByteArray DevicePort::GetErrorText()
-{
-    QMutexLocker locker(&_mutex);
-    return _error;
-}
-
 
 void DevicePort::Close()
 {
@@ -135,28 +59,27 @@ void DevicePort::Close()
         return;
     _is_was_open=false;
     Clear();
-    _serial_port->close();
-    emit PortClosed();
+    _port->close();
+    emit Closed();
 }
 
-void DevicePort::Reconnect()
+/*void DevicePort::Reconnect()
 {
     if(QThread::currentThread()!=this->thread())
     {
         CallFunction("Reconnect");
         return;
     }
-    _reconnect=true;
     Clear();
     if(IsOpen())
     {
-        _serial_port->close();
+        _port->close();
         _is_was_open=false;
     }
-    _reconnect=false;
-    if(_serial_port->open(QIODevice::ReadWrite)){
-        _error="";
-        _serial_port->setDataTerminalReady(true);
+    if(_port->open(QIODevice::ReadWrite)){
+        _error_text="";
+        _error=QSerialPort::NoError;
+        _port->setDataTerminalReady(true);
         emit Reconnected(true);
     }
     else
@@ -165,12 +88,11 @@ void DevicePort::Reconnect()
     }
 
 
-}
+}*/
 
 DevicePort::~DevicePort()
 {
-    Clear();
-    _serial_port->close();
+    _port->close();
 }
 
 void DevicePort::OnAvailableData()
@@ -178,11 +100,11 @@ void DevicePort::OnAvailableData()
     QMutexLocker locker(&_mutex);
     if(_can_read)
     {
-        this->_available_data+=_serial_port->readAll();
+        this->_available_data+=_port->readAll();
     }
     else
     {
-        _serial_port->readAll();
+        _port->readAll();
         return;
     }
     locker.unlock();
@@ -198,7 +120,7 @@ void DevicePort::OnAvailableData()
             ba=ba.simplified();
             ba=ba.trimmed();
         }
-        SerialInputFilter(list);
+        InputFilter(list);
         if(list.length()>0){
             _mutex.lock();
             _available_lines.append(list);
@@ -208,22 +130,28 @@ void DevicePort::OnAvailableData()
     }
 }
 
-void DevicePort::OnErrorOccurred(QSerialPort::SerialPortError error)
+void DevicePort::OnErrorOccurred(int error)
 {
     if(error!=QSerialPort::SerialPortError::NoError && error!=QSerialPort::SerialPortError::NotOpenError)
     {
         _mutex.lock();
-        if(!this->_serial_port->errorString().isEmpty())
-            this->_error=this->_serial_port->errorString().toUtf8();
+        if(!this->_port->errorString().isEmpty())
+        {
+            this->_error=_error;
+            this->_error_text=this->_port->errorString().toUtf8();
+        }
         else
-            this->_error="";
+        {
+            this->_error=QSerialPort::SerialPortError::NoError;
+            this->_error_text="";
+        }
         _mutex.unlock();
         Clear();
-        emit ErrorOccurred(error);
-        if(!_serial_port->isOpen() && _is_was_open)
+        emit ErrorOccurred((int)error);
+        if(!_port->isOpen() && _is_was_open)
         {
             _is_was_open=false;
-            emit PortClosed();
+            emit Closed();
         }
     }
 }
@@ -252,64 +180,16 @@ void DevicePort::OnDataWritten(quint64 size)
 
 }
 
-void DevicePort::InsideWrite(QByteArray bytes)
-{
-
-    if(_writing_timer!=-1)
-    {
-        this->killTimer(_writing_timer);
-        _writing_timer=-1;
-    }
-    _writing_timer=this->startTimer(SERIAL_WRITE_WAIT);
-    _serial_port->write(bytes);
-}
-
-void DevicePort::timerEvent(QTimerEvent *event)
-{
-    if(event->timerId()==_writing_timer)
-    {
-        if(_writing_timer!=-1)
-        {
-            this->killTimer(_writing_timer);
-            _writing_timer=-1;
-        }
-        emit DataWritten(false);
-    }
-}
-
-void DevicePort::WhenDeviceRemoved()
-{
-    delete this;
-}
-
-void DevicePort::SerialInputFilter(QByteArrayList &list)
-{
-    list.erase(std::remove_if(list.begin(),list.end(),[](QByteArray& ba){
-                   bool b= ba.contains("echo:") || ba.isEmpty() || ba.startsWith("Marlin");
-                   return b;
-               }),list.end());
-}
-
-void DevicePort::CallFunction(QByteArray function)
-{
-    QMetaObject::invokeMethod(this,function,Qt::ConnectionType::AutoConnection);
-}
-
-void DevicePort::CallFunction(QByteArray function, QGenericArgument argument)
-{
-    QMetaObject::invokeMethod(this,function,Qt::ConnectionType::AutoConnection,argument);
-}
-
-void DevicePort::CallFunction(QByteArray function, QGenericArgument argument1, QGenericArgument argument2)
-{
-    QMetaObject::invokeMethod(this,function,Qt::ConnectionType::AutoConnection,argument1,argument2);
-}
-
-void DevicePort::Setup(){
-
-}
-
-
 void DevicePort::Disable()
 {
+    QObject::disconnect(_port,&QSerialPort::errorOccurred,this,&DevicePort::OnErrorOccurred);
+    QObject::disconnect(_port,&QSerialPort::readyRead,this,&DevicePort::OnAvailableData);
+    QObject::disconnect(_port,&QSerialPort::bytesWritten,this,&DevicePort::OnDataWritten);
+    Close();
+}
+
+
+void DevicePort::WriteFunction(const QByteArray & bytes)
+{
+    _port->write(bytes);
 }

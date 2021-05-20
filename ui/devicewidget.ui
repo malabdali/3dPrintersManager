@@ -1031,6 +1031,13 @@
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="_pause_print_button">
+              <property name="text">
+               <string>Pause Print</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="_continue_print_button">
               <property name="text">
                <string>continue print</string>

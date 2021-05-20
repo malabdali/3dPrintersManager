@@ -4,6 +4,8 @@
 #include <QDir>
 #include <QSettings>
 #include "./system.h"
+#include "./devices/fdmdevice.h"
+#include "./devices/sladevice.h"
 Devices* Devices::_INSTANCE=nullptr;
 
 Devices::Devices(QObject *parent) : QObject(parent)
@@ -28,7 +30,12 @@ Device* Devices::AddDevice(DeviceInfo* dev)
     //QThread* thr=new QThread();
     //thr->start();
     Device* device=this->GetDevice(dev);
-    device=new Device(dev);
+    if(dev==nullptr)
+        return device;
+    if(dev->GetDeviceType()==DeviceInfo::Types::FDM)
+        device=new FDMDevice(dev);
+    if(dev->GetDeviceType()==DeviceInfo::Types::SLA)
+        device=new SLADevice(dev);
     //device->moveToThread(thr);
     _devices.append(device);
     emit DeviceAdded(device);
@@ -68,7 +75,8 @@ Device *Devices::GetDeviceByPort(const QByteArray &port) const
 Device *Devices::GetDeviceByIP(const QByteArray &ip) const
 {
     auto res=std::find_if(_devices.begin(),_devices.end(),[ip](Device* dev){
-            if(dev->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::Network)
+            if(dev->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::UDP || dev->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::TCP ||
+               dev->GetDeviceInfo()->GetConnectionType()==DeviceInfo::ConnectionType::API)
                 return ip==dev->GetDeviceInfo()->GetDeviceIP();
             return false;
     });
@@ -123,7 +131,11 @@ void Devices::DetectPortAndConnectForAllDevices(bool force_detect_all_ports)
             if(dev->GetPort().isEmpty() || force_detect_all_ports)
                 _detect_ports_wait_list.append(dev);
             else
-                dev->OpenPort();
+                dev->Open();
+        }
+        else{
+            qDebug()<<"open udp";
+            dev->Open();
         }
     }
     if(_detect_ports_wait_list.length()>0)
@@ -230,7 +242,8 @@ Devices::~Devices()
 void Devices::OnDevicePortDetected()
 {
     Device* dev=qobject_cast<Device*>(this->sender());
-    dev->OpenPort();
+    if(!dev->GetPort().isEmpty())
+        dev->Open();
 
     QObject::disconnect(dev,&Device::DetectPortSucceed,this,&Devices::OnDevicePortDetected);
     QObject::disconnect(dev,&Device::DetectPortFailed,this,&Devices::OnDevicePortDetected);

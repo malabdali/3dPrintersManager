@@ -44,10 +44,10 @@ public:
     QPair<int,int> GetCaptureDimensions()const;
     void UploadImage();
 
-    QJsonDocument ToJson() const;
-    void FromJson(QJsonDocument json);
-    void Save();
-    void Load();
+    QJsonDocument ToJson() override;
+    void FromJson(QJsonDocument json) override;
+    void Save() override;
+    void Load() override;
     ~Camera();
 
 

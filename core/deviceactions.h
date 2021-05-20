@@ -18,7 +18,7 @@ private://fields
     GCode::SetTemperatures* _set_temperatures_command;
 public:
     explicit DeviceActions(Device *device);
-    void Setup();
+    void Setup()override;
     void Play();
     void Pause();
     bool IsPlaying();
@@ -43,6 +43,13 @@ signals:
     // DeviceComponent interface
 public:
     void Disable() override;
+
+    // DeviceComponent interface
+public:
+    QJsonDocument ToJson() override;
+    void FromJson(QJsonDocument json) override;
+    void Save() override;
+    void Load() override;
 };
 
 #endif // DEVICEACTIONS_H

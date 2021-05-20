@@ -87,7 +87,7 @@ void DeviceActions::WhenProblemDetected()
         return;
 
     if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort && _device->IsOpen()){
-        _device->ClosePort();
+        _device->Close();
     }
     _reconnect_timer->stop();
     if(_device->GetProblemSolver()->GetSolvingType()== DeviceProblemSolver::OpenPort)
@@ -129,6 +129,8 @@ void DeviceActions::WhenDeviceLoaded()
     {
         Play();
     }
+    if(_device->GetDeviceMonitor()->IsPaused())
+        _device->GetDeviceMonitor()->Play();
     _device_data_loaded=true;
 }
 
@@ -196,4 +198,22 @@ void DeviceActions::Disable()
     disconnect(_device,&Device::DeviceDataLoaded,this,&DeviceActions::WhenDeviceLoaded);
     disconnect(_device->GetPrintController(),&PrintController::StatusChanged,this,&DeviceActions::WhenPrintStatusChanged);
     disconnect(_device,&Device::StatusChanged,this,&DeviceActions::WhenDeviceStatusChanged);
+}
+
+
+QJsonDocument DeviceActions::ToJson()
+{
+    return QJsonDocument();
+}
+
+void DeviceActions::FromJson(QJsonDocument json)
+{
+}
+
+void DeviceActions::Save()
+{
+}
+
+void DeviceActions::Load()
+{
 }

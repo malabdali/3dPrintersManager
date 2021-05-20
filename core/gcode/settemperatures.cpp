@@ -13,11 +13,11 @@ GCode::SetTemperatures::SetTemperatures(Device *_device, int bed,int hotend):GCo
 void GCode::SetTemperatures::InsideStart()
 {
     if(_hotend>=0)
-        _device->GetDevicePort()->Write(QByteArray("M104 S")+QByteArray::number(_hotend)+"\n");
+        _device->GetDeviceConnection()->Write(QByteArray("M104 S")+QByteArray::number(_hotend)+"\n");
     else if(_bed>=0)
     {
         _hotend_sent=true;
-        _device->GetDevicePort()->Write(QByteArray("M140 S")+QByteArray::number(_bed)+"\n");
+        _device->GetDeviceConnection()->Write(QByteArray("M140 S")+QByteArray::number(_bed)+"\n");
     }
     else{
         _hotend_sent=true;
@@ -38,7 +38,7 @@ void GCode::SetTemperatures::OnAvailableData(const QByteArray &ba)
             _hotend_sent=true;
             if(_bed>=0)
             {
-                _device->GetDevicePort()->Write(QByteArray("M140 S")+QByteArray::number(_bed)+"\n");
+                _device->GetDeviceConnection()->Write(QByteArray("M140 S")+QByteArray::number(_bed)+"\n");
             }
             else
             {

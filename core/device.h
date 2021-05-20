@@ -32,12 +32,10 @@ public://nested types
 
     };
     Q_ENUM(DeviceStatus);
-    using Errors=QSerialPort::SerialPortError;
-    Q_ENUMS(Errors);
 
 private://nested types
 
-private://fields
+protected://fields
 
     QByteArray _port; 
     QThread* _port_thread;
@@ -58,7 +56,7 @@ private://fields
     //end gcode commands
     class DeviceFilesSystem* _fileSystem;
     class DevicePortDetector* _port_detector;
-    class DevicePort* _device_port;
+    class DeviceConnection* _device_connection;
     class DeviceInfo* _device_info;
     class DeviceProblemSolver* _problem_solver;
     class DeviceMonitor* _device_monitor;
@@ -76,16 +74,16 @@ public:
     DeviceStatus GetStatus()const;
     bool IsOpen()const;
     bool IsDeviceDataLoaded()const;
-    void OpenPort();
-    void ClosePort();
-    void UpdateDeviceStats();
+    void Open();
+    void Close();
+    virtual void UpdateDeviceStats()=0;
     void Clear();
     //void Write(QByteArray bytes);
-    DeviceFilesSystem *GetFileSystem()const;
+    virtual DeviceFilesSystem *GetFileSystem()const;
     QMap<QByteArray,QByteArray> GetStats()const;
-    DevicePort* GetDevicePort();
+    DeviceConnection* GetDeviceConnection();
     DeviceProblemSolver *GetProblemSolver()const;
-    DeviceMonitor *GetDeviceMonitor();
+    virtual DeviceMonitor *GetDeviceMonitor();
     PrintController *GetPrintController();
     Camera *GetCamera();
     //json data
@@ -105,11 +103,13 @@ public:
     QList<GCodeCommand *> GetWaitingCommandsList()const;
     //end commands
 
-    ~Device();
+
+    virtual ~Device();
 
 
-private://methods
+protected://methods
     explicit Device(DeviceInfo* device_info,QObject *parent = nullptr);
+    virtual void Setup();
     void SetStatus(DeviceStatus status);
     void CalculateAndSetStatus();
     void SerialInputFilter(QByteArrayList& list);
@@ -118,22 +118,22 @@ private://methods
     void Remove();
     void CompleteRemove();
 
-private slots:
+protected slots:
     void OnErrorOccurred(int i);
     void OnClosed();
     void OnOpen(bool);
     void WhenCommandFinished(bool);
     void StartNextCommand();
     void OnDetectPort(QByteArray port="");
-    void WhenStatsUpdated();
+    virtual void WhenStatsUpdated()=0;
 
 
 signals:
     void StatusChanged(DeviceStatus);
     void DetectPortSucceed();
     void DetectPortFailed();
-    void PortOpened();
-    void PortClosed();
+    void Opened();
+    void Closed();
     void ErrorOccurred(int);
     void BytesWritten();
     void EndWrite(bool);

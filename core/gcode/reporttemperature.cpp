@@ -21,7 +21,7 @@ double GCode::ReportTemperature::GetBedTemperature() const
 
 void GCode::ReportTemperature::InsideStart()
 {
-    _device->GetDevicePort()->Write(QByteArray("M105 \n"));
+    _device->GetDeviceConnection()->Write(QByteArray("M105 \n"));
 }
 
 void GCode::ReportTemperature::InsideStop()

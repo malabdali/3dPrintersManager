@@ -12,7 +12,7 @@ GCode::FilesList::FilesList(Device *device):GCodeCommand(device,"M20")
 
 void GCode::FilesList::InsideStart()
 {
-    _device->GetDevicePort()->Write("M20\n");
+    _device->GetDeviceConnection()->Write("M20\n");
 }
 
 void GCode::FilesList::InsideStop()
@@ -34,20 +34,20 @@ QMap<QByteArray, size_t> GCode::FilesList::GetFilesList()
 
 void GCode::FilesList::OnAvailableData(const QByteArray &ba)
 {
-    if(ba.contains("Begin file list"))
+    if(ba.toLower().contains("begin file list"))
         _is_begin=true;
-    else if(ba.contains("End file list"))
+    else if(ba.toLower().contains("end file list"))
     {
         _files_list_end=true;
     }
-    else if(_is_begin && ba!="ok")
+    else if(_is_begin && !_files_list_end)
     {
-        int index=ba.indexOf(" ");
+        int index=ba.lastIndexOf(" ");
         QByteArray file=ba.left(index);
         _result_files.append(file);
         _sizes.append(ba.mid(index+1,ba.length()-index-1).trimmed().toUInt());
     }
-    else if(ba=="ok" && _files_list_end){
+    else if(ba.toLower().contains("ok") && _files_list_end){
         Finish(true);
     }
     else{

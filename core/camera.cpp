@@ -122,7 +122,7 @@ void Camera::SetCameraSetting(QByteArray ba,int xoffset,int yoffset,int width,in
 
 }
 
-QJsonDocument Camera::ToJson() const
+QJsonDocument Camera::ToJson()
 {
     QVariantHash vh;
     vh.insert("CAMERA",_camera_info.deviceName().toUtf8());
