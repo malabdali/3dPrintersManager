@@ -134,7 +134,6 @@ void Devices::DetectPortAndConnectForAllDevices(bool force_detect_all_ports)
                 dev->Open();
         }
         else{
-            qDebug()<<"open udp";
             dev->Open();
         }
     }

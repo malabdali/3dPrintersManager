@@ -33,7 +33,6 @@ void SLADeviceMonitor::Update()
 
 bool SLADeviceMonitor::PrintingIsPaused()
 {
-    qDebug()<<"SLADeviceMonitor::PrintingIsPaused()"<<(_data.contains("PRINTING_IS_PAUSED")&&_data["PRINTING_IS_PAUSED"].toInt());
     return _data.contains("PRINTING_IS_PAUSED")&&_data["PRINTING_IS_PAUSED"].toInt();
 
 }
@@ -132,22 +131,18 @@ bool SLADeviceMonitor::CommandReader(GCodeCommand *command)
 
 void SLADeviceMonitor::CheckPauseState()
 {
-    qDebug()<<"SLADeviceMonitor::CheckPauseState()";
     if(IsPrinting()){
         int v=std::chrono::duration_cast<std::chrono::milliseconds>((std::chrono::steady_clock::now()-_last_change_in_printing_progress)).count();
 
         if(v>DEVICE_MONITOR_TIMER_OF_PAUSED_PRINTER){
             this->_data.insert("PRINTING_IS_PAUSED","1");
-            qDebug()<<"SLADeviceMonitor::PrintingIsPaused"<<true;
         }
         else{
             this->_data.insert("PRINTING_IS_PAUSED","0");
-            qDebug()<<"SLADeviceMonitor::PrintingIsPaused"<<false;
         }
     }
     else{
         this->_data.insert("PRINTING_IS_PAUSED","0");
-        qDebug()<<"SLADeviceMonitor::PrintingIsPaused"<<false;
     }
 }
 
@@ -161,11 +156,9 @@ void SLADeviceMonitor::timerEvent(QTimerEvent *event)
     }
     bool _is_updated=false;
     if(IsBusy()||_device->GetStatus()!=Device::DeviceStatus::Ready){
-        qDebug()<<"DeviceMonitor::timerEvent 1";
         int64_t duration=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-_last_update_during_busy).count();
         if(_device->GetDeviceConnection()->IsThereAvailableLines())
         {
-            qDebug()<<"DeviceMonitor::timerEvent 2";
             uint32_t i=0;
             while(i<_device->GetDeviceConnection()->LinesCount())
             {
@@ -185,7 +178,6 @@ void SLADeviceMonitor::timerEvent(QTimerEvent *event)
             }
         }
         else{
-            qDebug()<<"DeviceMonitor::timerEvent 3";
             if(duration>=BUSY_DURATION)
             {
                 if(_device->GetStatus()==Device::DeviceStatus::Ready)
@@ -229,10 +221,8 @@ void SLADeviceMonitor::WhenCommandFinished(GCodeCommand* command, bool success)
 
 void SLADeviceMonitor::WhenDataLoaded()
 {
-    qDebug()<<"SLADeviceMonitor::WhenDataLoaded()";
     this->_last_change_in_printing_progress=std::chrono::steady_clock::now();
     if(PrintingIsPaused()){
-        qDebug()<<"SLADeviceMonitor::WhenDataLoaded()2";
         _last_change_in_printing_progress=std::chrono::steady_clock::now()-std::chrono::milliseconds(DEVICE_MONITOR_TIMER_OF_PAUSED_PRINTER);
 
     }

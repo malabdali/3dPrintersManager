@@ -23,7 +23,6 @@ void DevicePortDetector::timerEvent(QTimerEvent *event)
     Q_UNUSED(event);
     if(_wait_for_send_m29)
     {
-        qDebug()<<"_wait_for_send_m29"<<_lookfor_available_ports;
         for(QSerialPort* sp : _lookfor_available_ports){
             sp->write("M29 \n");
         }
@@ -31,7 +30,6 @@ void DevicePortDetector::timerEvent(QTimerEvent *event)
     }
     else if(_wait_for_send_m115)
     {
-        qDebug()<<"_wait_for_send_m115"<<_lookfor_available_ports;
         for(QSerialPort* sp : _lookfor_available_ports){
             sp->write("M115 \n");
         }

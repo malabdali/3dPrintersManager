@@ -80,7 +80,6 @@ void GCode::Chitu::ChituUploadFile::Resend()
 
 void GCode::Chitu::ChituUploadFile::Send()
 {
-    qDebug()<<"send "<<_counter<<"from"<<_data.length();
     if((uint32_t)_data.length()<=_counter){
         this->_device->GetDeviceConnection()->Write(_data[_data.length()-1]);
         return;
@@ -97,7 +96,6 @@ void GCode::Chitu::ChituUploadFile::Send29()
 
 void GCode::Chitu::ChituUploadFile::OnAvailableData(const QByteArray &ba)
 {
-    qDebug()<<"GCode::Chitu::ChituUploadFile::OnAvailableData"<<ba;
     if(_end_timer->isActive() || _send_timer->isActive())
     {
         _end_timer->stop();
@@ -105,14 +103,12 @@ void GCode::Chitu::ChituUploadFile::OnAvailableData(const QByteArray &ba)
     }
     if(ba.contains("ok") && !_open_success && !_open_failed)
     {
-        qDebug()<<"open success";
         _open_success=true;
         _upload_stage=true;
         _send_timer->stop();
         _send_timer->start(1000);
     }
     else if(ba.toLower().contains("error!cann't")){
-        qDebug()<<"open failed";
         _open_failed=true;
         SetError(CommandError::NoError);
         Finish(false);
@@ -190,7 +186,6 @@ void GCode::Chitu::ChituUploadFile::OnAllDataWritten(bool success)
 
 void GCode::Chitu::ChituUploadFile::Finish(bool b)
 {
-    qDebug()<<"GCode::Chitu::ChituUploadFile::Finish"<<b;
     if(!_finished && !b)
         Send29();
     GCodeCommand::Finish(b);

@@ -96,7 +96,6 @@ void GCodeCommand::WhenWriteFinished(bool success)
 void GCodeCommand::WhenErrorOccured(int error)
 {
     if(_device==nullptr)return;
-    qDebug()<<"error accured";
     SetError(PortError);
     Finish(false);
 }

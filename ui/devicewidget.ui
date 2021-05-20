@@ -1044,6 +1044,16 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QPushButton" name="_on_off_button">
+              <property name="text">
+               <string>auto 180</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>

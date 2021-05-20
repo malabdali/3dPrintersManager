@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     this->setWindowTitle("3d printers manager");
     this->setCentralWidget(_devices_widget);
+    ui->_refresh_devices_action->setShortcut(QKeySequence::Refresh);
     connect(this->ui->_network_action,&QAction::triggered,this,&MainWindow::WhenNetworkInfoActionClicked);
     connect(this->ui->_refresh_devices_action,&QAction::triggered,_devices_widget,&DevicesWidget::LoadDevices);
     connect(this->ui->_task_manager_action,&QAction::changed,this,&MainWindow::WhenTaskManagerChanged);

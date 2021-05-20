@@ -23,7 +23,6 @@ void LoadPrintableFuture::Stop()
 
 QList<QByteArray> LoadPrintableFuture::LoadBinaryFile()
 {
-    qDebug()<<"LoadPrintableFuture::LoadBinaryFile() 1";
     QFile f(_file_name);
     f.open(QIODevice::ReadOnly);
     QByteArrayList lines;
@@ -32,7 +31,6 @@ QList<QByteArray> LoadPrintableFuture::LoadBinaryFile()
         positions.append(f.pos());
         QByteArray bytes=f.read(_chunkSize);
         lines.append(bytes);
-        qDebug()<<"LoadPrintableFuture::LoadBinaryFile() 2"<<lines.length()<<positions[positions.length()-1]<<_chunkSize;
     }
     QList<QByteArray> newLines;
     for(int i=0;i<lines.length();i++){
@@ -50,7 +48,6 @@ QList<QByteArray> LoadPrintableFuture::LoadBinaryFile()
         line.append( num8);
         line.append((uint8_t)0x83);
         newLines.append(line);
-        qDebug()<<"add line";
     }
     return newLines;
 }

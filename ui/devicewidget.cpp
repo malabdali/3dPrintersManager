@@ -19,6 +19,8 @@
 #include "../core/printcontroller.h"
 #include "camerawidget.h"
 #include "../core/deviceport.h"
+#include "../core/gcode/settemperatures.h"
+#include "../core/gcode/powersupply.h"
 DeviceWidget::DeviceWidget(Device* device,QWidget *parent) :
     QWidget(parent),_device(device),ui(new Ui::DeviceWidget)
 {
@@ -40,6 +42,14 @@ void DeviceWidget::Update()
         ui->_uploading->setText("");
         ui->_uploading->setVisible(false);
         ui->_uploading_label->setVisible(false);
+        if(_device->GetDeviceInfo()->GetDeviceType()==DeviceInfo::Types::FDM){
+            if(_device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready && !_device->GetPrintController()->IsPrinting()){
+                ui->_on_off_button->setVisible(true);
+            }
+            else{
+                ui->_on_off_button->setVisible(false);
+            }
+        }
         if(_device->GetPrintController()->IsPrinting()  && _device->IsOpen() && _device->GetStatus()==Device::DeviceStatus::Ready &&
                 !_device->GetDeviceMonitor()->IsBusy()  )
         {
@@ -188,6 +198,7 @@ void DeviceWidget::Setup()
     ui->_uploading_label->setVisible(false);
     ui->_printing->setVisible(false);
     ui->_printing_label->setVisible(false);
+    ui->_on_off_button->setVisible(false);
 
     {
         //ui events
@@ -502,7 +513,7 @@ void DeviceWidget::on__files_action_triggered(bool checked)
     _files_widget->setParent(this->window(),Qt::WindowType::Window);
     _files_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " : files");
     _files_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
-    _files_widget->setWindowModality(Qt::WindowModality::WindowModal);
+    //_files_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _files_widget->show();
     QObject::connect(_files_widget,&QWidget::destroyed,this,&DeviceWidget::FilesWidgetClosed);
 }
@@ -525,7 +536,7 @@ void DeviceWidget::on__gcode_action_triggered()
     _serial_widget->setParent(this->window(),Qt::WindowType::Window);
     _serial_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " : serial");
     _serial_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
-    _serial_widget->setWindowModality(Qt::WindowModality::WindowModal);
+    //_serial_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _serial_widget->show();
     QObject::connect(_serial_widget,&QWidget::destroyed,this,&DeviceWidget::SerialWidgetClosed);
 }
@@ -542,7 +553,7 @@ void DeviceWidget::on__control_action_triggered()
     _printer_control_widget->setParent(this->window(),Qt::WindowType::Window);
     _printer_control_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " controller");
     _printer_control_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
-    _printer_control_widget->setWindowModality(Qt::WindowModality::WindowModal);
+    //_printer_control_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _printer_control_widget->show();
     QObject::connect(_printer_control_widget,&QWidget::destroyed,this,[this]{_printer_control_widget=nullptr;});
 }
@@ -570,7 +581,7 @@ void DeviceWidget::on__camera_settings_action_triggered()
     _camera_widget->setParent(this->window(),Qt::WindowType::Window);
     _camera_widget->setWindowTitle(_device->GetDeviceInfo()->GetDeviceName()+ " camera settings");
     _camera_widget->setAttribute(Qt::WidgetAttribute::WA_DeleteOnClose);
-    _camera_widget->setWindowModality(Qt::WindowModality::WindowModal);
+    //_camera_widget->setWindowModality(Qt::WindowModality::WindowModal);
     _camera_widget->show();
     QObject::connect(_camera_widget,&QWidget::destroyed,this,[this]{_camera_widget=nullptr;});
 }
@@ -580,4 +591,17 @@ void DeviceWidget::on__pause_print_button_clicked()
     _device->GetPrintController()->PausePrint();
     this->ui->_stop_print_button->setVisible(false);
     this->ui->_pause_print_button->setVisible(false);
+}
+
+
+void DeviceWidget::on__on_off_button_toggled(bool checked)
+{
+    if(checked){
+        GCode::SetTemperatures* temp=new GCode::SetTemperatures(this->_device,-1,180);
+        this->_device->AddGCodeCommand(temp);
+    }
+    else{
+        GCode::SetTemperatures* temp=new GCode::SetTemperatures(this->_device,0,0);
+        this->_device->AddGCodeCommand(temp);
+    }
 }

@@ -88,7 +88,6 @@ DeviceUDP::~DeviceUDP()
 
 void DeviceUDP::OnAvailableData()
 {
-    qDebug()<<"DeviceUDP::OnAvailableData()";
     QMutexLocker locker(&_mutex);
     if(_can_read)
     {
@@ -106,7 +105,6 @@ void DeviceUDP::OnAvailableData()
         return;
     }
     locker.unlock();
-    qDebug()<<"DeviceUDP::OnAvailableData()"<<_available_data;
     if(!this->_available_data.isEmpty())
     {
         QByteArray data=_available_data;
@@ -119,7 +117,6 @@ void DeviceUDP::OnAvailableData()
             ba=ba.trimmed();
         }
         InputFilter(list);
-        qDebug()<<list;
         if(list.length()>0){
             _mutex.lock();
             _available_lines.append(list);

@@ -144,7 +144,6 @@ void FDMFilesSystem::WhenLineNumberUpdated(GCode::LineNumber * lineNumber)
                 QByteArray filename2=QUrl(filename).fileName().replace(QRegularExpression(R"(\.\w+$)"),"."+_extension).toUpper().toUtf8();
                 GCode::UploadFile* gcode=new GCode::UploadFile(this->_device,filename2,array,_line_number,_upload_speed);
                 this->_uploading_file=gcode;
-                qDebug()<<filename2;
                 _device->AddGCodeCommand(gcode);
                 emit FileListUpdated();
             },_line_number,true,0,this);

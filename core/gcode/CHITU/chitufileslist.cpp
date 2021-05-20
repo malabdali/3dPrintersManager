@@ -52,7 +52,6 @@ void GCode::Chitu::ChituFilesList::OnAvailableData(const QByteArray &ba)
         Finish(true);
     }
     else{
-        qDebug()<<ba<<_is_begin<<"error";
         if(ba.contains("Error:No Checksum") || ba.contains("Resend:"))
         {
             SetError(CommandError::NoChecksum);

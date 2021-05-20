@@ -133,11 +133,9 @@ void FDMDeviceMonitor::timerEvent(QTimerEvent *event)
     }
     bool _is_updated=false;
     if(IsBusy()||_device->GetStatus()!=Device::DeviceStatus::Ready){
-        qDebug()<<"DeviceMonitor::timerEvent 1";
         int64_t duration=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-_last_update_during_busy).count();
         if(_device->GetDeviceConnection()->IsThereAvailableLines())
         {
-            qDebug()<<"DeviceMonitor::timerEvent 2";
             uint32_t i=0;
             while(i<_device->GetDeviceConnection()->LinesCount())
             {
@@ -157,7 +155,6 @@ void FDMDeviceMonitor::timerEvent(QTimerEvent *event)
             }
         }
         else{
-            qDebug()<<"DeviceMonitor::timerEvent 3";
             if(duration>=BUSY_DURATION)
             {
                 if(_device->GetStatus()==Device::DeviceStatus::Ready)

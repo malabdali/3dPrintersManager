@@ -90,12 +90,10 @@ void SLAPrintController::timerEvent(QTimerEvent *event)
 
 void SLAPrintController::PrintUpdate()
 {
-    qDebug()<<"SLAPrintController::PrintUpdate() 1"<<_current_status;
 
     if(!_device->IsOpen() || _device->GetStatus()!=Device::DeviceStatus::Ready)
         return;
     else if(_current_status==Status::SendPrintCommand){
-        qDebug()<<"SLAPrintController::PrintUpdate() 2";
         if(_start_stop_printing_command==nullptr &&  _resume_pause_printing_command==nullptr){
             if(_wanted_status==Printing)
             {
@@ -175,7 +173,6 @@ void SLAPrintController::WhenCommandFinished(GCodeCommand *command, bool success
 
 void SLAPrintController::WhenMonitorUpdated()
 {
-    qDebug()<<"SLAPrintController::WhenMonitorUpdated 1";
     if(_timer_id==-1){
         _timer_id=this->startTimer(PRINT_CONTROLLER_TIMER);
     }
@@ -185,11 +182,9 @@ void SLAPrintController::WhenMonitorUpdated()
     if(!monitor->IsPrinting()&&_current_status==Printing){
         WhenPrintingFinished();
     }
-    qDebug()<<"SLAPrintController::WhenMonitorUpdated 2";
     if(monitor->IsPrinting()){
         _printed_bytes=monitor->GetPrintedBytes();
         _total_bytes=monitor->GetTotalBytes();
-        qDebug()<<"SLAPrintController::WhenMonitorUpdated 3";
         if(!monitor->PrintingIsPaused())
             this->SetCurrentStatus(Printing);
         else
@@ -278,7 +273,6 @@ void SLAPrintController::StopPrint()
 bool SLAPrintController::CanContinuePrinting()
 {
     DeviceMonitor* monitor=_device->GetDeviceMonitor();
-    qDebug()<<" SLAPrintController::CanContinuePrinting()"<<(_current_status==Paused)  << (_wanted_status!=Printing) << (_wanted_status!=Resuming) << (monitor->IsPrinting());
     if(_current_status==Paused  && _wanted_status!=Printing && _wanted_status!=Resuming && monitor->IsPrinting())
         return true;
     else

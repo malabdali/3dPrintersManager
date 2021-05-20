@@ -339,7 +339,6 @@ void Device::OnDetectPort(QByteArray port)
     _port_detector->deleteLater();
     _port_detector=nullptr;
     CalculateAndSetStatus();
-    qDebug()<<"port"<<port;
     if(port.isEmpty()){
         emit DetectPortFailed();
     }

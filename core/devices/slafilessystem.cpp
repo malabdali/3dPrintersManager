@@ -60,24 +60,20 @@ void SLAFilesSystem::UploadFile(QByteArray fileName)
     _wait_for_upload.append(fileName);
     if(_wait_for_upload.length()==1 && !IsStillUploading())
     {
-        qDebug()<<"SLAFilesSystem::UploadFile 1";
         QString filename=_wait_for_upload[0];
         QByteArray filename2=QUrl(filename).fileName().replace(QRegularExpression(R"(\.\w+$)"),"."+_extension).toUtf8();
         if(_files.contains(FileInfo(filename2)))
         {
-            qDebug()<<"SLAFilesSystem::UploadFile 2";
             DeleteLocaleFile("files/"+filename2);
             _files.removeAll(FileInfo(filename2));
             emit FileListUpdated();
         }
         _load_file=new LoadPrintableFuture(filename,[this,filename](QList<QByteArray> array,QByteArray data)->void{
-            qDebug()<<"SLAFilesSystem::UploadFile 3";
             _load_file=nullptr;
             _uploading_file_content=data;
             QByteArray filename2=QUrl(filename).fileName().replace(QRegularExpression(R"(\.\w+$)"),"."+_extension).toUtf8();
             GCode::Chitu::ChituUploadFile* gcode=new GCode::Chitu::ChituUploadFile(this->_device,filename2,array,_upload_speed);
             this->_uploading_file=gcode;
-            qDebug()<<filename2;
             _device->AddGCodeCommand(gcode);
             emit FileListUpdated();
         },0,false,0x500,this);
@@ -92,24 +88,20 @@ void SLAFilesSystem::UploadNext()
 {
     if(_wait_for_upload.length()>0 && !IsStillUploading())
     {
-        qDebug()<<"SLAFilesSystem::UploadFile 1";
         QString filename=_wait_for_upload[0];
         QByteArray filename2=QUrl(filename).fileName().replace(QRegularExpression(R"(\.\w+$)"),"."+_extension).toUtf8();
         if(_files.contains(FileInfo(filename2)))
         {
-            qDebug()<<"SLAFilesSystem::UploadFile 2";
             DeleteLocaleFile("files/"+filename2);
             _files.removeAll(FileInfo(filename2));
             emit FileListUpdated();
         }
         _load_file=new LoadPrintableFuture(filename,[this,filename](QList<QByteArray> array,QByteArray data)->void{
-            qDebug()<<"SLAFilesSystem::UploadFile 3";
             _load_file=nullptr;
             _uploading_file_content=data;
             QByteArray filename2=QUrl(filename).fileName().replace(QRegularExpression(R"(\.\w+$)"),"."+_extension).toUtf8();
             GCode::Chitu::ChituUploadFile* gcode=new GCode::Chitu::ChituUploadFile(this->_device,filename2,array,_upload_speed);
             this->_uploading_file=gcode;
-            qDebug()<<filename2;
             _device->AddGCodeCommand(gcode);
             emit FileListUpdated();
         },0,false,0x500,this);
@@ -214,7 +206,6 @@ void SLAFilesSystem::WhenFileUploaded(GCode::Chitu::ChituUploadFile *uploadFile)
 
 void SLAFilesSystem::WhenFileListUpdated(GCode::Chitu::ChituFilesList * fs)
 {
-    qDebug()<<"SLAFilesSystem::WhenFileListUpdated";
     auto list=fs->GetFilesList();
     _files.clear();
     QStringList sl=this->GetLocaleFiles(LOCALE_GCODE_PATH,"."+_extension);
